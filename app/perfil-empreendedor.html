@@ -1,0 +1,158 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Perfil Empreendedor | Axon</title>
+    <meta
+      name="description"
+      content="Descubra como você gera valor hoje, o que está travando seu crescimento e qual modelo de implementação faz mais sentido para o seu momento."
+    />
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Space+Grotesk:wght@400;500;700&display=swap"
+      rel="stylesheet"
+    />
+    <link rel="stylesheet" href="./styles.css" />
+  </head>
+  <body data-page="perfil-empreendedor">
+    <div class="site-bg"></div>
+    <header class="topbar">
+      <a class="brand" href="./index.html" aria-label="Axon">
+        <img class="brand-logo" src="../source-material/Simbolo Axon Branco.png" alt="Simbolo Axon" />
+        <span class="brand-copy"><strong>Axon</strong><small>Seu tempo é a única moeda.</small></span>
+      </a>
+      <button class="menu-toggle" type="button" aria-expanded="false" aria-controls="site-nav">Menu</button>
+      <nav id="site-nav" class="site-nav">
+        <a href="./deploy.html">Deploy</a>
+        <a href="./operacao-comercial.html">Operação Comercial</a>
+        <a href="./consultoria.html">Consultoria</a>
+        <a href="./perfil-empreendedor.html">Perfil Empreendedor</a>
+        <a href="./sobre.html">Sobre</a>
+      </nav>
+    </header>
+    <main class="page-main">
+      <section class="page-hero section">
+        <div class="section-heading narrow">
+          <span class="status-label">Diagnóstico inicial</span>
+          <h1>Você já gera valor. A questão é se isso está organizado.</h1>
+          <p>
+            Em 2 minutos, descubra como você opera hoje e o que pode estar travando seu
+            crescimento. Este não é um teste clínico. É um diagnóstico prático de como você gera
+            valor e onde sua operação tende a emperrar.
+          </p>
+        </div>
+      </section>
+
+      <section class="section content-grid">
+        <article class="panel">
+          <h2>O que este diagnóstico entrega</h2>
+          <ul class="check-list">
+            <li>Seu perfil operacional dominante no negócio</li>
+            <li>Sua motivação dominante para empreender</li>
+            <li>Seu estilo comportamental mais visível</li>
+            <li>Principal risco, ponto cego e próximo passo recomendado</li>
+          </ul>
+        </article>
+
+        <form id="profile-gate-form" class="lead-form panel">
+          <h2>Liberar diagnóstico</h2>
+          <div class="form-grid">
+            <label>
+              Nome
+              <input type="text" name="name" placeholder="Seu nome" required />
+            </label>
+            <label>
+              E-mail
+              <input type="email" name="email" placeholder="voce@empresa.com" required />
+            </label>
+            <label class="full">
+              WhatsApp
+              <input type="tel" name="phone" placeholder="(00) 00000-0000" />
+            </label>
+          </div>
+          <div class="form-actions">
+            <button class="button button-primary" type="submit">Começar diagnóstico</button>
+          </div>
+        </form>
+      </section>
+
+      <section id="entrepreneur-quiz-section" class="section hidden">
+        <div class="section-heading narrow">
+          <h2>Diagnóstico do Perfil Empreendedor</h2>
+          <p>
+            Responda com sinceridade. O foco aqui não é parecer melhor. É descobrir como você opera
+            hoje e onde isso pode estar travando o negócio.
+          </p>
+        </div>
+
+        <form id="entrepreneur-quiz-form" class="lead-form panel">
+          <div id="entrepreneur-questions" class="question-stack"></div>
+          <div class="form-actions">
+            <button class="button button-primary" type="submit">Ver meu diagnóstico</button>
+          </div>
+        </form>
+      </section>
+
+      <section id="entrepreneur-result-section" class="section hidden">
+        <div class="section-heading narrow">
+          <h2>Seu diagnóstico inicial</h2>
+          <p>
+            Isso é um baseline. O mais importante agora não é o rótulo, e sim o que o resultado
+            revela sobre sua operação e seu próximo passo.
+          </p>
+        </div>
+
+        <div class="panel result-hero">
+          <p id="result-composite" class="result-composite"></p>
+          <h3 id="result-title">Seu perfil aparece aqui.</h3>
+          <p id="result-description"></p>
+        </div>
+
+        <div class="result-grid">
+          <article class="panel">
+            <h3>Principal risco</h3>
+            <p id="result-risk"></p>
+          </article>
+          <article class="panel">
+            <h3>Ponto cego</h3>
+            <p id="result-blindspot"></p>
+          </article>
+          <article class="panel">
+            <h3>Próximo passo</h3>
+            <p id="result-next-step"></p>
+          </article>
+        </div>
+
+        <div class="content-grid">
+          <article class="panel">
+            <h3>Leitura por camada</h3>
+            <div id="result-layers" class="layer-stack"></div>
+          </article>
+          <article class="panel">
+            <h3>CTA recomendado</h3>
+            <p id="result-cta-copy"></p>
+            <div class="hero-actions">
+              <a id="result-cta-link" class="button button-primary" href="./consultoria.html">Aprofundar agora</a>
+              <a class="button button-secondary" href="./index.html#offers-section">Ver modelos de implementação</a>
+            </div>
+          </article>
+        </div>
+      </section>
+    </main>
+    <footer class="site-footer">
+      <div><p>Axon</p><small>Seu tempo é a única moeda.</small></div>
+      <div class="footer-links">
+        <a href="./index.html">Home</a>
+        <a href="./deploy.html">Deploy</a>
+        <a href="./operacao-comercial.html">Operação Comercial</a>
+      </div>
+      <div class="footer-links">
+        <a href="./termos.html">Termos</a>
+        <a href="./privacidade.html">Privacidade</a>
+      </div>
+    </footer>
+    <script src="./script.js"></script>
+  </body>
+</html>

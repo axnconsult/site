@@ -1,0 +1,131 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Consultoria | Axon</title>
+    <meta
+      name="description"
+      content="Consultoria da Axon para pequenas e médias empresas estruturarem CRM, funil, automação e operação comercial."
+    />
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Space+Grotesk:wght@400;500;700&display=swap"
+      rel="stylesheet"
+    />
+    <link rel="stylesheet" href="./styles.css" />
+  </head>
+  <body data-page="consultoria">
+    <div class="site-bg"></div>
+    <header class="topbar">
+      <a class="brand" href="./index.html" aria-label="Axon">
+        <img class="brand-logo" src="../source-material/Simbolo Axon Branco.png" alt="Simbolo Axon" />
+        <span class="brand-copy"><strong>Axon</strong><small>Seu tempo é a única moeda.</small></span>
+      </a>
+      <button class="menu-toggle" type="button" aria-expanded="false" aria-controls="site-nav">Menu</button>
+      <nav id="site-nav" class="site-nav">
+        <a href="./deploy.html">Deploy</a>
+        <a href="./operacao-comercial.html">Operação Comercial</a>
+        <a href="./consultoria.html">Consultoria</a>
+        <a href="./perfil-empreendedor.html">Perfil Empreendedor</a>
+        <a href="./sobre.html">Sobre</a>
+      </nav>
+    </header>
+    <main class="page-main">
+      <section class="page-hero section">
+        <div class="section-heading narrow">
+          <span class="status-label">Projeto personalizado</span>
+          <h1>Consultoria personalizada para empresas que detestam vender no improviso.</h1>
+          <p>
+            Atualize seus processos com automação e IA de uma maneira simples, eficiente e comercialmente útil.
+          </p>
+        </div>
+      </section>
+      <section class="section">
+        <div class="section-heading">
+          <h2>Da arquitetura comercial ao acompanhamento da operação.</h2>
+          <p>Para empresas que já precisam vender melhor, responder mais rápido e operar com menos atrito.</p>
+        </div>
+        <div class="steps-grid">
+          <article class="step-card">
+            <span>01</span>
+            <h3>Diagnóstico e arquitetura</h3>
+            <p>Levantamento da maturidade da operação e blueprint atual para orientar a evolução comercial.</p>
+          </article>
+          <article class="step-card">
+            <span>02</span>
+            <h3>Relacionamento com clientes</h3>
+            <p>Pipeline, automações básicas, relatórios e organização do relacionamento comercial.</p>
+          </article>
+          <article class="step-card">
+            <span>03</span>
+            <h3>Integração da jornada</h3>
+            <p>Divulgação, atendimento e follow-up para não deixar oportunidade morrer.</p>
+          </article>
+        </div>
+      </section>
+      <section class="section">
+        <article class="panel">
+          <h3>Indicada para</h3>
+          <ul class="check-list">
+            <li>Empresas com demanda comercial real e necessidade de escalonamento</li>
+            <li>Times que já vendem, mas perdem muito tempo com rotinas automáticas</li>
+            <li>Negócios iniciando novos produtos ou começando do zero</li>
+          </ul>
+        </article>
+      </section>
+      <section class="section form-section" id="consultoria-form">
+        <div class="section-heading">
+          <h2>Peça um diagnóstico inicial da Axon.</h2>
+          <p>Preencha os dados abaixo para começarmos a entender sua operação, seu gargalo e o que precisa entrar em funcionamento nos próximos 90 dias.</p>
+        </div>
+        <form class="lead-form panel" data-form-type="consultoria">
+          <input type="hidden" name="interest" value="Consultoria" />
+          <div class="form-grid">
+            <label>Nome<input type="text" name="name" required /></label>
+            <label>E-mail<input type="email" name="email" required /></label>
+            <label>Empresa<input type="text" name="company" required /></label>
+            <label>
+              Faixa de operação
+              <select name="company_size">
+                <option value="Solo ou micro">Solo ou micro</option>
+                <option value="Pequena empresa">Pequena empresa</option>
+                <option value="Media empresa">Média empresa</option>
+              </select>
+            </label>
+            <label class="full">
+              Como sua empresa capta clientes hoje?
+              <textarea name="acquisition" rows="3" required></textarea>
+            </label>
+            <label class="full">
+              Onde está o maior gargalo: marketing, atendimento, CRM, follow-up ou fechamento?
+              <textarea name="bottleneck" rows="3" required></textarea>
+            </label>
+            <label class="full">
+              O que você quer ter funcionando nos próximos 90 dias?
+              <textarea name="message" rows="4"></textarea>
+            </label>
+          </div>
+          <div class="form-actions">
+            <button class="button button-primary" type="submit">Pedir diagnóstico</button>
+          </div>
+        </form>
+      </section>
+    </main>
+    <footer class="site-footer">
+      <div><p>Axon</p><small>Seu tempo é a única moeda.</small></div>
+      <div class="footer-links">
+        <a href="./index.html">Home</a>
+        <a href="./deploy.html">Deploy</a>
+        <a href="./operacao-comercial.html">Operação Comercial</a>
+      </div>
+      <div class="footer-links">
+        <a href="./perfil-empreendedor.html">Perfil Empreendedor</a>
+        <a href="./termos.html">Termos</a>
+        <a href="./privacidade.html">Privacidade</a>
+      </div>
+    </footer>
+    <script src="./script.js"></script>
+  </body>
+</html>

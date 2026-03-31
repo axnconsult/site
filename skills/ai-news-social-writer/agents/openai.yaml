@@ -1,0 +1,4 @@
+interface:
+  display_name: "Curadoria IA Social"
+  short_description: "Seleciona noticias de IA e vira posts sociais"
+  default_prompt: "Use $ai-news-social-writer para selecionar cinco noticias criveis de IA, oferecer refresh com as posicoes 6 a 10 e escrever um post para a plataforma que eu escolher."

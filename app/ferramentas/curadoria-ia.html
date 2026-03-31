@@ -1,0 +1,148 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Curadoria de IA | Axon</title>
+    <meta
+      name="description"
+      content="Ferramenta da Axon para selecionar noticias de IA, trocar a shortlist com refresh e gerar posts para Instagram, X, LinkedIn ou Blog."
+    />
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Space+Grotesk:wght@400;500;700&display=swap"
+      rel="stylesheet"
+    />
+    <link rel="stylesheet" href="../styles.css" />
+  </head>
+  <body data-page="curadoria-ia">
+    <div class="site-bg"></div>
+    <header class="topbar">
+      <a class="brand" href="../index.html" aria-label="Axon">
+        <img class="brand-logo" src="../../source-material/Simbolo Axon Branco.png" alt="Simbolo Axon" />
+        <span class="brand-copy"><strong>Axon</strong><small>Seu tempo é a única moeda.</small></span>
+      </a>
+      <button class="menu-toggle" type="button" aria-expanded="false" aria-controls="site-nav">Menu</button>
+      <nav id="site-nav" class="site-nav">
+        <a href="../deploy.html">Deploy</a>
+        <a href="../operacao-comercial.html">Operação Comercial</a>
+        <a href="../consultoria.html">Consultoria</a>
+        <a href="../perfil-empreendedor.html">Perfil Empreendedor</a>
+        <a href="../sobre.html">Sobre</a>
+      </nav>
+    </header>
+    <main class="page-main">
+      <section class="page-hero section">
+        <div class="section-heading narrow">
+          <p class="eyebrow">Ferramentas Axon</p>
+          <h1>Escolha a pauta, troque a shortlist e saia com o post pronto.</h1>
+          <p>
+            Esta versao do MVP segue a logica da skill de curadoria da Axon: primeiro a shortlist
+            de noticias, depois a escolha da plataforma e a escrita final.
+          </p>
+        </div>
+      </section>
+
+      <section class="section content-grid">
+        <form id="news-profile-form" class="lead-form panel">
+          <p class="eyebrow">Etapa 1</p>
+          <h2>Contexto do perfil</h2>
+          <div class="form-grid">
+            <label class="full">
+              Nicho ou oferta
+              <textarea name="niche" rows="3" placeholder="Ex.: consultoria para implementacao comercial com IA." required></textarea>
+            </label>
+            <label class="full">
+              Publico-alvo
+              <textarea name="audience" rows="3" placeholder="Ex.: donos de pequenas empresas que precisam vender melhor." required></textarea>
+            </label>
+            <label class="full">
+              Tom de voz
+              <textarea name="voice" rows="3" placeholder="Ex.: direto, pratico, anti-teoria e orientado a execucao." required></textarea>
+            </label>
+            <label class="full">
+              Objetivo do conteúdo
+              <textarea name="goal" rows="3" placeholder="Ex.: gerar autoridade e puxar conversas sobre IA aplicada ao negocio." required></textarea>
+            </label>
+          </div>
+          <div class="form-actions">
+            <button class="button button-primary" type="submit">Selecionar noticias</button>
+            <button class="button button-secondary" type="button" id="news-fill-demo">Preencher exemplo</button>
+          </div>
+        </form>
+
+        <article class="panel">
+          <p class="eyebrow">Como funciona</p>
+          <h2>Fluxo em duas etapas.</h2>
+          <ul class="check-list">
+            <li>Você define o contexto do perfil</li>
+            <li>A ferramenta mostra o top 5 inicial</li>
+            <li>[Refresh] troca para as posicoes 6 a 10</li>
+            <li>Você escolhe uma notícia e a plataforma</li>
+            <li>A ferramenta gera um rascunho de post</li>
+          </ul>
+        </article>
+      </section>
+
+      <section id="news-panel" class="section hidden">
+        <div class="section-heading">
+          <p class="eyebrow">Etapa 2</p>
+          <h2>Shortlist de noticias de IA</h2>
+          <p id="news-batch-label">Top 5 para postar agora.</p>
+        </div>
+        <div class="form-actions">
+          <button id="refresh-news" class="button button-secondary" type="button">[Refresh]</button>
+        </div>
+        <div id="news-list" class="news-list"></div>
+      </section>
+
+      <section id="news-compose-panel" class="section hidden">
+        <div class="section-heading">
+          <p class="eyebrow">Etapa 3</p>
+          <h2>Escolha a plataforma</h2>
+          <p id="selected-news-chip"></p>
+        </div>
+        <div class="platform-grid" id="platform-grid">
+          <button class="platform-card" type="button" data-platform="Instagram">Instagram</button>
+          <button class="platform-card" type="button" data-platform="X">X</button>
+          <button class="platform-card" type="button" data-platform="LinkedIn">LinkedIn</button>
+          <button class="platform-card" type="button" data-platform="Blog">Blog</button>
+        </div>
+        <div class="form-actions">
+          <button id="generate-news-post" class="button button-primary" type="button">Gerar texto</button>
+        </div>
+      </section>
+
+      <section id="news-output-panel" class="section hidden">
+        <div class="section-heading">
+          <p class="eyebrow">Saida</p>
+          <h2>Post sugerido</h2>
+        </div>
+        <div class="panel tool-output-panel">
+          <div class="output-header">
+            <div>
+              <p class="eyebrow" id="news-output-platform"></p>
+              <h3 id="news-output-title">Titulo da noticia</h3>
+            </div>
+            <button id="copy-news-post" class="button button-secondary" type="button">Copiar</button>
+          </div>
+          <pre id="news-post-output" class="prompt-output">Seu texto vai aparecer aqui.</pre>
+        </div>
+      </section>
+    </main>
+    <footer class="site-footer">
+      <div><p>Axon</p><small>Seu tempo é a única moeda.</small></div>
+      <div class="footer-links">
+        <a href="../index.html">Home</a>
+        <a href="../perfil-empreendedor.html">Perfil Empreendedor</a>
+        <a href="../sobre.html">Sobre</a>
+      </div>
+      <div class="footer-links">
+        <a href="../termos.html">Termos</a>
+        <a href="../privacidade.html">Privacidade</a>
+      </div>
+    </footer>
+    <script src="../script.js"></script>
+  </body>
+</html>
