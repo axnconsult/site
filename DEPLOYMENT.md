@@ -4,7 +4,7 @@ Resumo tecnico do deploy:
 
 - site estatico servido por `nginx`
 - publicacao pelo `Hostinger Docker Manager`
-- roteamento por `Traefik`
+- roteamento pelo `Traefik` que ja roda no projeto `n8n`
 - formularios enviados para webhooks do `n8n`
 
 ## Dominios
@@ -19,6 +19,22 @@ Resumo tecnico do deploy:
 - `Dockerfile` -> monta a imagem do site
 - `nginx.conf` -> configura o servidor web
 - `app/` -> conteudo estatico publicado
+
+## Topologia real da VPS
+
+Hoje a VPS ja tem:
+
+- um projeto `n8n`
+- um container `n8n-traefik-1`
+- a rede Docker `n8n_default`
+
+Por isso o site da Axon deve:
+
+- entrar na rede `n8n_default`
+- usar o mesmo `Traefik`
+- usar o resolver `mytlschallenge`
+
+O site nao deve usar `traefik-public`, porque essa rede nao existe no ambiente atual.
 
 ## Fluxo recomendado
 
@@ -59,6 +75,13 @@ Fase 1:
 Fase 2:
 
 - `Postgres` dedicado para leads, triagens e resultados
+
+## Cuidados importantes
+
+- nao subir um segundo `Traefik`
+- nao ocupar manualmente as portas `80` e `443`
+- nao alterar o compose do projeto `n8n`
+- se o projeto do site falhar, excluir a tentativa anterior e subir de novo com o compose corrigido
 
 ## Stripe
 

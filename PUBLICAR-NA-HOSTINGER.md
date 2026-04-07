@@ -71,18 +71,27 @@ https://github.com/seuusuario/axon-site.git
 No painel da Hostinger:
 
 1. Abra `Gerenciador Docker`
-2. Clique em `Compose`
-3. Clique em `Compose a partir de URL`
-4. Cole a URL do repositório
-5. Use `axon-site` como nome do projeto
-6. Confirme o deploy
+2. Se existir uma tentativa anterior do site em estado `Criado`, exclua essa tentativa
+3. Clique em `Compose`
+4. Clique em `Compose a partir de URL`
+5. Cole a URL do repositorio
+6. Use `axon-site` como nome do projeto
+7. Confirme o deploy
 
 O compose deste projeto ja esta preparado para:
 
 - construir o container com `Dockerfile`
 - servir o site em `nginx`
-- usar a rede `traefik-public`
+- entrar na rede `n8n_default`
+- ser lido pelo `Traefik` que ja esta no projeto `n8n`
+- usar o resolver `mytlschallenge`
 - responder ao dominio `axnconsult.com.br`
+
+Importante:
+
+- nao crie um segundo `Traefik`
+- nao publique portas manualmente no projeto do site
+- o proxy publico da VPS ja esta sendo feito por `n8n-traefik-1`
 
 ## Parte 5: apontar o dominio
 
@@ -154,7 +163,7 @@ Assim voce separa o problema em duas partes:
 
 - `app/runtime-config.js` preenchido
 - projeto commitado
-- projeto enviado para repositório remoto
+- projeto enviado para repositorio remoto
 - Docker Manager com novo projeto `axon-site`
 - dominio apontando para a VPS
 - site abrindo em HTTPS
@@ -184,6 +193,8 @@ Verifique:
 
 Verifique:
 
-- se a URL do repositório esta correta
-- se o repositório tem `docker-compose.yml` na raiz
+- se a URL do repositorio esta correta
+- se o repositorio tem `docker-compose.yml` na raiz
 - se `Dockerfile`, `nginx.conf` e `app/` tambem estao na raiz
+- se o compose esta usando `n8n_default`
+- se o certresolver esta como `mytlschallenge`
