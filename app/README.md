@@ -1,6 +1,6 @@
 # Axon Site MVP
 
-MVP estatico multipagina para a Axon, pensado para depois migrar sem retrabalho conceitual para uma stack com `Next.js + Coolify`.
+Site estatico multipagina da Axon, preparado para publicacao imediata em VPS com Docker, Traefik e captura de leads via `n8n`.
 
 ## Paginas
 
@@ -24,8 +24,16 @@ cd C:\Users\leona\Documents\Jobs\Codex_Axn\app
 npx serve .
 ```
 
+## Configuracao
+
+- `runtime-config.js`: links de redes, webhooks do `n8n` e futuros links de checkout
+
 ## Observacoes
 
-- Os formularios salvam os envios em `localStorage` para demonstrar o fluxo.
-- O proximo passo natural e conectar formularios a HubSpot, Resend e checkout externo.
-- Os links de redes sociais estao em `script.js` e devem ser trocados pelos links reais da Axon.
+- Os formularios agora enviam `POST` para webhooks remotos.
+- Os endpoints padrao esperados sao:
+  - `https://hooks.axnconsult.com.br/site-lead`
+  - `https://hooks.axnconsult.com.br/site-consultoria`
+  - `https://hooks.axnconsult.com.br/site-perfil`
+- O proximo passo natural e ligar Stripe e um banco dedicado sem refazer o front.
+- Veja `DEPLOYMENT.md` e `N8N_WEBHOOKS.md`.

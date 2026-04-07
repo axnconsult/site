@@ -1,10 +1,25 @@
-const AXON_CONFIG = {
+const DEFAULT_AXON_CONFIG = {
   social: {
     instagram: "https://instagram.com/",
     youtube: "https://youtube.com/",
     linkedin: "https://linkedin.com/"
+  },
+  webhooks: {
+    lead: "https://hooks.axnconsult.com.br/site-lead",
+    consultoria: "https://hooks.axnconsult.com.br/site-consultoria",
+    perfil: "https://hooks.axnconsult.com.br/site-perfil"
+  },
+  checkout: {
+    deploy: "",
+    operacaoComercial: "",
+    consultoria: ""
   }
 };
+
+const AXON_CONFIG = mergeConfig(
+  DEFAULT_AXON_CONFIG,
+  typeof window !== "undefined" ? window.AXON_RUNTIME_CONFIG || {} : {}
+);
 
 const THANK_YOU_COPY = {
   curso: {
@@ -399,48 +414,146 @@ function injectSocialLinks() {
 
 function wireForms() {
   document.querySelectorAll("[data-form-type]").forEach((form) => {
-    form.addEventListener("submit", (event) => {
+    form.addEventListener("submit", async (event) => {
       event.preventDefault();
 
       const formData = new FormData(form);
       const payload = formDataToObject(formData);
       const formType = form.dataset.formType || "curso";
+      const endpoint = getWebhookEndpoint(formType);
+      const submitButton = form.querySelector('button[type="submit"]');
+      const originalButtonText = submitButton ? submitButton.textContent : "";
+      const status = ensureFormStatus(form);
 
-      saveLead(formType, payload);
+      clearFormStatus(status);
+      setFormLoading(submitButton, true, "Enviando...");
 
       if (formType === "ferramenta") {
-        window.localStorage.setItem("axonToolUnlocked", "true");
-        const tool = document.querySelector("#tool-builder");
-        if (tool) {
-          tool.classList.remove("hidden");
-          tool.scrollIntoView({ behavior: "smooth", block: "start" });
+        try {
+          await submitWebhook(endpoint, {
+            ...buildSubmissionMeta(formType),
+            ...payload
+          });
+
+          window.localStorage.setItem("axonToolUnlocked", "true");
+          const tool = document.querySelector("#tool-builder");
+          if (tool) {
+            tool.classList.remove("hidden");
+            tool.scrollIntoView({ behavior: "smooth", block: "start" });
+          }
+          form.classList.add("hidden");
+          setFormStatus(status, "success", "Ferramenta liberada.");
+        } catch (error) {
+          setFormStatus(status, "error", "Nao foi possivel liberar a ferramenta agora. Tente novamente.");
+        } finally {
+          setFormLoading(submitButton, false, originalButtonText);
         }
-        form.classList.add("hidden");
         return;
       }
 
-      const query = new URLSearchParams({
-        type: formType,
-        interest: payload.interest || ""
-      });
-      const isNested = window.location.pathname.includes("/ferramentas/");
-      const target = isNested ? "../obrigado.html" : "./obrigado.html";
-      window.location.href = `${target}?${query.toString()}`;
+      try {
+        await submitWebhook(endpoint, {
+          ...buildSubmissionMeta(formType),
+          ...payload
+        });
+
+        const query = new URLSearchParams({
+          type: formType,
+          interest: payload.interest || ""
+        });
+        const isNested = window.location.pathname.includes("/ferramentas/");
+        const target = isNested ? "../obrigado.html" : "./obrigado.html";
+        window.location.href = `${target}?${query.toString()}`;
+      } catch (error) {
+        setFormStatus(status, "error", "Nao foi possivel enviar agora. Verifique a conexao e tente novamente.");
+      } finally {
+        setFormLoading(submitButton, false, originalButtonText);
+      }
     });
   });
 }
 
-function saveLead(formType, payload) {
-  const key = "axonLeads";
-  const leads = JSON.parse(window.localStorage.getItem(key) || "[]");
-  leads.push({
+function getWebhookEndpoint(formType) {
+  if (formType === "consultoria") {
+    return AXON_CONFIG.webhooks.consultoria;
+  }
+
+  if (formType === "perfil_empreendedor") {
+    return AXON_CONFIG.webhooks.perfil;
+  }
+
+  return AXON_CONFIG.webhooks.lead;
+}
+
+function buildSubmissionMeta(formType) {
+  return {
     formType,
     page: window.location.pathname,
     title: document.title,
-    payload,
     createdAt: new Date().toISOString()
+  };
+}
+
+async function submitWebhook(endpoint, payload) {
+  const response = await fetch(endpoint, {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json"
+    },
+    body: JSON.stringify(payload)
   });
-  window.localStorage.setItem(key, JSON.stringify(leads));
+
+  if (!response.ok) {
+    throw new Error(`Webhook request failed with status ${response.status}`);
+  }
+
+  const contentType = response.headers.get("content-type") || "";
+  if (contentType.includes("application/json")) {
+    return response.json();
+  }
+
+  return response.text();
+}
+
+function ensureFormStatus(form) {
+  let status = form.querySelector(".form-status");
+  if (!status) {
+    status = document.createElement("p");
+    status.className = "form-status";
+    form.appendChild(status);
+  }
+  return status;
+}
+
+function clearFormStatus(status) {
+  if (!status) {
+    return;
+  }
+
+  status.textContent = "";
+  status.classList.remove("form-status-success", "form-status-error");
+}
+
+function setFormStatus(status, kind, message) {
+  if (!status) {
+    return;
+  }
+
+  status.textContent = message;
+  status.classList.remove("form-status-success", "form-status-error");
+  status.classList.add(kind === "success" ? "form-status-success" : "form-status-error");
+}
+
+function setFormLoading(button, isLoading, loadingText) {
+  if (!button) {
+    return;
+  }
+
+  button.disabled = isLoading;
+  button.classList.toggle("is-loading", isLoading);
+  if (isLoading) {
+    button.textContent = loadingText;
+  }
 }
 
 function formDataToObject(formData) {
@@ -484,33 +597,56 @@ function wireEntrepreneurProfile() {
   }
 
   renderEntrepreneurQuestions(questionsRoot);
+  let leadPayload = null;
+  const gateStatus = ensureFormStatus(gateForm);
+  const quizStatus = ensureFormStatus(quizForm);
 
   gateForm.addEventListener("submit", (event) => {
     event.preventDefault();
-    const payload = formDataToObject(new FormData(gateForm));
-    saveLead("perfil_empreendedor", {
-      ...payload,
+    leadPayload = {
+      ...formDataToObject(new FormData(gateForm)),
       interest: "Perfil Empreendedor"
-    });
-
-    window.localStorage.setItem("axonEntrepreneurLead", JSON.stringify(payload));
+    };
+    clearFormStatus(gateStatus);
     gateForm.classList.add("hidden");
     quizSection.classList.remove("hidden");
     quizSection.scrollIntoView({ behavior: "smooth", block: "start" });
   });
 
-  quizForm.addEventListener("submit", (event) => {
+  quizForm.addEventListener("submit", async (event) => {
     event.preventDefault();
     const answers = formDataToObject(new FormData(quizForm));
+    const submitButton = quizForm.querySelector('button[type="submit"]');
+    const originalButtonText = submitButton ? submitButton.textContent : "";
     if (!allQuestionsAnswered(answers)) {
       return;
     }
 
+    if (!leadPayload) {
+      setFormStatus(quizStatus, "error", "Preencha seus dados antes de gerar o diagnostico.");
+      return;
+    }
+
     const result = evaluateEntrepreneurProfile(answers);
-    window.localStorage.setItem("axonEntrepreneurResult", JSON.stringify(result));
-    paintEntrepreneurResult(result);
-    resultSection.classList.remove("hidden");
-    resultSection.scrollIntoView({ behavior: "smooth", block: "start" });
+    clearFormStatus(quizStatus);
+    setFormLoading(submitButton, true, "Calculando...");
+
+    try {
+      await submitWebhook(getWebhookEndpoint("perfil_empreendedor"), {
+        ...buildSubmissionMeta("perfil_empreendedor"),
+        lead: leadPayload,
+        answers,
+        result
+      });
+
+      paintEntrepreneurResult(result);
+      resultSection.classList.remove("hidden");
+      resultSection.scrollIntoView({ behavior: "smooth", block: "start" });
+    } catch (error) {
+      setFormStatus(quizStatus, "error", "Nao foi possivel salvar seu diagnostico agora. Tente novamente.");
+    } finally {
+      setFormLoading(submitButton, false, originalButtonText);
+    }
   });
 }
 
@@ -968,6 +1104,25 @@ function wireThankYouPage() {
   const content = THANK_YOU_COPY[type] || THANK_YOU_COPY.curso;
   title.textContent = content.title;
   copy.textContent = content.copy;
+}
+
+function mergeConfig(base, override) {
+  return {
+    ...base,
+    ...override,
+    social: {
+      ...base.social,
+      ...(override.social || {})
+    },
+    webhooks: {
+      ...base.webhooks,
+      ...(override.webhooks || {})
+    },
+    checkout: {
+      ...base.checkout,
+      ...(override.checkout || {})
+    }
+  };
 }
 
 function compact(value) {
