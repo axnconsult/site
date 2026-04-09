@@ -6,7 +6,7 @@
     <title>Curadoria de IA | Axon</title>
     <meta
       name="description"
-      content="Ferramenta da Axon para selecionar noticias de IA, trocar a shortlist com refresh e gerar posts para Instagram, X, LinkedIn ou Blog."
+      content="Ferramenta da Axon para selecionar notícias de IA, trocar a shortlist com refresh e gerar posts para Instagram, X, LinkedIn ou Blog."
     />
     <link rel="preconnect" href="https://fonts.googleapis.com" />
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
@@ -20,7 +20,7 @@
     <div class="site-bg"></div>
     <header class="topbar">
       <a class="brand" href="../index.html" aria-label="Axon">
-        <img class="brand-logo" src="../../source-material/Simbolo Axon Branco.png" alt="Simbolo Axon" />
+        <img class="brand-logo" src="../assets/simbolo-axon-branco.png" alt="Símbolo Axon" />
         <span class="brand-copy"><strong>Axon</strong><small>Seu tempo é a única moeda.</small></span>
       </a>
       <button class="menu-toggle" type="button" aria-expanded="false" aria-controls="site-nav">Menu</button>
@@ -38,8 +38,7 @@
           <p class="eyebrow">Ferramentas Axon</p>
           <h1>Escolha a pauta, troque a shortlist e saia com o post pronto.</h1>
           <p>
-            Esta versao do MVP segue a logica da skill de curadoria da Axon: primeiro a shortlist
-            de noticias, depois a escolha da plataforma e a escrita final.
+            Esta versão do MVP segue a lógica da skill de curadoria da Axon: primeiro a shortlist de notícias, depois a escolha da plataforma e a escrita final.
           </p>
         </div>
       </section>
@@ -51,23 +50,23 @@
           <div class="form-grid">
             <label class="full">
               Nicho ou oferta
-              <textarea name="niche" rows="3" placeholder="Ex.: consultoria para implementacao comercial com IA." required></textarea>
+              <textarea name="niche" rows="3" placeholder="Ex.: consultoria para implementação comercial com IA." required></textarea>
             </label>
             <label class="full">
-              Publico-alvo
+              Público-alvo
               <textarea name="audience" rows="3" placeholder="Ex.: donos de pequenas empresas que precisam vender melhor." required></textarea>
             </label>
             <label class="full">
               Tom de voz
-              <textarea name="voice" rows="3" placeholder="Ex.: direto, pratico, anti-teoria e orientado a execucao." required></textarea>
+              <textarea name="voice" rows="3" placeholder="Ex.: direto, prático, anti-teoria e orientado à execução." required></textarea>
             </label>
             <label class="full">
               Objetivo do conteúdo
-              <textarea name="goal" rows="3" placeholder="Ex.: gerar autoridade e puxar conversas sobre IA aplicada ao negocio." required></textarea>
+              <textarea name="goal" rows="3" placeholder="Ex.: gerar autoridade e puxar conversas sobre IA aplicada ao negócio." required></textarea>
             </label>
           </div>
           <div class="form-actions">
-            <button class="button button-primary" type="submit">Selecionar noticias</button>
+            <button class="button button-primary" type="submit">Selecionar notícias</button>
             <button class="button button-secondary" type="button" id="news-fill-demo">Preencher exemplo</button>
           </div>
         </form>
@@ -78,7 +77,7 @@
           <ul class="check-list">
             <li>Você define o contexto do perfil</li>
             <li>A ferramenta mostra o top 5 inicial</li>
-            <li>[Refresh] troca para as posicoes 6 a 10</li>
+            <li>[Refresh] troca para as posições 6 a 10</li>
             <li>Você escolhe uma notícia e a plataforma</li>
             <li>A ferramenta gera um rascunho de post</li>
           </ul>
@@ -88,7 +87,7 @@
       <section id="news-panel" class="section hidden">
         <div class="section-heading">
           <p class="eyebrow">Etapa 2</p>
-          <h2>Shortlist de noticias de IA</h2>
+          <h2>Shortlist de notícias de IA</h2>
           <p id="news-batch-label">Top 5 para postar agora.</p>
         </div>
         <div class="form-actions">
@@ -116,14 +115,14 @@
 
       <section id="news-output-panel" class="section hidden">
         <div class="section-heading">
-          <p class="eyebrow">Saida</p>
+          <p class="eyebrow">Saída</p>
           <h2>Post sugerido</h2>
         </div>
         <div class="panel tool-output-panel">
           <div class="output-header">
             <div>
               <p class="eyebrow" id="news-output-platform"></p>
-              <h3 id="news-output-title">Titulo da noticia</h3>
+              <h3 id="news-output-title">Título da notícia</h3>
             </div>
             <button id="copy-news-post" class="button button-secondary" type="button">Copiar</button>
           </div>
@@ -132,15 +131,21 @@
       </section>
     </main>
     <footer class="site-footer">
-      <div><p>Axon</p><small>Seu tempo é a única moeda.</small></div>
+      <div>
+        <a class="brand footer-brand" href="../index.html" aria-label="Axon">
+          <img class="brand-logo brand-logo-lockup" src="../assets/Marca Axon Consult Branca.png" alt="Marca Axon Consult" />
+          <span class="brand-copy">
+            <small>Seu tempo é a única moeda.</small>
+          </span>
+        </a>
+      </div>
       <div class="footer-links">
         <a href="../index.html">Home</a>
         <a href="../perfil-empreendedor.html">Perfil Empreendedor</a>
         <a href="../sobre.html">Sobre</a>
       </div>
       <div class="footer-links">
-        <a href="../termos.html">Termos</a>
-        <a href="../privacidade.html">Privacidade</a>
+        <a href="../termos-e-privacidade.html">Termos e privacidade</a>
       </div>
     </footer>
     <script src="../runtime-config.js"></script>

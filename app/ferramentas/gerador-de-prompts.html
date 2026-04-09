@@ -20,7 +20,7 @@
     <div class="site-bg"></div>
     <header class="topbar">
       <a class="brand" href="../index.html" aria-label="Axon">
-        <img class="brand-logo" src="../../source-material/Simbolo Axon Branco.png" alt="Simbolo Axon" />
+        <img class="brand-logo" src="../assets/simbolo-axon-branco.png" alt="Símbolo Axon" />
         <span class="brand-copy"><strong>Axon</strong><small>Seu tempo é a única moeda.</small></span>
       </a>
       <button class="menu-toggle" type="button" aria-expanded="false" aria-controls="site-nav">Menu</button>
@@ -38,8 +38,7 @@
           <p class="eyebrow">Ferramentas Axon</p>
           <h1>Monte prompts profissionais sem depender de tentativa e erro.</h1>
           <p>
-            Esta ferramenta usa a logica da Axon para estruturar contexto, publico, objetivo e
-            formato. Serve para GPTs de atendimento, conteúdo e planejamento.
+            Esta ferramenta usa a lógica da Axon para estruturar contexto, público, objetivo e formato. Serve para GPTs de atendimento, conteúdo e planejamento.
           </p>
         </div>
       </section>
@@ -55,7 +54,7 @@
               Uso principal
               <select name="tool_goal">
                 <option value="Atendimento">Atendimento</option>
-                <option value="Conteudo">Conteúdo</option>
+                <option value="Conteúdo">Conteúdo</option>
                 <option value="Planejamento">Planejamento</option>
               </select>
             </label>
@@ -69,9 +68,9 @@
           <h2>Para conversar melhor com a IA.</h2>
           <ul class="check-list">
             <li>Definir o papel do GPT na tarefa</li>
-            <li>Contextualizar publico e momento</li>
+            <li>Contextualizar público e momento</li>
             <li>Deixar objetivo e formato mais claros</li>
-            <li>Parar de pedir respostas genericas</li>
+            <li>Parar de pedir respostas genéricas</li>
           </ul>
           <div class="form-actions">
             <a class="button button-secondary" href="./curadoria-ia.html">Ver Curadoria de IA</a>
@@ -91,7 +90,7 @@
                 <input type="text" name="role" placeholder="Ex.: estrategista de atendimento" required />
               </label>
               <label>
-                Publico-alvo
+                Público-alvo
                 <input type="text" name="audience" placeholder="Ex.: leads frios vindo do Instagram" required />
               </label>
               <label class="full">
@@ -103,12 +102,12 @@
                 <textarea name="goal" rows="3" placeholder="Ex.: montar um fluxo inicial de resposta." required></textarea>
               </label>
               <label class="full">
-                Formato de saida
+                Formato de saída
                 <textarea name="format" rows="3" placeholder="Ex.: responda em blocos curtos e objetivos." required></textarea>
               </label>
               <label class="full">
                 Regras extras
-                <textarea name="constraints" rows="3" placeholder="Ex.: evite jargao tecnico e seja direto."></textarea>
+                <textarea name="constraints" rows="3" placeholder="Ex.: evite jargão técnico e seja direto."></textarea>
               </label>
             </div>
             <div class="form-actions">
@@ -123,21 +122,27 @@
               </div>
               <button id="copy-prompt" class="button button-secondary" type="button">Copiar</button>
             </div>
-            <pre id="prompt-output" class="prompt-output">Preencha o formulario para gerar seu prompt.</pre>
+            <pre id="prompt-output" class="prompt-output">Preencha o formulário para gerar seu prompt.</pre>
           </aside>
         </div>
       </section>
     </main>
     <footer class="site-footer">
-      <div><p>Axon</p><small>Seu tempo é a única moeda.</small></div>
+      <div>
+        <a class="brand footer-brand" href="../index.html" aria-label="Axon">
+          <img class="brand-logo brand-logo-lockup" src="../assets/Marca Axon Consult Branca.png" alt="Marca Axon Consult" />
+          <span class="brand-copy">
+            <small>Seu tempo é a única moeda.</small>
+          </span>
+        </a>
+      </div>
       <div class="footer-links">
         <a href="../index.html">Home</a>
         <a href="../perfil-empreendedor.html">Perfil Empreendedor</a>
         <a href="../sobre.html">Sobre</a>
       </div>
       <div class="footer-links">
-        <a href="../termos.html">Termos</a>
-        <a href="../privacidade.html">Privacidade</a>
+        <a href="../termos-e-privacidade.html">Termos e privacidade</a>
       </div>
     </footer>
     <script src="../runtime-config.js"></script>

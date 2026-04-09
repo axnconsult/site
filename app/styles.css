@@ -13,7 +13,7 @@
   --radius-xl: 28px;
   --radius-lg: 20px;
   --radius-md: 14px;
-  --shell: min(1180px, calc(100% - 32px));
+  --shell: min(1240px, calc(100% - 40px));
 }
 
 * {
@@ -22,6 +22,7 @@
 
 html {
   scroll-behavior: smooth;
+  color-scheme: dark;
 }
 
 body {
@@ -81,7 +82,7 @@ select {
   background: rgba(17, 17, 17, 0.84);
   border: 1px solid rgba(243, 244, 246, 0.08);
   backdrop-filter: blur(18px);
-  border-radius: 999px;
+  border-radius: 28px;
   box-shadow: 0 10px 40px rgba(0, 0, 0, 0.18);
 }
 
@@ -160,15 +161,16 @@ h3 {
 .site-nav a {
   color: var(--muted);
   font-weight: 600;
-  padding: 10px 14px;
-  border-radius: 999px;
-  transition: background 180ms ease, color 180ms ease;
+  padding: 8px 2px;
+  border-radius: 0;
+  border-bottom: 1px solid transparent;
+  transition: border-color 180ms ease, color 180ms ease;
 }
 
 .site-nav a:hover,
 .site-nav a.active {
   color: var(--text);
-  background: rgba(255, 255, 255, 0.04);
+  border-color: rgba(204, 255, 0, 0.5);
 }
 
 .menu-toggle {
@@ -220,11 +222,11 @@ h3 {
 
 .page-main,
 main {
-  padding-bottom: 72px;
+  padding-bottom: 88px;
 }
 
 .section {
-  padding: 42px 0 0;
+  padding: 68px 0 0;
 }
 
 .hero,
@@ -247,22 +249,30 @@ main {
 }
 
 .hero-text-shell {
-  max-width: 900px;
+  max-width: 1080px;
   margin: 0 auto;
   text-align: center;
 }
 
 .hero-text-shell h1 {
-  max-width: 11ch;
+  max-width: 12ch;
   margin: 0 auto;
   font-size: clamp(3.8rem, 8vw, 6.6rem);
   line-height: 0.9;
+  text-wrap: balance;
+}
+
+.hero-line-lock {
+  max-width: none;
+  white-space: nowrap;
 }
 
 .hero-text-shell .lede {
-  max-width: 740px;
-  margin: 18px auto 0;
+  max-width: 900px;
+  margin: 24px auto 0;
   font-size: clamp(1.06rem, 2vw, 1.36rem);
+  line-height: 1.75;
+  text-wrap: pretty;
 }
 
 .eyebrow,
@@ -317,7 +327,7 @@ h3 {
 .check-list li,
 .site-footer p,
 .legal-panel p {
-  max-width: 62ch;
+  max-width: 74ch;
 }
 
 .hero-actions,
@@ -327,6 +337,10 @@ h3 {
   flex-wrap: wrap;
   gap: 12px;
   align-items: center;
+}
+
+.hero-text-shell .hero-actions {
+  margin-top: 34px;
 }
 
 .hero-actions-centered,
@@ -522,13 +536,39 @@ h3 {
 .section-heading {
   display: grid;
   gap: 14px;
-  max-width: 780px;
-  margin-bottom: 20px;
+  max-width: 980px;
+  margin-bottom: 34px;
 }
 
 .centered-heading {
+  justify-items: center;
   margin-inline: auto;
   text-align: center;
+}
+
+.centered-heading h2,
+.centered-heading p {
+  margin-inline: auto;
+  text-align: center;
+}
+
+.centered-heading h2 {
+  max-width: 17ch;
+  text-wrap: balance;
+}
+
+.centered-heading p {
+  max-width: 72ch;
+  text-wrap: pretty;
+}
+
+.line-group {
+  display: grid;
+  gap: 0.45rem;
+}
+
+.line-group span {
+  display: block;
 }
 
 .problem-grid,
@@ -571,7 +611,20 @@ h3 {
 
 .tool-card-column {
   flex-direction: column;
-  align-items: flex-start;
+  align-items: center;
+  max-width: 860px;
+  margin-inline: auto;
+  padding: 30px 34px;
+  text-align: center;
+}
+
+.tool-card-column p {
+  margin-inline: auto;
+  max-width: 40ch;
+}
+
+.tool-card-column .hero-actions {
+  justify-content: center;
 }
 
 .philosophy-section .quote-panel {
@@ -647,6 +700,12 @@ select {
   color: var(--text);
 }
 
+select,
+option {
+  background: #161616;
+  color: var(--text);
+}
+
 textarea {
   resize: vertical;
 }
@@ -691,6 +750,31 @@ button:focus {
   padding: 34px 0 48px;
   margin-top: 26px;
   border-top: 1px solid rgba(255, 255, 255, 0.08);
+}
+
+.footer-brand {
+  align-items: flex-start;
+  gap: 14px;
+}
+
+.footer-brand .brand-logo {
+  width: 64px;
+  height: 64px;
+}
+
+.footer-brand .brand-logo-lockup {
+  width: 148px;
+  height: auto;
+}
+
+.footer-brand .brand-copy {
+  display: block;
+}
+
+.footer-brand .brand-copy small {
+  display: block;
+  letter-spacing: 0.08em;
+  line-height: 1.5;
 }
 
 .footer-links {
@@ -1163,11 +1247,15 @@ button:focus {
   }
 
   .section {
-    padding-top: 28px;
+    padding-top: 44px;
   }
 
   h1 {
     font-size: clamp(2.5rem, 12vw, 4rem);
+  }
+
+  .hero-line-lock {
+    white-space: normal;
   }
 
   h2 {
