@@ -33,3 +33,18 @@ Site estatico da Axon, preparado para:
 ## Proximo passo
 
 Abra [PUBLICAR-NA-HOSTINGER.md](C:\Users\leona\Documents\Jobs\Codex_Axn\PUBLICAR-NA-HOSTINGER.md) e siga a ordem.
+
+## Redeploy padrao
+
+Quando o site ja estiver publicado e voce subir novos commits:
+
+1. confirme no GitHub que a mudanca entrou na `main`
+2. tente `Atualizar` no projeto do site
+3. se a nova versao nao aparecer, delete so o projeto do site no Docker Manager
+4. publique de novo com `Compose a partir de URL`
+
+Importante:
+
+- delete apenas o projeto do site
+- nao mexa no projeto `n8n`
+- o `Traefik`, Redis, Postgres e workers do `n8n` ficam preservados

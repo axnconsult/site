@@ -21,6 +21,10 @@ const AXON_CONFIG = mergeConfig(
   typeof window !== "undefined" ? window.AXON_RUNTIME_CONFIG || {} : {}
 );
 
+const LEGAL_NOTICE_VERSION = "2026-04-10";
+const CONSENT_COPY =
+  "Ao enviar, voce concorda com o tratamento dos seus dados para contato comercial, diagnostico e relacionamento da Axon, conforme nossos Termos e Privacidade.";
+
 const THANK_YOU_COPY = {
   curso: {
     title: "Seu interesse nos cursos da Axon foi registrado.",
@@ -486,11 +490,29 @@ function getWebhookEndpoint(formType) {
 }
 
 function buildSubmissionMeta(formType) {
+  const now = new Date().toISOString();
   return {
     formType,
     page: window.location.pathname,
     title: document.title,
-    createdAt: new Date().toISOString()
+    createdAt: now,
+    legalNoticeVersion: LEGAL_NOTICE_VERSION,
+    consentCopy: CONSENT_COPY,
+    consentTimestamp: now,
+    tracking: buildTrackingMeta()
+  };
+}
+
+function buildTrackingMeta() {
+  const params = new URLSearchParams(window.location.search);
+  return {
+    url: window.location.href,
+    referrer: document.referrer || "",
+    utm_source: params.get("utm_source") || "",
+    utm_medium: params.get("utm_medium") || "",
+    utm_campaign: params.get("utm_campaign") || "",
+    utm_content: params.get("utm_content") || "",
+    utm_term: params.get("utm_term") || ""
   };
 }
 
@@ -604,6 +626,7 @@ function wireEntrepreneurProfile() {
   gateForm.addEventListener("submit", (event) => {
     event.preventDefault();
     leadPayload = {
+      ...buildSubmissionMeta("perfil_empreendedor_gate"),
       ...formDataToObject(new FormData(gateForm)),
       interest: "Perfil Empreendedor"
     };

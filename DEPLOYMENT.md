@@ -44,6 +44,17 @@ O site nao deve usar `traefik-public`, porque essa rede nao existe no ambiente a
 4. Apontar o dominio
 5. Ativar os webhooks no `n8n`
 
+## Redeploy recomendado
+
+Quando houver novos commits no GitHub:
+
+1. confirmar que a mudanca entrou na `main`
+2. tentar `Atualizar` no Docker Manager
+3. se a nova versao nao aparecer, deletar so o projeto do site
+4. publicar novamente com `Compose a partir de URL`
+
+Esse passou a ser o padrao operacional da Axon, porque e o caminho mais previsivel para garantir que a VPS puxe a versao mais recente do repositorio remoto sem tocar no projeto `n8n`.
+
 Para o passo a passo completo, use [PUBLICAR-NA-HOSTINGER.md](C:\Users\leona\Documents\Jobs\Codex_Axn\PUBLICAR-NA-HOSTINGER.md).
 
 ## Webhooks obrigatorios
@@ -82,6 +93,7 @@ Fase 2:
 - nao ocupar manualmente as portas `80` e `443`
 - nao alterar o compose do projeto `n8n`
 - se o projeto do site falhar, excluir a tentativa anterior e subir de novo com o compose corrigido
+- se o `Update` nao refletir os commits novos, recriar so o projeto do site
 
 ## Stripe
 

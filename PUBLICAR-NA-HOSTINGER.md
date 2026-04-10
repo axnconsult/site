@@ -117,6 +117,44 @@ Depois que o projeto subir:
 
 Se o site abrir, mas o formulario falhar, o problema nao esta no deploy do site. O problema estara nos webhooks do `n8n`.
 
+## Redeploy padrao quando houver novos commits
+
+Se voce alterou o site, fez `commit`, fez `push` e clicou em `Atualizar`, mas a nova versao nao apareceu, use este fluxo como padrao:
+
+1. confirme no GitHub que o arquivo alterado esta realmente na branch `main`
+2. no Docker Manager, delete apenas o projeto do site
+3. clique em `Compose`
+4. clique em `Compose a partir de URL`
+5. cole a mesma URL do repositorio
+6. use o mesmo nome de projeto
+7. suba de novo
+8. teste em janela anonima ou com `Ctrl+F5`
+
+### Por que esse fluxo e o mais confiavel
+
+O `Update` da Hostinger recria os containers com a configuracao atual do projeto, mas nao deixa claro se sempre refaz o fetch da versao mais recente do repositorio remoto. Quando houver duvida sobre a versao publicada, recriar o projeto do site e mais previsivel do que depender apenas do botao `Atualizar`.
+
+### O que pode ser deletado com seguranca
+
+Delete somente o projeto do site, por exemplo `axnsite`.
+
+Nao delete:
+
+- `n8n`
+- `n8n-traefik-1`
+- Postgres do `n8n`
+- Redis
+- workers
+
+### Se o site ainda parecer antigo depois da recriacao
+
+Verifique nesta ordem:
+
+1. o commit esta mesmo no GitHub
+2. o projeto foi recriado de verdade
+3. o navegador esta com cache
+4. o Cloudflare esta servindo cache antigo
+
 ## Ligar os webhooks do n8n
 
 Crie 3 endpoints no `n8n`:
@@ -198,3 +236,12 @@ Verifique:
 - se `Dockerfile`, `nginx.conf` e `app/` tambem estao na raiz
 - se o compose esta usando `n8n_default`
 - se o certresolver esta como `mytlschallenge`
+
+### O site sobe, mas continua com a versao antiga
+
+Verifique:
+
+- se o arquivo novo esta no GitHub
+- se voce usou `Delete` + `Compose a partir de URL`
+- se o teste foi feito com `Ctrl+F5` ou em aba anonima
+- se o Cloudflare nao esta entregando cache antigo
