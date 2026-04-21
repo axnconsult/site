@@ -1,0 +1,13 @@
+# Local stack exports and secrets
+environment.yaml
+n8n-editor.yaml
+n8n-runners.yaml
+n8n-webhook.yaml
+n8n-worker.yaml
+portainer.yaml
+postgres.yaml
+traefik.yaml
+
+# OS/editor
+.DS_Store
+Thumbs.db

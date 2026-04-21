@@ -1,107 +1,65 @@
-# Deploy da Axon na VPS atual
+# Deploy da Axon com Portainer + GHCR
 
-Resumo tecnico do deploy:
+Resumo tecnico:
 
 - site estatico servido por `nginx`
-- publicacao pelo `Hostinger Docker Manager`
-- roteamento pelo `Traefik` que ja roda no projeto `n8n`
+- imagem publicada em `ghcr.io/axnconsult/site:main`
+- deploy em Docker Swarm pelo Portainer
+- roteamento pelo Traefik existente em `network_swarm_public`
 - formularios enviados para webhooks do `n8n`
 
-## Dominios
+## Topologia atual da VPS
 
-- `axnconsult.com.br` -> site
-- `hooks.axnconsult.com.br` -> webhooks do site
-- `n8n.axnconsult.com.br` -> painel do `n8n`
+A infra esta em Docker Swarm e ja possui:
 
-## Estrutura usada pelo deploy
+- `traefik` como proxy publico
+- `portainer` em `painel.axnconsult.com.br`
+- `n8n_editor` em `workflows.axnconsult.com.br`
+- `n8n_webhook` em `webhooks.axnconsult.com.br`
+- rede publica externa `network_swarm_public`
 
-- `docker-compose.yml` -> define o projeto Docker
-- `Dockerfile` -> monta a imagem do site
-- `nginx.conf` -> configura o servidor web
-- `app/` -> conteudo estatico publicado
+O site deve usar a mesma rede publica e o resolver `letsencryptresolver`.
 
-## Topologia real da VPS
+## Fluxo de publicacao
 
-Hoje a VPS ja tem:
+1. GitHub Actions builda o `Dockerfile`
+2. GitHub Actions publica a imagem no GHCR
+3. Portainer roda a stack `axon-site` usando `portainer-site-stack.yml`
+4. Traefik publica `https://axnconsult.com.br`
 
-- um projeto `n8n`
-- um container `n8n-traefik-1`
-- a rede Docker `n8n_default`
+## Auto-update
 
-Por isso o site da Axon deve:
+Depois da primeira configuracao:
 
-- entrar na rede `n8n_default`
-- usar o mesmo `Traefik`
-- usar o resolver `mytlschallenge`
+1. criar o secret `PORTAINER_WEBHOOK_URL` no GitHub Actions
+2. fazer `commit + push`
+3. aguardar o workflow `Deploy site image`
+4. conferir se a stack foi redeployada no Portainer
 
-O site nao deve usar `traefik-public`, porque essa rede nao existe no ambiente atual.
+Se o secret ainda nao existir, o workflow publica a imagem, mas nao chama o Portainer.
 
-## Fluxo recomendado
+## Testes
 
-1. Preencher `app/runtime-config.js`
-2. Subir o projeto para um repositorio remoto
-3. Publicar com `Compose a partir de URL`
-4. Apontar o dominio
-5. Ativar os webhooks no `n8n`
+- `https://axnconsult.com.br/health` deve retornar `ok`
+- `https://axnconsult.com.br` deve abrir a home
+- GitHub Actions deve terminar verde
+- a stack `axon-site` deve ficar em estado running
+- uma alteracao pequena no site deve aparecer apos novo push e `Ctrl+F5`
 
-## Redeploy recomendado
+## Cuidados importantes
 
-Quando houver novos commits no GitHub:
+- nao subir um segundo `Traefik`
+- nao publicar portas `80` ou `443` diretamente no site
+- nao usar `docker-compose.yml` antigo para Swarm
+- nao alterar stacks existentes do `n8n`
+- manter a imagem GHCR publica ou configurar credenciais de registry no Portainer
 
-1. confirmar que a mudanca entrou na `main`
-2. tentar `Atualizar` no Docker Manager
-3. se a nova versao nao aparecer, deletar so o projeto do site
-4. publicar novamente com `Compose a partir de URL`
+## Webhooks do n8n
 
-Esse passou a ser o padrao operacional da Axon, porque e o caminho mais previsivel para garantir que a VPS puxe a versao mais recente do repositorio remoto sem tocar no projeto `n8n`.
-
-Para o passo a passo completo, use [PUBLICAR-NA-HOSTINGER.md](C:\Users\leona\Documents\Jobs\Codex_Axn\PUBLICAR-NA-HOSTINGER.md).
-
-## Webhooks obrigatorios
+O front espera:
 
 - `POST /site-lead`
 - `POST /site-consultoria`
 - `POST /site-perfil`
 
-Resposta sugerida:
-
-```json
-{
-  "ok": true
-}
-```
-
-Cabecalhos recomendados:
-
-- `Access-Control-Allow-Origin: https://axnconsult.com.br`
-- `Access-Control-Allow-Methods: POST, OPTIONS`
-- `Access-Control-Allow-Headers: Content-Type`
-
-## Armazenamento recomendado
-
-Fase 1:
-
-- `Google Sheets` ou planilha operacional via `n8n`
-
-Fase 2:
-
-- `Postgres` dedicado para leads, triagens e resultados
-
-## Cuidados importantes
-
-- nao subir um segundo `Traefik`
-- nao ocupar manualmente as portas `80` e `443`
-- nao alterar o compose do projeto `n8n`
-- se o projeto do site falhar, excluir a tentativa anterior e subir de novo com o compose corrigido
-- se o `Update` nao refletir os commits novos, recriar so o projeto do site
-
-## Stripe
-
-Nao bloqueia o go-live.
-
-Quando entrar:
-
-1. criar links de pagamento por oferta
-2. preencher `checkout` em `app/runtime-config.js`
-3. receber eventos do Stripe no `n8n`
-4. registrar pagamento e origem
+Detalhes em `N8N_WEBHOOKS.md`.

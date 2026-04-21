@@ -1,0 +1,45 @@
+version: "3.7"
+
+services:
+  axon_site:
+    image: ghcr.io/axnconsult/site:main
+    hostname: "{{.Service.Name}}.{{.Task.Slot}}"
+    networks:
+      - network_swarm_public
+    healthcheck:
+      test: ["CMD-SHELL", "wget -qO- http://localhost/health || exit 1"]
+      interval: 30s
+      timeout: 5s
+      retries: 3
+    deploy:
+      mode: replicated
+      replicas: 1
+      placement:
+        constraints:
+          - node.role == manager
+      resources:
+        limits:
+          cpus: "0.25"
+          memory: 128M
+      labels:
+        - "traefik.enable=true"
+        - "traefik.docker.network=network_swarm_public"
+        - "traefik.http.routers.axon_site.rule=Host(`axnconsult.com.br`)"
+        - "traefik.http.routers.axon_site.entrypoints=websecure"
+        - "traefik.http.routers.axon_site.tls.certresolver=letsencryptresolver"
+        - "traefik.http.routers.axon_site.service=axon_site"
+        - "traefik.http.services.axon_site.loadbalancer.server.port=80"
+        - "traefik.http.services.axon_site.loadbalancer.passHostHeader=true"
+      update_config:
+        parallelism: 1
+        delay: 10s
+        order: start-first
+        failure_action: rollback
+      rollback_config:
+        parallelism: 1
+        order: stop-first
+
+networks:
+  network_swarm_public:
+    external: true
+    name: network_swarm_public
