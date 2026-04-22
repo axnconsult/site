@@ -27,6 +27,10 @@ Uso:
 - Operacao Comercial
 - ferramentas com gate de acesso
 
+URL de producao esperada no n8n:
+
+- `https://webhooks.axnconsult.com.br/webhook/site-lead`
+
 Payload esperado:
 
 ```json
@@ -91,6 +95,10 @@ Uso:
 
 - formulario da pagina de consultoria
 
+URL de producao esperada no n8n:
+
+- `https://webhooks.axnconsult.com.br/webhook/site-consultoria`
+
 Payload esperado:
 
 ```json
@@ -152,6 +160,10 @@ Uso:
 - gate de lead do Perfil Empreendedor
 - respostas do teste
 - resultado do diagnostico
+
+URL de producao esperada no n8n:
+
+- `https://webhooks.axnconsult.com.br/webhook/site-perfil`
 
 Payload esperado:
 
@@ -284,6 +296,10 @@ Cabecalhos necessarios:
 - `Access-Control-Allow-Origin: https://axnconsult.com.br`
 - `Access-Control-Allow-Methods: POST, OPTIONS`
 - `Access-Control-Allow-Headers: Content-Type`
+
+Se o site tambem responder com `www`, liberar tambem:
+
+- `Access-Control-Allow-Origin: https://www.axnconsult.com.br`
 
 ## Retencao e tratamento de dados no MVP
 

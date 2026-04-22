@@ -5,9 +5,9 @@ const DEFAULT_AXON_CONFIG = {
     linkedin: "https://linkedin.com/"
   },
   webhooks: {
-    lead: "https://hooks.axnconsult.com.br/site-lead",
-    consultoria: "https://hooks.axnconsult.com.br/site-consultoria",
-    perfil: "https://hooks.axnconsult.com.br/site-perfil"
+    lead: "https://webhooks.axnconsult.com.br/webhook/site-lead",
+    consultoria: "https://webhooks.axnconsult.com.br/webhook/site-consultoria",
+    perfil: "https://webhooks.axnconsult.com.br/webhook/site-perfil"
   },
   checkout: {
     deploy: "",
@@ -654,6 +654,10 @@ function wireEntrepreneurProfile() {
     clearFormStatus(quizStatus);
     setFormLoading(submitButton, true, "Calculando...");
 
+    paintEntrepreneurResult(result);
+    resultSection.classList.remove("hidden");
+    resultSection.scrollIntoView({ behavior: "smooth", block: "start" });
+
     try {
       await submitWebhook(getWebhookEndpoint("perfil_empreendedor"), {
         ...buildSubmissionMeta("perfil_empreendedor"),
@@ -661,12 +665,12 @@ function wireEntrepreneurProfile() {
         answers,
         result
       });
-
-      paintEntrepreneurResult(result);
-      resultSection.classList.remove("hidden");
-      resultSection.scrollIntoView({ behavior: "smooth", block: "start" });
     } catch (error) {
-      setFormStatus(quizStatus, "error", "Nao foi possivel salvar seu diagnostico agora. Tente novamente.");
+      setFormStatus(
+        quizStatus,
+        "error",
+        "Seu diagnóstico foi exibido, mas não conseguimos registrar seus dados agora. Se quiser, tente enviar novamente em alguns instantes."
+      );
     } finally {
       setFormLoading(submitButton, false, originalButtonText);
     }

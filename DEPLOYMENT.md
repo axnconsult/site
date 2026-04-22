@@ -58,8 +58,8 @@ Se o secret ainda nao existir, o workflow publica a imagem, mas nao chama o Port
 
 O front espera:
 
-- `POST /site-lead`
-- `POST /site-consultoria`
-- `POST /site-perfil`
+- `POST https://webhooks.axnconsult.com.br/webhook/site-lead`
+- `POST https://webhooks.axnconsult.com.br/webhook/site-consultoria`
+- `POST https://webhooks.axnconsult.com.br/webhook/site-perfil`
 
 Detalhes em `N8N_WEBHOOKS.md`.

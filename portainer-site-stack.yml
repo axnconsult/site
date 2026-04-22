@@ -7,10 +7,11 @@ services:
     networks:
       - network_swarm_public
     healthcheck:
-      test: ["CMD-SHELL", "wget -qO- http://localhost/health || exit 1"]
+      test: ["CMD-SHELL", "wget -qO- http://127.0.0.1/health | grep -q ok"]
       interval: 30s
-      timeout: 5s
-      retries: 3
+      timeout: 10s
+      retries: 5
+      start_period: 30s
     deploy:
       mode: replicated
       replicas: 1
@@ -24,7 +25,7 @@ services:
       labels:
         - "traefik.enable=true"
         - "traefik.docker.network=network_swarm_public"
-        - "traefik.http.routers.axon_site.rule=Host(`axnconsult.com.br`)"
+        - "traefik.http.routers.axon_site.rule=Host(`axnconsult.com.br`) || Host(`www.axnconsult.com.br`)"
         - "traefik.http.routers.axon_site.entrypoints=websecure"
         - "traefik.http.routers.axon_site.tls.certresolver=letsencryptresolver"
         - "traefik.http.routers.axon_site.service=axon_site"

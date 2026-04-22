@@ -7,9 +7,9 @@ window.AXON_RUNTIME_CONFIG = {
   },
   webhooks: {
     // Estes endpoints devem existir no seu n8n.
-    lead: "https://hooks.axnconsult.com.br/site-lead",
-    consultoria: "https://hooks.axnconsult.com.br/site-consultoria",
-    perfil: "https://hooks.axnconsult.com.br/site-perfil"
+    lead: "https://webhooks.axnconsult.com.br/webhook/site-lead",
+    consultoria: "https://webhooks.axnconsult.com.br/webhook/site-consultoria",
+    perfil: "https://webhooks.axnconsult.com.br/webhook/site-perfil"
   },
   checkout: {
     // Pode deixar vazio por enquanto.
