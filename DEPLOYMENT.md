@@ -7,6 +7,7 @@ Resumo tecnico:
 - deploy em Docker Swarm pelo Portainer
 - roteamento pelo Traefik existente em `network_swarm_public`
 - formularios enviados para webhooks do `n8n`
+- persistencia operacional em Postgres separado da stack do `n8n`
 
 ## Topologia atual da VPS
 
@@ -19,6 +20,18 @@ A infra esta em Docker Swarm e ja possui:
 - rede publica externa `network_swarm_public`
 
 O site deve usar a mesma rede publica e o resolver `letsencryptresolver`.
+
+## Banco operacional da Axon
+
+Para captacao de leads, a Axon deve subir uma stack separada de Postgres usando `portainer-postgres-stack.yml`.
+
+Padrao escolhido:
+
+- banco: `axon_ops`
+- usuario de aplicacao: `axon_app`
+- sem publicacao de porta
+- acesso apenas por containers na `network_swarm_public`
+- schema inicial em `db/axon_ops_schema.sql`
 
 ## Fluxo de publicacao
 

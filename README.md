@@ -9,8 +9,11 @@ Site estatico da Axon, servido por `nginx` e preparado para deploy em Docker Swa
 - `Dockerfile` -> build da imagem do site
 - `nginx.conf` -> configuracao do servidor web
 - `portainer-site-stack.yml` -> stack Swarm para colar no Portainer
+- `portainer-postgres-stack.yml` -> stack Swarm do Postgres operacional da Axon
+- `db/axon_ops_schema.sql` -> schema inicial do banco de leads
 - `.github/workflows/deploy-site.yml` -> build e publicacao da imagem no GHCR
 - `N8N_WEBHOOKS.md` -> blueprint dos webhooks do `n8n`
+- `POSTGRES_SETUP.md` -> passo a passo do banco no Portainer e conexao do `n8n`
 
 ## Fluxo de deploy atual
 
@@ -37,6 +40,15 @@ Site estatico da Axon, servido por `nginx` e preparado para deploy em Docker Swa
 - `webhooks.axnconsult.com.br` -> webhooks do `n8n`
 - `workflows.axnconsult.com.br` -> editor do `n8n`
 - `painel.axnconsult.com.br` -> Portainer
+
+## Captura operacional de leads
+
+O fluxo atual recomendado para formularios e Perfil Empreendedor e:
+
+1. site envia `POST` para o `n8n`
+2. `n8n` valida o payload
+3. `n8n` grava no Postgres operacional da Axon
+4. `n8n` responde `{ "ok": true }`
 
 ## Cuidados
 

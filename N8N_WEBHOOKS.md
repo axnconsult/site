@@ -3,20 +3,21 @@
 Este documento descreve o MVP operacional atual da Axon:
 
 - site -> `n8n`
-- `n8n` -> `Google Sheets`
-- `n8n` -> notificacao por Gmail
+- `n8n` -> `Postgres`
+- `n8n` -> resposta silenciosa para o site
 
-O objetivo aqui e colocar captacao no ar agora, sem travar o comercial por falta de infraestrutura mais robusta.
+O objetivo aqui e colocar captacao no ar agora, sem depender de Google Sheets ou de uma camada mais pesada como Supabase self-hosted.
 
-## Estrutura recomendada no Google Sheets
+## Banco operacional
 
-Criar uma planilha chamada `Axon Leads`.
+Subir a stack `portainer-postgres-stack.yml` no Portainer e aplicar o schema de `db/axon_ops_schema.sql`.
 
-Criar 3 abas:
+Padrao escolhido:
 
-- `leads`
-- `consultoria_intake`
-- `entrepreneur_profile_results`
+- host interno do banco no Swarm: `axon_postgres`
+- banco: `axon_ops`
+- usuario: `axon_app`
+- senha: definida na stack do Portainer
 
 ## 1. Webhook `site-lead`
 
@@ -61,33 +62,27 @@ Payload esperado:
 }
 ```
 
-Colunas minimas recomendadas:
+Destino no banco:
 
-- `createdAt`
-- `formType`
-- `page`
-- `title`
-- `interest`
-- `offer`
-- `name`
-- `email`
-- `phone`
-- `stage`
-- `consent`
-- `consentTimestamp`
-- `legalNoticeVersion`
-- `tracking.url`
-- `tracking.referrer`
-- `tracking.utm_source`
-- `tracking.utm_medium`
-- `tracking.utm_campaign`
-- `tracking.utm_content`
-- `tracking.utm_term`
+- tabela: `site_leads`
 
-Notificacao por Gmail:
+Mapeamento minimo:
 
-- assunto: `Novo lead no site da Axon`
-- destino: `axnconsult.contato@gmail.com`
+- `created_at` <- `createdAt`
+- `form_type` <- `formType`
+- `page` <- `page`
+- `title` <- `title`
+- `interest` <- `interest`
+- `offer` <- `offer`
+- `name` <- `name`
+- `email` <- `email`
+- `phone` <- `phone`
+- `stage` <- `stage`
+- `consent` <- `consent`
+- `consent_timestamp` <- `consentTimestamp`
+- `legal_notice_version` <- `legalNoticeVersion`
+- `tracking_json` <- `tracking`
+- `raw_payload_json` <- payload inteiro
 
 ## 2. Webhook `site-consultoria`
 
@@ -131,27 +126,25 @@ Payload esperado:
 }
 ```
 
-Colunas minimas recomendadas:
+Destino no banco:
 
-- `createdAt`
-- `name`
-- `email`
-- `company`
-- `company_size`
-- `acquisition`
-- `bottleneck`
-- `message`
-- `consent`
-- `consentTimestamp`
-- `legalNoticeVersion`
-- `tracking.url`
-- `tracking.utm_source`
-- `tracking.utm_campaign`
+- tabela: `consultoria_intake`
 
-Notificacao por Gmail:
+Mapeamento minimo:
 
-- assunto: `Nova triagem de consultoria da Axon`
-- destino: `axnconsult.contato@gmail.com`
+- `created_at` <- `createdAt`
+- `name` <- `name`
+- `email` <- `email`
+- `company` <- `company`
+- `company_size` <- `company_size`
+- `acquisition` <- `acquisition`
+- `bottleneck` <- `bottleneck`
+- `message` <- `message`
+- `consent` <- `consent`
+- `consent_timestamp` <- `consentTimestamp`
+- `legal_notice_version` <- `legalNoticeVersion`
+- `tracking_json` <- `tracking`
+- `raw_payload_json` <- payload inteiro
 
 ## 3. Webhook `site-perfil`
 
@@ -216,6 +209,8 @@ Payload esperado:
     "dominantMotivation": "money",
     "dominantOperational": "strategist",
     "dominantBehavior": "creativity",
+    "lowestBehavior": "discipline",
+    "composite": "Estrategista, motivado por autonomia, com baixa consistencia de execucao.",
     "title": "Estrategista: seu valor existe, mas a estrutura ainda define o tamanho do seu crescimento.",
     "ctaLabel": "Ver o Deploy",
     "ctaHref": "./deploy.html"
@@ -223,28 +218,30 @@ Payload esperado:
 }
 ```
 
-Colunas minimas recomendadas:
+Destino no banco:
 
-- `createdAt`
-- `lead.name`
-- `lead.email`
-- `lead.phone`
-- `lead.consent`
-- `lead.consentTimestamp`
-- `lead.legalNoticeVersion`
-- `result.dominantOperational`
-- `result.dominantMotivation`
-- `result.dominantBehavior`
-- `result.title`
-- `result.ctaLabel`
-- `lead.tracking.url`
-- `lead.tracking.utm_source`
-- `lead.tracking.utm_campaign`
+- tabela: `entrepreneur_profile_results`
 
-Notificacao por Gmail:
+Mapeamento minimo:
 
-- assunto: `Novo diagnostico de Perfil Empreendedor`
-- destino: `axnconsult.contato@gmail.com`
+- `created_at` <- `createdAt`
+- `lead_name` <- `lead.name`
+- `lead_email` <- `lead.email`
+- `lead_phone` <- `lead.phone`
+- `lead_consent` <- `lead.consent`
+- `lead_consent_timestamp` <- `lead.consentTimestamp`
+- `legal_notice_version` <- `lead.legalNoticeVersion`
+- `dominant_operational` <- `result.dominantOperational`
+- `dominant_motivation` <- `result.dominantMotivation`
+- `dominant_behavior` <- `result.dominantBehavior`
+- `lowest_behavior` <- `result.lowestBehavior`
+- `composite` <- `result.composite`
+- `result_title` <- `result.title`
+- `cta_label` <- `result.ctaLabel`
+- `cta_href` <- `result.ctaHref`
+- `answers_json` <- `answers`
+- `tracking_json` <- `lead.tracking`
+- `raw_payload_json` <- payload inteiro
 
 ## Sequencia de nodes recomendada no n8n
 
@@ -252,9 +249,126 @@ Para cada fluxo:
 
 1. `Webhook`
 2. `Code` ou `IF` para validar campos obrigatorios
-3. `Google Sheets` para append row
-4. `Gmail` para notificar
-5. `Respond to Webhook`
+3. `Postgres` com `Insert` ou `Execute Query`
+4. `Respond to Webhook`
+
+## Queries de referencia
+
+### `site-lead`
+
+```sql
+insert into site_leads (
+  created_at,
+  form_type,
+  page,
+  title,
+  interest,
+  offer,
+  name,
+  email,
+  phone,
+  stage,
+  consent,
+  consent_timestamp,
+  legal_notice_version,
+  tracking_json,
+  raw_payload_json
+) values (
+  :createdAt::timestamptz,
+  :formType,
+  :page,
+  :title,
+  :interest,
+  :offer,
+  :name,
+  :email,
+  :phone,
+  :stage::jsonb,
+  :consent,
+  :consentTimestamp::timestamptz,
+  :legalNoticeVersion,
+  :tracking::jsonb,
+  :rawPayload::jsonb
+);
+```
+
+### `site-consultoria`
+
+```sql
+insert into consultoria_intake (
+  created_at,
+  name,
+  email,
+  company,
+  company_size,
+  acquisition,
+  bottleneck,
+  message,
+  consent,
+  consent_timestamp,
+  legal_notice_version,
+  tracking_json,
+  raw_payload_json
+) values (
+  :createdAt::timestamptz,
+  :name,
+  :email,
+  :company,
+  :company_size,
+  :acquisition,
+  :bottleneck,
+  :message,
+  :consent,
+  :consentTimestamp::timestamptz,
+  :legalNoticeVersion,
+  :tracking::jsonb,
+  :rawPayload::jsonb
+);
+```
+
+### `site-perfil`
+
+```sql
+insert into entrepreneur_profile_results (
+  created_at,
+  lead_name,
+  lead_email,
+  lead_phone,
+  lead_consent,
+  lead_consent_timestamp,
+  legal_notice_version,
+  dominant_operational,
+  dominant_motivation,
+  dominant_behavior,
+  lowest_behavior,
+  composite,
+  result_title,
+  cta_label,
+  cta_href,
+  answers_json,
+  tracking_json,
+  raw_payload_json
+) values (
+  :createdAt::timestamptz,
+  :lead_name,
+  :lead_email,
+  :lead_phone,
+  :lead_consent,
+  :lead_consent_timestamp::timestamptz,
+  :legal_notice_version,
+  :dominant_operational,
+  :dominant_motivation,
+  :dominant_behavior,
+  :lowest_behavior,
+  :composite,
+  :result_title,
+  :cta_label,
+  :cta_href,
+  :answers_json::jsonb,
+  :tracking_json::jsonb,
+  :raw_payload_json::jsonb
+);
+```
 
 ## Validacao minima recomendada
 
@@ -294,12 +408,9 @@ No `Respond to Webhook`, retornar:
 Cabecalhos necessarios:
 
 - `Access-Control-Allow-Origin: https://axnconsult.com.br`
+- `Access-Control-Allow-Origin: https://www.axnconsult.com.br`
 - `Access-Control-Allow-Methods: POST, OPTIONS`
 - `Access-Control-Allow-Headers: Content-Type`
-
-Se o site tambem responder com `www`, liberar tambem:
-
-- `Access-Control-Allow-Origin: https://www.axnconsult.com.br`
 
 ## Retencao e tratamento de dados no MVP
 
@@ -311,7 +422,7 @@ Padrao escolhido para a Axon:
 Boas praticas minimas:
 
 - coletar apenas o necessario
-- restringir acesso a planilha e ao Gmail
-- nao deixar a planilha publica
+- restringir acesso ao banco
+- nao publicar a porta do Postgres
 - nao usar o banco interno do `n8n` como banco de negocio
-- revisar a planilha periodicamente para exclusao de leads antigos
+- revisar periodicamente os leads antigos para limpeza
