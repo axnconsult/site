@@ -11,3 +11,6 @@ traefik.yaml
 # OS/editor
 .DS_Store
 Thumbs.db
+
+# Node local dependencies
+node_modules/

@@ -1,12 +1,12 @@
 # Blueprint dos webhooks do site
 
-Este documento descreve o MVP operacional atual da Axon:
+Este documento descreve o fluxo legado/opcional de automacao da Axon:
 
-- site -> `n8n`
-- `n8n` -> `Postgres`
-- `n8n` -> resposta silenciosa para o site
+- site -> API interna (`/api/*`)
+- API interna -> `Postgres`
+- API interna -> `n8n`, opcionalmente, depois da gravacao
 
-O objetivo aqui e colocar captacao no ar agora, sem depender de Google Sheets ou de uma camada mais pesada como Supabase self-hosted.
+O n8n nao e mais dependencia critica para captura de formularios. Use estes webhooks apenas para automacoes pos-captura, como notificacoes, enriquecimento, CRM ou rotinas internas.
 
 ## Banco operacional
 

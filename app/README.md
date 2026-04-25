@@ -1,6 +1,6 @@
 # Axon Site MVP
 
-Site estatico multipagina da Axon, preparado para publicacao imediata em VPS com Docker, Traefik e captura de leads via `n8n`.
+Frontend multipagina da Axon, preparado para publicacao em VPS com Docker, Traefik e captura de leads pela API interna do projeto.
 
 ## Paginas
 
@@ -20,20 +20,18 @@ Abra `index.html` no navegador.
 Se preferir rodar com servidor local:
 
 ```powershell
-cd C:\Users\leona\Documents\Jobs\Codex_Axn\app
-npx serve .
+cd C:\Users\leona\Documents\Jobs\Codex_Axn
+npm install
+$env:PORT="3000"
+npm start
 ```
 
 ## Configuracao
 
-- `runtime-config.js`: links de redes, webhooks do `n8n` e futuros links de checkout
+- `runtime-config.js`: links de redes, endpoints internos e futuros links de checkout
 
 ## Observacoes
 
-- Os formularios agora enviam `POST` para webhooks remotos.
-- Os endpoints padrao esperados sao:
-  - `https://hooks.axnconsult.com.br/site-lead`
-  - `https://hooks.axnconsult.com.br/site-consultoria`
-  - `https://hooks.axnconsult.com.br/site-perfil`
-- O proximo passo natural e ligar Stripe e um banco dedicado sem refazer o front.
+- Os formularios agora enviam `POST` para `/api/leads`, `/api/consultoria` e `/api/perfil`.
+- O proximo passo natural e adicionar autenticao e area de membros sem refazer o front publico.
 - Veja `DEPLOYMENT.md` e `N8N_WEBHOOKS.md`.

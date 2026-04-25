@@ -1,13 +1,15 @@
 # Axon Site
 
-Site estatico da Axon, servido por `nginx` e preparado para deploy em Docker Swarm via Portainer.
+Aplicacao leve da Axon, com frontend HTML/CSS/JS preservado e backend Node.js para API interna de formularios.
 
 ## Arquivos principais
 
 - `app/` -> site publico
-- `app/runtime-config.js` -> redes sociais, webhooks e links de checkout
+- `app/runtime-config.js` -> redes sociais, endpoints internos e links de checkout
+- `server.js` -> servidor HTTP, arquivos estaticos e API interna
+- `package.json` / `package-lock.json` -> dependencias do backend
 - `Dockerfile` -> build da imagem do site
-- `nginx.conf` -> configuracao do servidor web
+- `nginx.conf` -> configuracao legada do servidor estatico antigo
 - `portainer-site-stack.yml` -> stack Swarm para colar no Portainer
 - `portainer-postgres-stack.yml` -> stack Swarm do Postgres operacional da Axon
 - `db/axon_ops_schema.sql` -> schema inicial do banco de leads
@@ -45,12 +47,21 @@ Site estatico da Axon, servido por `nginx` e preparado para deploy em Docker Swa
 
 ## Captura operacional de leads
 
-O fluxo atual recomendado para formularios e Perfil Empreendedor e:
+O fluxo principal para formularios e Perfil Empreendedor agora e:
 
-1. site envia `POST` para o `n8n`
-2. `n8n` valida o payload
-3. `n8n` grava no Postgres operacional da Axon
-4. `n8n` responde `{ "ok": true }`
+1. site envia `POST` para `/api/leads`, `/api/consultoria` ou `/api/perfil`
+2. backend valida o payload minimo
+3. backend grava no Postgres operacional da Axon
+4. backend responde `{ "ok": true, "id": "..." }`
+5. opcionalmente, backend encaminha copia para o `n8n` se as variaveis `N8N_*_WEBHOOK_URL` existirem
+
+Endpoints internos:
+
+- `POST /api/leads`
+- `POST /api/consultoria`
+- `POST /api/perfil`
+- `GET /health` -> healthcheck simples do container
+- `GET /api/health` -> healthcheck com teste de Postgres
 
 ## Cuidados
 
@@ -58,3 +69,4 @@ O fluxo atual recomendado para formularios e Perfil Empreendedor e:
 - Nao criar outro Traefik para o site
 - Nao usar `build:` na stack Swarm do site
 - Nao mexer nas stacks existentes de `traefik`, `portainer`, `n8n`, `postgres`, `redis` ou workers
+- Trocar `CHANGE_THIS_STRONG_PASSWORD` no `portainer-site-stack.yml` antes do deploy

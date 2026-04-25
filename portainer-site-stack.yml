@@ -4,6 +4,10 @@ services:
   axon_site:
     image: ghcr.io/axnconsult/site:main
     hostname: "{{.Service.Name}}.{{.Task.Slot}}"
+    environment:
+      NODE_ENV: production
+      PORT: "80"
+      DATABASE_URL: "postgres://axon_app:CHANGE_THIS_STRONG_PASSWORD@axon_postgres:5432/axon_ops"
     networks:
       - network_swarm_public
     healthcheck:

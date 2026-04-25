@@ -1,4 +1,16 @@
-FROM nginx:1.27-alpine
+FROM node:22-alpine
 
-COPY nginx.conf /etc/nginx/conf.d/default.conf
-COPY app /usr/share/nginx/html
+WORKDIR /app
+
+ENV NODE_ENV=production
+ENV PORT=80
+
+COPY package.json package-lock.json ./
+RUN npm ci --omit=dev
+
+COPY server.js ./
+COPY app ./app
+
+EXPOSE 80
+
+CMD ["npm", "start"]

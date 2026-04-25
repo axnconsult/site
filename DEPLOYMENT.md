@@ -2,11 +2,11 @@
 
 Resumo tecnico:
 
-- site estatico servido por `nginx`
+- frontend estatico servido pelo backend Node.js
 - imagem publicada em `ghcr.io/axnconsult/site:main`
 - deploy em Docker Swarm pelo Portainer
 - roteamento pelo Traefik existente em `network_swarm_public`
-- formularios enviados para webhooks do `n8n`
+- formularios enviados para API interna do site
 - persistencia operacional em Postgres separado da stack do `n8n`
 
 ## Topologia atual da VPS
@@ -39,6 +39,7 @@ Padrao escolhido:
 2. GitHub Actions publica a imagem no GHCR
 3. Portainer roda a stack `axon-site` usando `portainer-site-stack.yml`
 4. Traefik publica `https://axnconsult.com.br`
+5. Backend grava leads no Postgres via `DATABASE_URL`
 
 ## Auto-update
 
@@ -54,9 +55,11 @@ Se o secret ainda nao existir, o workflow publica a imagem, mas nao chama o Port
 ## Testes
 
 - `https://axnconsult.com.br/health` deve retornar `ok`
+- `https://axnconsult.com.br/api/health` deve retornar `{ "ok": true, "database": "ok" }`
 - `https://axnconsult.com.br` deve abrir a home
 - GitHub Actions deve terminar verde
 - a stack `axon-site` deve ficar em estado running
+- um envio real de formulario deve gravar no Postgres
 - uma alteracao pequena no site deve aparecer apos novo push e `Ctrl+F5`
 
 ## Cuidados importantes
@@ -67,12 +70,22 @@ Se o secret ainda nao existir, o workflow publica a imagem, mas nao chama o Port
 - nao alterar stacks existentes do `n8n`
 - manter a imagem GHCR publica ou configurar credenciais de registry no Portainer
 
-## Webhooks do n8n
+## API interna
 
-O front espera:
+O front envia para:
 
-- `POST https://webhooks.axnconsult.com.br/webhook/site-lead`
-- `POST https://webhooks.axnconsult.com.br/webhook/site-consultoria`
-- `POST https://webhooks.axnconsult.com.br/webhook/site-perfil`
+- `POST /api/leads`
+- `POST /api/consultoria`
+- `POST /api/perfil`
+
+Antes de publicar, edite `portainer-site-stack.yml` e troque `CHANGE_THIS_STRONG_PASSWORD` pela senha real do usuario `axon_app`.
+
+## n8n opcional
+
+O n8n nao esta mais no fluxo critico dos formularios. Se quiser manter automacoes depois da gravacao no banco, configure uma ou mais variaveis no container do site:
+
+- `N8N_LEAD_WEBHOOK_URL`
+- `N8N_CONSULTORIA_WEBHOOK_URL`
+- `N8N_PERFIL_WEBHOOK_URL`
 
 Detalhes em `N8N_WEBHOOKS.md`.
