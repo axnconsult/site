@@ -1,0 +1,136 @@
+{
+  "name": "Axon | site-perfil",
+  "nodes": [
+    {
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "site-perfil",
+        "responseMode": "responseNode",
+        "options": {}
+      },
+      "id": "7b4a2f21-c6a6-4d55-9b7a-a4e3fd330001",
+      "name": "Webhook",
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2,
+      "position": [
+        260,
+        300
+      ],
+      "webhookId": "axn-site-perfil"
+    },
+    {
+      "parameters": {
+        "jsCode": "const body = $json.body ?? {};\nconst lead = body.lead ?? {};\nconst errors = [];\n\nif (!lead.name) errors.push('lead.name');\nif (!lead.email) errors.push('lead.email');\nif (lead.consent !== 'granted') errors.push('lead.consent');\nif (!body.answers || typeof body.answers !== 'object') errors.push('answers');\nif (!body.result || typeof body.result !== 'object') errors.push('result');\n\nif (errors.length) {\n  return [\n    {\n      json: {\n        valid: false,\n        statusCode: 400,\n        responseBodyJson: JSON.stringify({\n          ok: false,\n          error: `Campos obrigatórios ausentes ou inválidos: ${errors.join(', ')}`\n        })\n      }\n    }\n  ];\n}\n\nreturn [\n  {\n    json: {\n      valid: true,\n      body\n    }\n  }\n];"
+      },
+      "id": "7b4a2f21-c6a6-4d55-9b7a-a4e3fd330002",
+      "name": "Validate Payload",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        520,
+        300
+      ]
+    },
+    {
+      "parameters": {
+        "jsCode": "function sqlText(value) {\n  if (value === undefined || value === null || value === '') return 'NULL';\n  return `'${String(value).replace(/'/g, \"''\")}'`;\n}\n\nfunction sqlJson(value, fallback = {}) {\n  const safeValue = value === undefined || value === null ? fallback : value;\n  return `'${JSON.stringify(safeValue).replace(/'/g, \"''\")}'::jsonb`;\n}\n\nfunction sqlTimestamp(value) {\n  if (!value) return 'now()';\n  return `${sqlText(value)}::timestamptz`;\n}\n\nif (!$json.valid) {\n  return [\n    {\n      json: {\n        query: `select ${$json.statusCode} as status_code, ${sqlText($json.responseBodyJson)}::json as response_body;`\n      }\n    }\n  ];\n}\n\nconst body = $json.body;\nconst lead = body.lead ?? {};\nconst result = body.result ?? {};\nconst tracking = lead.tracking ?? body.tracking ?? {};\nconst legalNoticeVersion = lead.legalNoticeVersion ?? body.legalNoticeVersion ?? null;\n\nconst query = `\nwith inserted as (\n  insert into entrepreneur_profile_results (\n    created_at,\n    lead_name,\n    lead_email,\n    lead_phone,\n    lead_consent,\n    lead_consent_timestamp,\n    legal_notice_version,\n    dominant_operational,\n    dominant_motivation,\n    dominant_behavior,\n    lowest_behavior,\n    composite,\n    result_title,\n    cta_label,\n    cta_href,\n    answers_json,\n    tracking_json,\n    raw_payload_json\n  ) values (\n    ${sqlTimestamp(body.createdAt)},\n    ${sqlText(lead.name)},\n    ${sqlText(lead.email)},\n    ${sqlText(lead.phone)},\n    ${sqlText(lead.consent)},\n    ${sqlTimestamp(lead.consentTimestamp)},\n    ${sqlText(legalNoticeVersion)},\n    ${sqlText(result.dominantOperational)},\n    ${sqlText(result.dominantMotivation)},\n    ${sqlText(result.dominantBehavior)},\n    ${sqlText(result.lowestBehavior)},\n    ${sqlText(result.composite)},\n    ${sqlText(result.title)},\n    ${sqlText(result.ctaLabel)},\n    ${sqlText(result.ctaHref)},\n    ${sqlJson(body.answers)},\n    ${sqlJson(tracking)},\n    ${sqlJson(body)}\n  )\n  returning id\n)\nselect 200 as status_code, '{\"ok\":true}'::json as response_body from inserted;\n`;\n\nreturn [{ json: { query } }];"
+      },
+      "id": "7b4a2f21-c6a6-4d55-9b7a-a4e3fd330003",
+      "name": "Map SQL",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        780,
+        300
+      ]
+    },
+    {
+      "parameters": {
+        "operation": "executeQuery",
+        "query": "={{ $json.query }}",
+        "options": {}
+      },
+      "id": "7b4a2f21-c6a6-4d55-9b7a-a4e3fd330004",
+      "name": "Postgres",
+      "type": "n8n-nodes-base.postgres",
+      "typeVersion": 2.5,
+      "position": [
+        1040,
+        300
+      ]
+    },
+    {
+      "parameters": {
+        "respondWith": "json",
+        "responseBody": "={{ $json.response_body }}",
+        "options": {
+          "responseCode": "={{ $json.status_code }}"
+        }
+      },
+      "id": "7b4a2f21-c6a6-4d55-9b7a-a4e3fd330005",
+      "name": "Respond to Webhook",
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1.3,
+      "position": [
+        1300,
+        300
+      ]
+    }
+  ],
+  "pinData": {},
+  "connections": {
+    "Webhook": {
+      "main": [
+        [
+          {
+            "node": "Validate Payload",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Validate Payload": {
+      "main": [
+        [
+          {
+            "node": "Map SQL",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Map SQL": {
+      "main": [
+        [
+          {
+            "node": "Postgres",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Postgres": {
+      "main": [
+        [
+          {
+            "node": "Respond to Webhook",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": false,
+  "settings": {
+    "executionOrder": "v1"
+  },
+  "versionId": "58f0c7bd-09cb-4ad0-a83f-a4e3fd330001",
+  "meta": {
+    "templateCredsSetupCompleted": true
+  },
+  "tags": []
+}

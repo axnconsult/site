@@ -14,6 +14,8 @@ Site estatico da Axon, servido por `nginx` e preparado para deploy em Docker Swa
 - `.github/workflows/deploy-site.yml` -> build e publicacao da imagem no GHCR
 - `N8N_WEBHOOKS.md` -> blueprint dos webhooks do `n8n`
 - `POSTGRES_SETUP.md` -> passo a passo do banco no Portainer e conexao do `n8n`
+- `N8N_IMPORT_GUIDE.md` -> como importar e ajustar os workflows JSON no `n8n`
+- `n8n-workflows/` -> workflows importaveis para os webhooks do site
 
 ## Fluxo de deploy atual
 

@@ -1,0 +1,136 @@
+{
+  "name": "Axon | site-lead",
+  "nodes": [
+    {
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "site-lead",
+        "responseMode": "responseNode",
+        "options": {}
+      },
+      "id": "9f25a4f7-5a2b-4d8f-a3e0-6f5d0b120001",
+      "name": "Webhook",
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2,
+      "position": [
+        260,
+        300
+      ],
+      "webhookId": "axn-site-lead"
+    },
+    {
+      "parameters": {
+        "jsCode": "const body = $json.body ?? {};\nconst errors = [];\n\nif (!body.name) errors.push('name');\nif (!body.email) errors.push('email');\nif (body.consent !== 'granted') errors.push('consent');\n\nif (errors.length) {\n  return [\n    {\n      json: {\n        valid: false,\n        statusCode: 400,\n        responseBodyJson: JSON.stringify({\n          ok: false,\n          error: `Campos obrigatórios ausentes ou inválidos: ${errors.join(', ')}`\n        })\n      }\n    }\n  ];\n}\n\nreturn [\n  {\n    json: {\n      valid: true,\n      body\n    }\n  }\n];"
+      },
+      "id": "9f25a4f7-5a2b-4d8f-a3e0-6f5d0b120002",
+      "name": "Validate Payload",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        520,
+        300
+      ]
+    },
+    {
+      "parameters": {
+        "jsCode": "function sqlText(value) {\n  if (value === undefined || value === null || value === '') return 'NULL';\n  return `'${String(value).replace(/'/g, \"''\")}'`;\n}\n\nfunction sqlJson(value, fallback = {}) {\n  const safeValue = value === undefined || value === null ? fallback : value;\n  return `'${JSON.stringify(safeValue).replace(/'/g, \"''\")}'::jsonb`;\n}\n\nfunction sqlTimestamp(value) {\n  if (!value) return 'now()';\n  return `${sqlText(value)}::timestamptz`;\n}\n\nif (!$json.valid) {\n  return [\n    {\n      json: {\n        query: `select ${$json.statusCode} as status_code, ${sqlText($json.responseBodyJson)}::json as response_body;`\n      }\n    }\n  ];\n}\n\nconst body = $json.body;\nconst stage = Array.isArray(body.stage) ? body.stage : body.stage ? [body.stage] : [];\n\nconst query = `\nwith inserted as (\n  insert into site_leads (\n    created_at,\n    form_type,\n    page,\n    title,\n    interest,\n    offer,\n    name,\n    email,\n    phone,\n    stage,\n    consent,\n    consent_timestamp,\n    legal_notice_version,\n    tracking_json,\n    raw_payload_json\n  ) values (\n    ${sqlTimestamp(body.createdAt)},\n    ${sqlText(body.formType)},\n    ${sqlText(body.page)},\n    ${sqlText(body.title)},\n    ${sqlText(body.interest)},\n    ${sqlText(body.offer)},\n    ${sqlText(body.name)},\n    ${sqlText(body.email)},\n    ${sqlText(body.phone)},\n    ${sqlJson(stage, [])},\n    ${sqlText(body.consent)},\n    ${sqlTimestamp(body.consentTimestamp)},\n    ${sqlText(body.legalNoticeVersion)},\n    ${sqlJson(body.tracking)},\n    ${sqlJson(body)}\n  )\n  returning id\n)\nselect 200 as status_code, '{\"ok\":true}'::json as response_body from inserted;\n`;\n\nreturn [{ json: { query } }];"
+      },
+      "id": "9f25a4f7-5a2b-4d8f-a3e0-6f5d0b120003",
+      "name": "Map SQL",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        780,
+        300
+      ]
+    },
+    {
+      "parameters": {
+        "operation": "executeQuery",
+        "query": "={{ $json.query }}",
+        "options": {}
+      },
+      "id": "9f25a4f7-5a2b-4d8f-a3e0-6f5d0b120004",
+      "name": "Postgres",
+      "type": "n8n-nodes-base.postgres",
+      "typeVersion": 2.5,
+      "position": [
+        1040,
+        300
+      ]
+    },
+    {
+      "parameters": {
+        "respondWith": "json",
+        "responseBody": "={{ $json.response_body }}",
+        "options": {
+          "responseCode": "={{ $json.status_code }}"
+        }
+      },
+      "id": "9f25a4f7-5a2b-4d8f-a3e0-6f5d0b120005",
+      "name": "Respond to Webhook",
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1.3,
+      "position": [
+        1300,
+        300
+      ]
+    }
+  ],
+  "pinData": {},
+  "connections": {
+    "Webhook": {
+      "main": [
+        [
+          {
+            "node": "Validate Payload",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Validate Payload": {
+      "main": [
+        [
+          {
+            "node": "Map SQL",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Map SQL": {
+      "main": [
+        [
+          {
+            "node": "Postgres",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Postgres": {
+      "main": [
+        [
+          {
+            "node": "Respond to Webhook",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": false,
+  "settings": {
+    "executionOrder": "v1"
+  },
+  "versionId": "3f0f6a20-8cc3-4e58-bb7c-458d0b120001",
+  "meta": {
+    "templateCredsSetupCompleted": true
+  },
+  "tags": []
+}
