@@ -1,5 +1,6 @@
 import { createReadStream } from "node:fs";
 import { stat } from "node:fs/promises";
+import crypto from "node:crypto";
 import http from "node:http";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
@@ -30,7 +31,14 @@ const contentTypes = {
 const routes = new Map([
   ["/api/leads", handleLead],
   ["/api/consultoria", handleConsultoria],
-  ["/api/perfil", handleProfile]
+  ["/api/perfil", handleProfile],
+  ["/api/members/register", handleMemberRegister],
+  ["/api/members/login", handleMemberLogin],
+  ["/api/members/session", handleMemberSession],
+  ["/api/operation/assistant", handleOperationAssistant],
+  ["/api/wizard/load", handleWizardLoad],
+  ["/api/wizard/save", handleWizardSave],
+  ["/api/wizard/ask", handleWizardAsk]
 ]);
 
 const server = http.createServer(async (request, response) => {
@@ -283,6 +291,376 @@ async function handleProfile(payload) {
   return { ok: true, id: result.rows[0].id };
 }
 
+async function handleMemberRegister(payload) {
+  requireFields(payload, ["name", "email", "password"]);
+  requirePassword(payload.password);
+
+  const email = normalizeEmail(payload.email);
+  const existing = await query("select id from wizard_members where email = $1", [email]);
+  if (existing.rowCount > 0) {
+    throw httpError(409, "member_already_exists");
+  }
+
+  const { hash, salt } = hashPassword(payload.password);
+  const sql = `
+    insert into wizard_members (name, email, password_hash, password_salt)
+    values ($1, $2, $3, $4)
+    returning id, name, email, created_at
+  `;
+
+  const result = await query(sql, [payload.name, email, hash, salt]);
+  const member = result.rows[0];
+  return {
+    ok: true,
+    token: await createMemberSession(member.id),
+    member,
+    state: defaultWizardState()
+  };
+}
+
+async function handleMemberLogin(payload) {
+  requireFields(payload, ["email", "password"]);
+  const email = normalizeEmail(payload.email);
+
+  const result = await query(
+    "select id, name, email, password_hash, password_salt, created_at from wizard_members where email = $1",
+    [email]
+  );
+
+  const member = result.rows[0];
+  if (!member || !verifyPassword(payload.password, member.password_salt, member.password_hash)) {
+    throw httpError(401, "invalid_credentials");
+  }
+
+  return {
+    ok: true,
+    token: await createMemberSession(member.id),
+    member: publicMember(member),
+    state: await loadWizardState(member.id)
+  };
+}
+
+async function handleMemberSession(payload) {
+  const member = await getAuthenticatedMember(payload);
+  return {
+    ok: true,
+    member,
+    state: await loadWizardState(member.id)
+  };
+}
+
+async function handleOperationAssistant(payload) {
+  const member = await getAuthenticatedMember(payload);
+  requireFields(payload, ["message", "module", "stage", "stageKey", "project"]);
+
+  const endpoint = process.env.N8N_OPERATION_ASSISTANT_WEBHOOK_URL;
+  if (!endpoint) {
+    return {
+      ok: true,
+      fallback: true,
+      answer: buildOperationAssistantFallback(payload.module, payload.stage, payload.message)
+    };
+  }
+
+  const n8nPayload = {
+    member,
+    project: payload.project,
+    module: payload.module,
+    stage: payload.stage,
+    stageKey: payload.stageKey,
+    message: payload.message,
+    thread: Array.isArray(payload.thread) ? payload.thread.slice(-20) : [],
+    sentAt: new Date().toISOString()
+  };
+
+  const controller = new AbortController();
+  const timeoutMs = Number(process.env.N8N_OPERATION_ASSISTANT_TIMEOUT_MS || 45000);
+  const timeout = setTimeout(() => controller.abort(), timeoutMs);
+
+  try {
+    const response = await fetch(endpoint, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        ...(process.env.N8N_OPERATION_ASSISTANT_SECRET
+          ? { "X-Axon-Webhook-Secret": process.env.N8N_OPERATION_ASSISTANT_SECRET }
+          : {})
+      },
+      body: JSON.stringify(n8nPayload),
+      signal: controller.signal
+    });
+
+    const data = await response.json().catch(() => ({}));
+    if (!response.ok || data.ok === false) {
+      console.warn("n8n operation assistant returned", response.status, data);
+      return {
+        ok: true,
+        fallback: true,
+        answer: buildOperationAssistantFallback(payload.module, payload.stage, payload.message)
+      };
+    }
+
+    return {
+      ok: true,
+      answer: data.answer || data.summary_for_user || buildOperationAssistantFallback(payload.module, payload.stage, payload.message),
+      agent_id: data.agent_id || payload.stage?.agentId || null,
+      status: data.status || (data.saved ? "saved" : null),
+      project_section: data.project_section || null,
+      transfer_block: data.transfer_block || null,
+      next_recommended_agent: data.next_recommended_agent || null
+    };
+  } catch (error) {
+    console.warn("n8n operation assistant failed", error);
+    return {
+      ok: true,
+      fallback: true,
+      answer: buildOperationAssistantFallback(payload.module, payload.stage, payload.message)
+    };
+  } finally {
+    clearTimeout(timeout);
+  }
+}
+
+async function handleWizardLoad(payload) {
+  const member = await getAuthenticatedMember(payload);
+  return {
+    ok: true,
+    member,
+    state: await loadWizardState(member.id)
+  };
+}
+
+async function handleWizardSave(payload) {
+  const member = await getAuthenticatedMember(payload);
+  requireFields(payload, ["state"]);
+
+  const state = sanitizeWizardState(payload.state);
+  const sql = `
+    insert into wizard_progress (
+      member_id,
+      project_json,
+      current_step,
+      completed_steps_json,
+      checklist_json,
+      current_module,
+      current_lesson,
+      updated_at
+    ) values ($1, $2::jsonb, $3, $4::jsonb, $5::jsonb, $6, $7, now())
+    on conflict (member_id) do update set
+      project_json = excluded.project_json,
+      current_step = excluded.current_step,
+      completed_steps_json = excluded.completed_steps_json,
+      checklist_json = excluded.checklist_json,
+      current_module = excluded.current_module,
+      current_lesson = excluded.current_lesson,
+      updated_at = now()
+  `;
+
+  await query(sql, [
+    member.id,
+    jsonValue(state.project),
+    state.currentStep,
+    jsonValue(state.completedSteps),
+    jsonValue(state.checklist),
+    state.currentModule,
+    state.currentLesson
+  ]);
+
+  return { ok: true, state };
+}
+
+async function handleWizardAsk(payload) {
+  await getAuthenticatedMember(payload);
+  requireFields(payload, ["stepTitle", "question"]);
+
+  const answer = buildWizardAnswer(payload.stepTitle, payload.question, payload.context);
+  return { ok: true, answer };
+}
+
+async function getAuthenticatedMember(payload) {
+  const token = payload?.token;
+  if (!token) {
+    throw httpError(401, "missing_token");
+  }
+
+  const tokenHash = hashToken(token);
+  const result = await query(
+    `
+      select m.id, m.name, m.email, m.created_at
+      from wizard_member_sessions s
+      join wizard_members m on m.id = s.member_id
+      where s.token_hash = $1 and s.expires_at > now()
+    `,
+    [tokenHash]
+  );
+
+  const member = result.rows[0];
+  if (!member) {
+    throw httpError(401, "invalid_token");
+  }
+
+  return publicMember(member);
+}
+
+async function createMemberSession(memberId) {
+  const token = crypto.randomBytes(32).toString("base64url");
+  const tokenHash = hashToken(token);
+  const ttlMs = Number(process.env.MEMBER_TOKEN_TTL_MS || 1000 * 60 * 60 * 24 * 14);
+  const expiresAt = new Date(Date.now() + ttlMs).toISOString();
+
+  await query(
+    "insert into wizard_member_sessions (member_id, token_hash, expires_at) values ($1, $2, $3::timestamptz)",
+    [memberId, tokenHash, expiresAt]
+  );
+
+  return token;
+}
+
+function hashToken(token) {
+  return crypto.createHash("sha256").update(String(token)).digest("hex");
+}
+
+async function loadWizardState(memberId) {
+  const result = await query(
+    `
+      select project_json, current_step, completed_steps_json, checklist_json, current_module, current_lesson, updated_at
+      from wizard_progress
+      where member_id = $1
+    `,
+    [memberId]
+  );
+
+  const row = result.rows[0];
+  if (!row) {
+    return defaultWizardState();
+  }
+
+  return sanitizeWizardState({
+    project: row.project_json,
+    currentStep: row.current_step,
+    completedSteps: row.completed_steps_json,
+    checklist: row.checklist_json,
+    currentModule: row.current_module,
+    currentLesson: row.current_lesson,
+    updatedAt: row.updated_at
+  });
+}
+
+function defaultWizardState() {
+  return {
+    project: {
+      id: "",
+      name: "",
+      domain: "",
+      serverIp: "",
+      technicalEmail: "",
+      hostName: "manager01",
+      siteImage: "ghcr.io/axnconsult/site:main"
+    },
+    currentStep: "domain",
+    currentModule: "module-1",
+    currentLesson: "module-1.0",
+    completedSteps: [],
+    checklist: {},
+    updatedAt: null
+  };
+}
+
+function sanitizeWizardState(state) {
+  const fallback = defaultWizardState();
+  const project = {
+    ...fallback.project,
+    ...(state?.project && typeof state.project === "object" ? state.project : {})
+  };
+  const projectName = nullableText(project.name);
+
+  return {
+    project: {
+      id: nullableUuid(project.id) || fallback.project.id,
+      domain: nullableText(project.domain) || "",
+      name: projectName === "Meu negocio online" ? "" : projectName || "",
+      serverIp: nullableText(project.serverIp) || "",
+      technicalEmail: nullableText(project.technicalEmail) || "",
+      hostName: nullableText(project.hostName) || "manager01",
+      siteImage: nullableText(project.siteImage) || "ghcr.io/axnconsult/site:main"
+    },
+    currentStep: nullableText(state?.currentStep) || fallback.currentStep,
+    currentModule: nullableText(state?.currentModule) || fallback.currentModule,
+    currentLesson: nullableText(state?.currentLesson) || fallback.currentLesson,
+    completedSteps: Array.isArray(state?.completedSteps) ? state.completedSteps.map(String) : [],
+    checklist: state?.checklist && typeof state.checklist === "object" ? state.checklist : {},
+    updatedAt: state?.updatedAt || new Date().toISOString()
+  };
+}
+
+function publicMember(member) {
+  return {
+    id: member.id,
+    name: member.name,
+    email: member.email,
+    created_at: member.created_at
+  };
+}
+
+function normalizeEmail(email) {
+  return String(email || "").trim().toLowerCase();
+}
+
+function requirePassword(password) {
+  if (String(password).length < 8) {
+    throw httpError(422, "weak_password");
+  }
+}
+
+function hashPassword(password, salt = crypto.randomBytes(16).toString("hex")) {
+  const hash = crypto.scryptSync(String(password), salt, 64).toString("hex");
+  return { hash, salt };
+}
+
+function verifyPassword(password, salt, expectedHash) {
+  const { hash } = hashPassword(password, salt);
+  const left = Buffer.from(hash, "hex");
+  const right = Buffer.from(expectedHash, "hex");
+  return left.length === right.length && crypto.timingSafeEqual(left, right);
+}
+
+function buildWizardAnswer(stepTitle, question, context) {
+  const cleanStep = String(stepTitle).slice(0, 120);
+  const cleanQuestion = String(question).slice(0, 600);
+  const cleanContext = String(context || "").slice(0, 800);
+
+  return [
+    `Etapa: ${cleanStep}`,
+    "",
+    "Vamos simplificar: execute apenas a acao desta etapa e valide antes de avancar.",
+    cleanContext ? `Contexto atual: ${cleanContext}` : "",
+    `Sua duvida: ${cleanQuestion}`,
+    "",
+    "Proximo passo pratico: confira os campos preenchidos, copie o comando indicado e rode no lugar certo. Depois use a validacao da etapa. Se a validacao nao bater, pare e trate como problema de DNS, proxy, container ou banco antes de continuar."
+  ]
+    .filter(Boolean)
+    .join("\n");
+}
+
+function buildOperationAssistantFallback(module, stage, message) {
+  const moduleTitle = nullableText(module?.title) || "Operacao Comercial";
+  const stageTitle = Array.isArray(stage) ? stage[0] : nullableText(stage?.title) || "Etapa atual";
+  const stageSummary = Array.isArray(stage) ? stage[1] : nullableText(stage?.summary) || "";
+  const cleanMessage = String(message || "").slice(0, 1200);
+
+  return [
+    `Modulo: ${moduleTitle}`,
+    `Etapa: ${stageTitle}`,
+    "",
+    stageSummary ? `Foco desta etapa: ${stageSummary}` : "",
+    cleanMessage ? `O que voce trouxe: ${cleanMessage}` : "",
+    "",
+    "Ainda estou sem o webhook do n8n configurado neste ambiente. Enquanto isso, transforme sua resposta em tres pontos: decisao tomada, informacao que falta e proxima acao concreta."
+  ]
+    .filter(Boolean)
+    .join("\n");
+}
+
 function getPool() {
   if (pool) {
     return pool;
@@ -421,6 +799,13 @@ function requireGrantedConsent(consent) {
 
 function nullableText(value) {
   return value === undefined || value === null || value === "" ? null : String(value);
+}
+
+function nullableUuid(value) {
+  const text = nullableText(value);
+  return text && /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(text)
+    ? text
+    : null;
 }
 
 function nullableDate(value) {

@@ -69,3 +69,39 @@ create table if not exists entrepreneur_profile_results (
 create index if not exists idx_profile_created_at on entrepreneur_profile_results (created_at desc);
 create index if not exists idx_profile_email on entrepreneur_profile_results (lead_email);
 create index if not exists idx_profile_operational on entrepreneur_profile_results (dominant_operational);
+
+create table if not exists wizard_members (
+  id uuid primary key default gen_random_uuid(),
+  created_at timestamptz not null default now(),
+  updated_at timestamptz not null default now(),
+  name text not null,
+  email text not null unique,
+  password_hash text not null,
+  password_salt text not null
+);
+
+create index if not exists idx_wizard_members_email on wizard_members (email);
+
+create table if not exists wizard_member_sessions (
+  id uuid primary key default gen_random_uuid(),
+  created_at timestamptz not null default now(),
+  member_id uuid not null references wizard_members(id) on delete cascade,
+  token_hash text not null unique,
+  expires_at timestamptz not null
+);
+
+create index if not exists idx_wizard_sessions_member on wizard_member_sessions (member_id);
+create index if not exists idx_wizard_sessions_expires_at on wizard_member_sessions (expires_at);
+
+create table if not exists wizard_progress (
+  member_id uuid primary key references wizard_members(id) on delete cascade,
+  updated_at timestamptz not null default now(),
+  project_json jsonb not null default '{}'::jsonb,
+  current_step text not null default 'domain',
+  current_module text not null default 'module-1',
+  current_lesson text not null default 'module-1.0',
+  completed_steps_json jsonb not null default '[]'::jsonb,
+  checklist_json jsonb not null default '{}'::jsonb
+);
+
+create index if not exists idx_wizard_progress_updated_at on wizard_progress (updated_at desc);

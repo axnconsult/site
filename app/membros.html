@@ -1,0 +1,260 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Operacao Comercial | Axon</title>
+    <meta
+      name="description"
+      content="Area de membros da Operacao Comercial Axon para implementar presenca digital, captacao, atendimento e administracao online."
+    />
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Space+Grotesk:wght@400;500;700&display=swap"
+      rel="stylesheet"
+    />
+    <link rel="stylesheet" href="./styles.css" />
+  </head>
+  <body data-page="members">
+    <div class="site-bg"></div>
+    <header class="topbar members-topbar">
+      <a class="brand members-brand" href="./sobre.html" aria-label="Voltar para a Axon">
+        <img class="brand-logo" src="./assets/simbolo-axon-branco.png" alt="Simbolo Axon" />
+      </a>
+      <div class="members-top-actions" data-app-view>
+        <button class="icon-button" type="button" data-view="settings" aria-label="Configuracoes">Config</button>
+        <button class="profile-chip" type="button" data-view="profile" aria-label="Perfil do membro">
+          <span id="member-initials">AX</span>
+        </button>
+      </div>
+    </header>
+
+    <main class="members-app" id="members-app">
+      <section class="section members-auth" data-auth-view>
+        <div class="members-auth-copy">
+          <p class="eyebrow">Operacao Comercial</p>
+          <h1>Implemente a presenca digital do seu negocio online.</h1>
+          <p>
+            Uma area guiada para organizar seu negocio, divulgar, captar leads, atender online e construir autonomia operacional.
+          </p>
+        </div>
+
+        <form class="panel members-auth-card" id="member-auth-form">
+          <div>
+            <p class="eyebrow" id="auth-mode-label">Entrar</p>
+            <h2 id="auth-title">Acessar Operacao Comercial</h2>
+          </div>
+          <label id="name-field">
+            Nome completo
+            <input name="name" autocomplete="name" placeholder="Seu nome" />
+          </label>
+          <label>
+            E-mail
+            <input name="email" type="email" autocomplete="email" required placeholder="voce@seudominio.com" />
+          </label>
+          <label>
+            Senha
+            <input name="password" type="password" autocomplete="current-password" required minlength="8" />
+          </label>
+          <button class="button button-primary" type="submit" id="auth-submit">Entrar</button>
+          <button class="members-link-button" type="button" id="toggle-auth-mode">Criar uma conta</button>
+          <p class="form-status" id="auth-status" role="status"></p>
+        </form>
+      </section>
+
+      <section class="section members-shell hidden" data-app-view>
+        <div class="members-content">
+          <section class="members-view" data-view-panel="dashboard">
+            <div class="members-hero-panel">
+              <div>
+                <p class="eyebrow">Operacao Comercial</p>
+                <h1>Implemente sua presenca digital do seu negocio online.</h1>
+                <p>
+                  Do posicionamento a captacao, atendimento, produto digital e pagina de conversao. Escolha um modulo e avance com uma entrega por vez.
+                </p>
+              </div>
+            </div>
+
+            <div class="members-metrics">
+              <article>
+                <span id="metric-completed">0</span>
+                <p>etapas tecnicas concluidas</p>
+              </article>
+              <article>
+                <span id="metric-progress">0%</span>
+                <p>progresso do projeto atual</p>
+              </article>
+              <article>
+                <span id="metric-current">Modulo 1</span>
+                <p>modulo em foco</p>
+              </article>
+            </div>
+
+            <div class="project-strip">
+              <div>
+                <p class="eyebrow">Projeto atual</p>
+                <div class="project-name-editor" id="project-name-editor">
+                  <label>
+                    Nome do Projeto
+                    <input id="project-name-input" name="projectName" placeholder="Ex.: Studio da Ana" />
+                  </label>
+                  <button class="button button-primary" type="button" id="save-project-name">Salvar nome</button>
+                </div>
+                <h2 id="project-name" class="hidden"></h2>
+                <p>Um projeto representa um negocio. Para implementar outro negocio, a experiencia deve criar um novo projeto.</p>
+              </div>
+              <button class="button button-secondary" type="button" id="new-project-button">Novo projeto</button>
+            </div>
+
+            <div class="module-grid" id="module-grid"></div>
+          </section>
+
+          <section class="members-view hidden" data-view-panel="module">
+            <button class="members-link-button" type="button" data-view="dashboard">Dashboard</button>
+            <article class="panel module-detail">
+              <div class="module-detail-head">
+                <div>
+                  <p class="eyebrow" id="module-kicker">Modulo</p>
+                  <h1 id="module-title">Modulo</h1>
+                  <p id="module-summary"></p>
+                </div>
+              </div>
+
+              <div class="stage-layout">
+                <section class="stage-panel">
+                  <p class="eyebrow" id="stage-kicker">Etapa</p>
+                  <h2 id="stage-title">Comece pela primeira etapa</h2>
+                  <p id="stage-summary"></p>
+                  <div class="stage-video-placeholder" id="stage-video-placeholder" aria-label="Espaco para video da etapa">
+                    <span>Video desta etapa em preparacao</span>
+                  </div>
+                  <div id="stage-content"></div>
+                </section>
+
+                <section class="assistant-panel">
+                  <div>
+                    <p class="eyebrow">Assistente da etapa</p>
+                    <h3 id="assistant-title">Conversa guiada</h3>
+                  </div>
+                  <div class="assistant-thread" id="assistant-thread" aria-live="polite"></div>
+                  <div class="assistant-input-row">
+                    <textarea id="assistant-input" rows="3" placeholder="Digite sua resposta, duvida ou contexto do seu negocio."></textarea>
+                    <button class="button button-primary" type="button" id="assistant-submit">Enviar</button>
+                  </div>
+                </section>
+
+                <div class="stage-navigation">
+                  <button class="button button-secondary" type="button" id="previous-stage">Voltar</button>
+                  <span id="stage-progress-label">Etapa 1 de 1</span>
+                  <button class="button button-primary" type="button" id="next-stage">Avancar</button>
+                </div>
+              </div>
+            </article>
+          </section>
+
+          <section class="members-view hidden" data-view-panel="history">
+            <div class="panel">
+              <p class="eyebrow">Historico</p>
+              <h1>Projetos e progresso</h1>
+              <div class="history-list" id="history-list"></div>
+            </div>
+          </section>
+
+          <section class="members-view hidden" data-view-panel="help">
+            <div class="panel">
+              <p class="eyebrow">Central de ajuda</p>
+              <h1>Pergunte sobre a etapa atual.</h1>
+              <p>Use o painel de assistente em cada etapa para pedir explicacao, gerar entregas e continuar seu projeto.</p>
+              <div class="faq-list">
+                <details open>
+                  <summary>O que e um projeto?</summary>
+                  <p>Projeto e um negocio sendo implementado. Um novo negocio deve virar um novo projeto.</p>
+                </details>
+                <details>
+                  <summary>Onde fica a configuracao tecnica?</summary>
+                  <p>Ela aparece como conversa guiada dentro do modulo de Estrutura Digital.</p>
+                </details>
+                <details>
+                  <summary>Onde entram os agentes?</summary>
+                  <p>Em cada etapa, o assistente coleta seu contexto e gera blocos de transferencia para continuar a implementacao.</p>
+                </details>
+              </div>
+            </div>
+          </section>
+
+          <section class="members-view hidden" data-view-panel="settings">
+            <form class="panel">
+              <button class="members-link-button" type="button" data-view="dashboard">Voltar ao dashboard</button>
+              <p class="eyebrow">Configuracoes</p>
+              <h1>Preferencias simples</h1>
+              <div class="settings-block">
+                <h2>Projeto</h2>
+                <label>
+                  Editar nome do projeto
+                  <input id="settings-project-name" name="settingsProjectName" placeholder="Nome do projeto" />
+                </label>
+                <button class="button button-secondary" type="button" id="save-settings-project-name">Salvar nome do projeto</button>
+              </div>
+              <label class="inline-check">
+                <input type="checkbox" checked />
+                Receber avisos importantes por e-mail
+              </label>
+              <button class="button button-primary" type="button">Salvar preferencias</button>
+            </form>
+          </section>
+
+          <section class="members-view hidden" data-view-panel="profile">
+            <form class="panel" id="profile-form">
+              <button class="members-link-button" type="button" data-view="dashboard">Voltar ao dashboard</button>
+              <p class="eyebrow">Meu perfil</p>
+              <h1>Dados do membro</h1>
+              <label class="profile-photo-control">
+                Foto do perfil
+                <span class="profile-photo-preview" id="profile-photo-preview">AX</span>
+                <input name="profilePhoto" type="file" accept="image/*" />
+              </label>
+              <label>
+                Nome
+                <input name="profileName" id="profile-name" />
+              </label>
+              <label>
+                E-mail cadastrado
+                <input name="profileEmail" id="profile-email" disabled />
+              </label>
+              <button class="button button-primary" type="button">Salvar alteracoes</button>
+            </form>
+          </section>
+        </div>
+      </section>
+    </main>
+
+    <footer class="site-footer">
+      <div>
+        <a class="brand footer-brand" href="./index.html">
+          <img class="brand-logo brand-logo-lockup" src="./assets/Marca Axon Consult Branca.png" alt="Marca Axon Consult" />
+          <span class="brand-copy">
+            <small>Seu tempo é a única moeda.</small>
+          </span>
+        </a>
+      </div>
+      <div class="footer-links">
+        <a href="./deploy.html">Deploy</a>
+        <a href="./operacao-comercial.html">Operação Comercial</a>
+        <a href="./consultoria.html">Consultoria</a>
+        <a href="./perfil-empreendedor.html">Perfil Empreendedor</a>
+        <a href="./sobre.html">Sobre</a>
+      </div>
+      <div class="footer-links">
+        <a data-social-link="instagram" href="https://instagram.com/" target="_blank" rel="noreferrer">Instagram</a>
+        <a data-social-link="youtube" href="https://youtube.com/" target="_blank" rel="noreferrer">YouTube</a>
+        <a data-social-link="linkedin" href="https://linkedin.com/" target="_blank" rel="noreferrer">LinkedIn</a>
+        <a href="./termos-e-privacidade.html">Termos e privacidade</a>
+      </div>
+    </footer>
+
+    <script src="./runtime-config.js"></script>
+    <script src="./script.js"></script>
+    <script src="./member-app.js"></script>
+  </body>
+</html>

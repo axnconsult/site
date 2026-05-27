@@ -9,6 +9,7 @@ Frontend multipagina da Axon, preparado para publicacao em VPS com Docker, Traef
 - `operacao-comercial.html`: curso gravado
 - `consultoria.html`: triagem de consultoria
 - `ferramentas/gerador-de-prompts.html`: ferramenta pratica
+- `membros.html`: area de membros da Operacao Comercial, com modulos, aulas e assistentes guiados
 - `sobre.html`: manifesto condensado
 - `obrigado.html`: feedback de conversao
 - `termos.html` e `privacidade.html`: base juridica do MVP
@@ -33,5 +34,7 @@ npm start
 ## Observacoes
 
 - Os formularios agora enviam `POST` para `/api/leads`, `/api/consultoria` e `/api/perfil`.
-- O proximo passo natural e adicionar autenticao e area de membros sem refazer o front publico.
+- A area de membros usa `POST` para `/api/members/*` e `/api/wizard/*`.
+- O dashboard de membros organiza a Operacao Comercial em modulos; a configuracao tecnica aparece como conversa guiada dentro da aula de implementacao tecnica.
+- Se o banco nao estiver disponivel no ambiente local, o wizard permite testar a experiencia com fallback em `localStorage`.
 - Veja `DEPLOYMENT.md` e `N8N_WEBHOOKS.md`.

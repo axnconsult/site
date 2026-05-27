@@ -1,0 +1,187 @@
+{
+    "name":  "Axon | Operacao Comercial | Modulo 1 | Simple",
+    "nodes":  [
+                  {
+                      "parameters":  {
+                                         "httpMethod":  "POST",
+                                         "path":  "operacao-comercial-assistente-simple",
+                                         "authentication":  "headerAuth",
+                                         "responseMode":  "responseNode",
+                                         "options":  {
+
+                                                     }
+                                     },
+                      "id":  "f1a5c7c1-1001-4a8b-9001-000000000001",
+                      "name":  "Webhook App",
+                      "type":  "n8n-nodes-base.webhook",
+                      "typeVersion":  2,
+                      "position":  [
+                                       160,
+                                       300
+                                   ],
+                      "webhookId":  "axn-operacao-comercial-assistente-simple",
+                      "credentials":  {
+                                          "httpHeaderAuth":  {
+                                                                 "id":  "REPLACE_WITH_HEADER_AUTH_CREDENTIAL_ID",
+                                                                 "name":  "Axon Operation Webhook Secret"
+                                                             }
+                                      }
+                  },
+                  {
+                      "parameters":  {
+                                         "operation":  "executeQuery",
+                                         "query":  "insert into operation_projects (\n  id,\n  member_id,\n  name,\n  current_module,\n  current_stage_key,\n  project_json,\n  updated_at\n) values (\n  \u0027{{ $(\u0027Webhook App\u0027).item.json.body.project.id }}\u0027::uuid,\n  \u0027{{ $(\u0027Webhook App\u0027).item.json.body.member.id }}\u0027::uuid,\n  coalesce(nullif(\u0027{{ String($(\u0027Webhook App\u0027).item.json.body.project.name || \u0027\u0027).replace(/\u0027/g, \"\u0027\u0027\") }}\u0027, \u0027\u0027), \u0027Projeto sem nome\u0027),\n  coalesce(nullif(\u0027{{ String($(\u0027Webhook App\u0027).item.json.body.stage?.moduleId || $(\u0027Webhook App\u0027).item.json.body.module?.id || \u0027module-1\u0027).replace(/\u0027/g, \"\u0027\u0027\") }}\u0027, \u0027\u0027), \u0027module-1\u0027),\n  coalesce(nullif(\u0027{{ String($(\u0027Webhook App\u0027).item.json.body.stage?.lessonId || $(\u0027Webhook App\u0027).item.json.body.stageKey || \u0027module-1.0\u0027).replace(/\u0027/g, \"\u0027\u0027\") }}\u0027, \u0027\u0027), \u0027module-1.0\u0027),\n  \u0027{{ JSON.stringify($(\u0027Webhook App\u0027).item.json.body.project || {}).replace(/\u0027/g, \"\u0027\u0027\") }}\u0027::jsonb,\n  now()\n)\non conflict (id) do update set\n  name = excluded.name,\n  current_module = excluded.current_module,\n  current_stage_key = excluded.current_stage_key,\n  project_json = excluded.project_json,\n  updated_at = now()\nreturning *;",
+                                         "options":  {
+
+                                                     }
+                                     },
+                      "id":  "f1a5c7c1-1002-4a8b-9001-000000000002",
+                      "name":  "Postgres Upsert Project",
+                      "type":  "n8n-nodes-base.postgres",
+                      "typeVersion":  2.5,
+                      "position":  [
+                                       460,
+                                       300
+                                   ],
+                      "credentials":  {
+                                          "postgres":  {
+                                                           "id":  "REPLACE_WITH_POSTGRES_CREDENTIAL_ID",
+                                                           "name":  "Postgres account"
+                                                       }
+                                      }
+                  },
+                  {
+                      "parameters":  {
+                                         "method":  "POST",
+                                         "url":  "https://api.openai.com/v1/responses",
+                                         "sendHeaders":  true,
+                                         "headerParameters":  {
+                                                                  "parameters":  [
+                                                                                     {
+                                                                                         "name":  "Authorization",
+                                                                                         "value":  "={{ \u0027Bearer \u0027 + $env.OPENAI_API_KEY }}"
+                                                                                     },
+                                                                                     {
+                                                                                         "name":  "Content-Type",
+                                                                                         "value":  "application/json"
+                                                                                     }
+                                                                                 ]
+                                                              },
+                                         "sendBody":  true,
+                                         "specifyBody":  "json",
+                                         "jsonBody":  "={{ { model: \u0027gpt-5.1\u0027, instructions: ({ business_modeling: \u0027Voce e o agente AXN 01 Modelagem de Negocio. Ajude o aluno a transformar interesses, habilidades e contexto em uma hipotese de negocio viavel. Nesta etapa, investigue nicho, problema, publico inicial, oferta inicial e sinais de mercado. Faca no maximo duas perguntas por vez. Quando houver base suficiente, resuma a hipotese de negocio e diga qual informacao ainda falta.\u0027, target_audience: \u0027Voce e o agente AXN 02 Publico-Alvo. Ajude o aluno a definir com clareza quem compra, por que compra, dores, desejos, objeccoes, contexto de uso e canais onde esse publico aparece. Nao refaca a modelagem de negocio; use o contexto recebido. Faca no maximo duas perguntas por vez.\u0027, strategic_differentiation: \u0027Voce e o agente AXN 03 Diferencial Estrategico. Ajude o aluno a formular posicionamento, promessa, contraste com alternativas e razoes para ser escolhido. Nao refaca publico nem produto; aprofunde vantagem percebida. Faca no maximo duas perguntas por vez.\u0027, strategic_pricing: \u0027Voce e o agente AXN 04 Precificacao Estrategica. Ajude o aluno a pensar modelo de preco, faixa inicial, valor percebido, custo de entrega, meta financeira e caminho de validacao. Nao prometa ganhos. Faca no maximo duas perguntas por vez.\u0027, product_concept: \u0027Voce e o agente AXN 05 Conceito de Produto. Ajude o aluno a transformar a oferta em produto claro: nome provisório, promessa, formato, entregaveis, jornada de compra e resultado esperado. Faca no maximo duas perguntas por vez.\u0027, visual_identity: \u0027Voce e o agente AXN 06 Identidade Visual. Ajude o aluno a traduzir posicionamento em direcao visual: sensacao, referencias, cores, linguagem, personalidade e orientacoes para design. Faca no maximo duas perguntas por vez.\u0027 })[$(\u0027Webhook App\u0027).item.json.body.stage?.agentId || $(\u0027Webhook App\u0027).item.json.body.agent_id || \u0027business_modeling\u0027] || \u0027Voce e o assistente da Operacao Comercial da Axon. Conduza o aluno com perguntas praticas, uma etapa por vez.\u0027, input: [{ role: \u0027user\u0027, content: [{ type: \u0027input_text\u0027, text: JSON.stringify({ project: $(\u0027Webhook App\u0027).item.json.body.project, member: $(\u0027Webhook App\u0027).item.json.body.member, stage: $(\u0027Webhook App\u0027).item.json.body.stage, stageKey: $(\u0027Webhook App\u0027).item.json.body.stageKey || $(\u0027Webhook App\u0027).item.json.body.stage?.lessonId || \u0027module-1.0\u0027, agent_id: $(\u0027Webhook App\u0027).item.json.body.stage?.agentId || $(\u0027Webhook App\u0027).item.json.body.agent_id || \u0027business_modeling\u0027, message: $(\u0027Webhook App\u0027).item.json.body.message, thread: $(\u0027Webhook App\u0027).item.json.body.thread || [] }) }] }] } }}",
+                                         "options":  {
+
+                                                     }
+                                     },
+                      "id":  "f1a5c7c1-1003-4a8b-9001-000000000003",
+                      "name":  "OpenAI Responses",
+                      "type":  "n8n-nodes-base.httpRequest",
+                      "typeVersion":  4.2,
+                      "position":  [
+                                       760,
+                                       300
+                                   ]
+                  },
+                  {
+                      "parameters":  {
+                                         "operation":  "executeQuery",
+                                         "query":  "insert into operation_agent_runs (\n  project_id,\n  member_id,\n  stage_key,\n  agent_id,\n  status,\n  user_message,\n  assistant_answer,\n  project_section,\n  transfer_block_json,\n  raw_response_json,\n  openai_response_id\n) values (\n  \u0027{{ $(\u0027Webhook App\u0027).item.json.body.project.id }}\u0027::uuid,\n  \u0027{{ $(\u0027Webhook App\u0027).item.json.body.member.id }}\u0027::uuid,\n  \u0027{{ String($(\u0027Webhook App\u0027).item.json.body.stageKey || $(\u0027Webhook App\u0027).item.json.body.stage?.lessonId || \u0027module-1.0\u0027).replace(/\u0027/g, \"\u0027\u0027\") }}\u0027,\n  \u0027{{ String($(\u0027Webhook App\u0027).item.json.body.stage?.agentId || $(\u0027Webhook App\u0027).item.json.body.agent_id || \u0027business_modeling\u0027).replace(/\u0027/g, \"\u0027\u0027\") }}\u0027,\n  \u0027needs_input\u0027,\n  \u0027{{ String($(\u0027Webhook App\u0027).item.json.body.message || \u0027\u0027).replace(/\u0027/g, \"\u0027\u0027\") }}\u0027,\n  \u0027{{ String($json.output_text || (($json.output || []).flatMap(item =\u003e item.content || []).map(content =\u003e content.text || \u0027\u0027).join(\u0027\\n\u0027)) || \u0027\u0027).replace(/\u0027/g, \"\u0027\u0027\") }}\u0027,\n  null,\n  null,\n  \u0027{{ JSON.stringify($json || {}).replace(/\u0027/g, \"\u0027\u0027\") }}\u0027::jsonb,\n  \u0027{{ String($json.id || \u0027\u0027).replace(/\u0027/g, \"\u0027\u0027\") }}\u0027\n);\n\ninsert into operation_conversation_messages (project_id, member_id, stage_key, role, content, metadata_json)\nvalues\n  (\n    \u0027{{ $(\u0027Webhook App\u0027).item.json.body.project.id }}\u0027::uuid,\n    \u0027{{ $(\u0027Webhook App\u0027).item.json.body.member.id }}\u0027::uuid,\n    \u0027{{ String($(\u0027Webhook App\u0027).item.json.body.stageKey || $(\u0027Webhook App\u0027).item.json.body.stage?.lessonId || \u0027module-1.0\u0027).replace(/\u0027/g, \"\u0027\u0027\") }}\u0027,\n    \u0027user\u0027,\n    \u0027{{ String($(\u0027Webhook App\u0027).item.json.body.message || \u0027\u0027).replace(/\u0027/g, \"\u0027\u0027\") }}\u0027,\n    \u0027{{ JSON.stringify({ agent_id: $(\u0027Webhook App\u0027).item.json.body.stage?.agentId || $(\u0027Webhook App\u0027).item.json.body.agent_id || \u0027business_modeling\u0027 }).replace(/\u0027/g, \"\u0027\u0027\") }}\u0027::jsonb\n  ),\n  (\n    \u0027{{ $(\u0027Webhook App\u0027).item.json.body.project.id }}\u0027::uuid,\n    \u0027{{ $(\u0027Webhook App\u0027).item.json.body.member.id }}\u0027::uuid,\n    \u0027{{ String($(\u0027Webhook App\u0027).item.json.body.stageKey || $(\u0027Webhook App\u0027).item.json.body.stage?.lessonId || \u0027module-1.0\u0027).replace(/\u0027/g, \"\u0027\u0027\") }}\u0027,\n    \u0027assistant\u0027,\n    \u0027{{ String($json.output_text || (($json.output || []).flatMap(item =\u003e item.content || []).map(content =\u003e content.text || \u0027\u0027).join(\u0027\\n\u0027)) || \u0027\u0027).replace(/\u0027/g, \"\u0027\u0027\") }}\u0027,\n    \u0027{{ JSON.stringify({ agent_id: $(\u0027Webhook App\u0027).item.json.body.stage?.agentId || $(\u0027Webhook App\u0027).item.json.body.agent_id || \u0027business_modeling\u0027, status: \u0027needs_input\u0027 }).replace(/\u0027/g, \"\u0027\u0027\") }}\u0027::jsonb\n  );\n\nselect\n  true as saved,\n  \u0027{{ String($json.output_text || (($json.output || []).flatMap(item =\u003e item.content || []).map(content =\u003e content.text || \u0027\u0027).join(\u0027\\n\u0027)) || \u0027\u0027).replace(/\u0027/g, \"\u0027\u0027\") }}\u0027 as answer,\n  \u0027{{ String($(\u0027Webhook App\u0027).item.json.body.stage?.agentId || $(\u0027Webhook App\u0027).item.json.body.agent_id || \u0027business_modeling\u0027).replace(/\u0027/g, \"\u0027\u0027\") }}\u0027 as agent_id,\n  \u0027needs_input\u0027 as status;",
+                                         "options":  {
+
+                                                     }
+                                     },
+                      "id":  "f1a5c7c1-1004-4a8b-9001-000000000004",
+                      "name":  "Postgres Save Interaction",
+                      "type":  "n8n-nodes-base.postgres",
+                      "typeVersion":  2.5,
+                      "position":  [
+                                       1060,
+                                       300
+                                   ],
+                      "credentials":  {
+                                          "postgres":  {
+                                                           "id":  "REPLACE_WITH_POSTGRES_CREDENTIAL_ID",
+                                                           "name":  "Postgres account"
+                                                       }
+                                      }
+                  },
+                  {
+                      "parameters":  {
+                                         "respondWith":  "json",
+                                         "responseBody":  "={{ { ok: true, saved: $json.saved, answer: $json.answer, agent_id: $json.agent_id, status: $json.status } }}",
+                                         "options":  {
+                                                         "responseCode":  200
+                                                     }
+                                     },
+                      "id":  "f1a5c7c1-1005-4a8b-9001-000000000005",
+                      "name":  "Respond to App",
+                      "type":  "n8n-nodes-base.respondToWebhook",
+                      "typeVersion":  1.3,
+                      "position":  [
+                                       1360,
+                                       300
+                                   ]
+                  }
+              ],
+    "pinData":  {
+
+                },
+    "connections":  {
+                        "Webhook App":  {
+                                            "main":  [
+                                                         [
+                                                             {
+                                                                 "node":  "Postgres Upsert Project",
+                                                                 "type":  "main",
+                                                                 "index":  0
+                                                             }
+                                                         ]
+                                                     ]
+                                        },
+                        "Postgres Upsert Project":  {
+                                                        "main":  [
+                                                                     [
+                                                                         {
+                                                                             "node":  "OpenAI Responses",
+                                                                             "type":  "main",
+                                                                             "index":  0
+                                                                         }
+                                                                     ]
+                                                                 ]
+                                                    },
+                        "OpenAI Responses":  {
+                                                 "main":  [
+                                                              [
+                                                                  {
+                                                                      "node":  "Postgres Save Interaction",
+                                                                      "type":  "main",
+                                                                      "index":  0
+                                                                  }
+                                                              ]
+                                                          ]
+                                             },
+                        "Postgres Save Interaction":  {
+                                                          "main":  [
+                                                                       [
+                                                                           {
+                                                                               "node":  "Respond to App",
+                                                                               "type":  "main",
+                                                                               "index":  0
+                                                                           }
+                                                                       ]
+                                                                   ]
+                                                      }
+                    },
+    "active":  false,
+    "settings":  {
+                     "executionOrder":  "v1"
+                 },
+    "versionId":  "simple-module-1",
+    "meta":  {
+                 "templateCredsSetupCompleted":  false
+             },
+    "tags":  [
+
+             ]
+}

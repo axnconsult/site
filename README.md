@@ -4,7 +4,7 @@ Aplicacao leve da Axon, com frontend HTML/CSS/JS preservado e backend Node.js pa
 
 ## Arquivos principais
 
-- `app/` -> site publico
+- `app/` -> site publico e area de membros
 - `app/runtime-config.js` -> redes sociais, endpoints internos e links de checkout
 - `server.js` -> servidor HTTP, arquivos estaticos e API interna
 - `package.json` / `package-lock.json` -> dependencias do backend
@@ -12,7 +12,7 @@ Aplicacao leve da Axon, com frontend HTML/CSS/JS preservado e backend Node.js pa
 - `nginx.conf` -> configuracao legada do servidor estatico antigo
 - `portainer-site-stack.yml` -> stack Swarm para colar no Portainer
 - `portainer-postgres-stack.yml` -> stack Swarm do Postgres operacional da Axon
-- `db/axon_ops_schema.sql` -> schema inicial do banco de leads
+- `db/axon_ops_schema.sql` -> schema inicial do banco de leads, membros e wizard
 - `.github/workflows/deploy-site.yml` -> build e publicacao da imagem no GHCR
 - `N8N_WEBHOOKS.md` -> blueprint dos webhooks do `n8n`
 - `POSTGRES_SETUP.md` -> passo a passo do banco no Portainer e conexao do `n8n`
@@ -60,6 +60,12 @@ Endpoints internos:
 - `POST /api/leads`
 - `POST /api/consultoria`
 - `POST /api/perfil`
+- `POST /api/members/register`
+- `POST /api/members/login`
+- `POST /api/members/session`
+- `POST /api/wizard/load`
+- `POST /api/wizard/save`
+- `POST /api/wizard/ask`
 - `GET /health` -> healthcheck simples do container
 - `GET /api/health` -> healthcheck com teste de Postgres
 
