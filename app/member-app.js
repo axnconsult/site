@@ -865,7 +865,7 @@ function ensureAssistantThread(module, lesson) {
 
   const opening = lesson[2] === "technical"
     ? "Vamos configurar esta parte como conversa guiada. Me diga o dominio, IP da VPS, e-mail tecnico e o que voce quer publicar."
-    : `Vamos trabalhar a etapa "${lesson[0]}". Me conte o contexto do seu negocio para eu transformar isso em um proximo passo claro.`;
+    : `Vamos trabalhar a etapa "${lesson[0]}". Eu vou te conduzir com perguntas curtas. Para comecar: qual e o negocio ou ideia que voce quer validar agora?`;
 
   memberApp.state.assistantThreads[key] = [{ role: "assistant", text: opening }];
 }
