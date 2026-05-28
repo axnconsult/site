@@ -331,8 +331,9 @@ function wireModuleActions() {
     renderAssistantThread();
 
     try {
-      const answer = await requestLessonAgentAnswer(module, stage, value);
-      updateAssistantMessage(pendingIndex, answer);
+      const result = await requestLessonAgentAnswer(module, stage, value);
+      updateAssistantMessage(pendingIndex, result.answer);
+      handleAgentHandoff(result);
     } catch {
       updateAssistantMessage(pendingIndex, buildLessonAgentAnswer(module, stage, value));
     } finally {
@@ -890,7 +891,12 @@ function updateAssistantMessage(index, text) {
 
 async function requestLessonAgentAnswer(module, stage, input) {
   if (!memberApp.token || memberApp.token.startsWith("local-")) {
-    return buildLessonAgentAnswer(module, stage, input);
+    return {
+      answer: buildLessonAgentAnswer(module, stage, input),
+      status: "conversation",
+      agentId: stage[3] || "",
+      nextAgentId: ""
+    };
   }
 
   ensureProjectId();
@@ -915,7 +921,25 @@ async function requestLessonAgentAnswer(module, stage, input) {
   if (response.status === "completed" || response.status === "result") {
     markCurrentStageComplete();
   }
-  return answer;
+  return {
+    answer,
+    status: response.status,
+    agentId: response.agent_id,
+    nextAgentId: response.next_agent_id || response.next_recommended_agent || ""
+  };
+}
+
+function handleAgentHandoff(result) {
+  if (!result || result.status !== "result" || !result.nextAgentId) return;
+
+  const module = currentModule();
+  const nextIndex = stageIndexForAgentId(module, result.nextAgentId);
+  if (nextIndex < 0 || nextIndex === getStageIndex(module)) return;
+
+  memberApp.state.currentLesson = `${module.id}.${nextIndex}`;
+  memberApp.state.currentLessonStep = "main";
+  persistMemberState();
+  renderModuleDetail();
 }
 
 function buildStagePayload(stage, key) {
@@ -939,6 +963,11 @@ function agentIdForStageKey(key) {
     "product_concept",
     "visual_identity"
   ][index] || "business_modeling";
+}
+
+function stageIndexForAgentId(module, agentId) {
+  const target = String(agentId || "");
+  return (module?.stages || []).findIndex((stage, index) => (stage[3] || agentIdForStageKey(`${module.id}.${index}`)) === target);
 }
 
 function renderAssistantThread() {
