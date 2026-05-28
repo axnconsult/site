@@ -7,10 +7,11 @@ const COURSE_MODULES = [
     result: "Planejamento Estrategico Operacional",
     stages: [
       ["Diagnostico do negocio", "Mapeie nicho, produto, oferta e contexto operacional atual.", "Vamos identificar o que o negocio vende, para quem vende e qual problema operacional precisa ser resolvido primeiro.", "business_modeling"],
-      ["Metas, canais e rotina", "Organize metas financeiras, canais de aquisicao e rotina minima de execucao.", "Defina metas simples, canais prioritarios e uma rotina possivel para sustentar a operacao sem depender de improviso.", "target_audience"],
-      ["Necessidades operacionais", "Liste gargalos, tarefas recorrentes e pontos que precisam de apoio.", "Separe o que precisa ser feito por voce, pelo sistema e pelos agentes para clarear a implementacao.", "strategic_differentiation"],
-      ["Calendario e conteudo", "Monte a base do calendario e da estrutura de conteudo.", "Transforme a oferta em temas, datas e compromissos de publicacao coerentes com o momento do negocio.", "strategic_pricing"],
-      ["Agentes iniciais", "Defina os primeiros agentes e feche o planejamento operacional.", "Escolha os agentes que fazem sentido agora e consolide a entrega do modulo em um planejamento estrategico operacional.", "product_concept"]
+      ["Publico-alvo", "Identifique quem tem maior chance de comprar.", "Vamos transformar a ideia escolhida em um publico compravel, com dores, desejos, objecoes e contexto real de decisao.", "target_audience"],
+      ["Diferencial estrategico", "Defina por que esse negocio merece atencao.", "Vamos comparar alternativas, encontrar lacunas do mercado e transformar isso em um posicionamento simples de entender.", "strategic_differentiation"],
+      ["Precificacao estrategica", "Escolha uma faixa de preco viavel.", "Vamos ligar preco a valor percebido, meta financeira, benchmarks e volume necessario de vendas.", "strategic_pricing"],
+      ["Conceito de produto", "Consolide nome, promessa e slogan.", "Vamos transformar as decisoes estrategicas em um conceito comunicavel para o produto ou negocio.", "product_concept"],
+      ["Identidade visual inicial", "Defina a direcao visual do negocio.", "Vamos traduzir estrategia, publico e posicionamento em paleta, tipografia e diretrizes praticas de estilo.", "visual_identity"]
     ]
   },
   {
@@ -911,7 +912,7 @@ async function requestLessonAgentAnswer(module, stage, input) {
   });
 
   const answer = response.answer || buildLessonAgentAnswer(module, stage, input);
-  if (response.status === "completed") {
+  if (response.status === "completed" || response.status === "result") {
     markCurrentStageComplete();
   }
   return answer;

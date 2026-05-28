@@ -1,12 +1,16 @@
-# Agentes Revisados - Operacao Comercial / Modulo 1
+﻿# Agentes Revisados - Operacao Comercial / Modulo 1
 
 Esta pasta contem as instrucoes revisadas dos agentes do Modulo 1 para uso no OpenAI Agent Builder.
 
 Arquitetura escolhida:
-- cada agente e um workflow separado na OpenAI Platform;
-- o aluno conversa com a jornada unica no app;
-- o n8n orquestra qual agente chamar, envia o contexto do projeto e salva o `transfer_block`;
-- o documento operacional do projeto substitui o antigo fluxo manual de copiar e colar entre GPTs.
+- o Agent Builder/OpenAI Platform e a fonte principal do fluxo conversacional;
+- o fluxo do Modulo 1 e serial e fixo, sem orquestrador inteligente decidindo a ordem;
+- o aluno conversa com uma jornada unica no app;
+- cada agente responde em JSON estruturado com `status`, `assistant_message`, `transfer_block` e `next_agent_id`;
+- o app/site salva o estado oficial do projeto e atualiza o documento operacional;
+- o n8n fica reservado para automacoes assincronas, nao para orquestrar a conversa principal.
+
+Veja o mapa de montagem em `AGENT_BUILDER_BLUEPRINT.md`.
 
 Configuracao recomendada:
 
@@ -24,4 +28,5 @@ Observacoes:
 - manter os workflows em draft ate validacao manual;
 - usar saida em texto contendo JSON valido quando o Agent Builder nao estiver configurado com output schema;
 - remover qualquer instrucao antiga de "feche esta conversa" ou "abra o proximo GPT".
+
 

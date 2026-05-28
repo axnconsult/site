@@ -5,6 +5,7 @@ import http from "node:http";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
 import pg from "pg";
+import { firstAgentId, isOperationAgentsEnabled, runOperationAgent } from "./server/operation-agents.js";
 
 const { Pool } = pg;
 
@@ -353,6 +354,55 @@ async function handleOperationAssistant(payload) {
   const member = await getAuthenticatedMember(payload);
   requireFields(payload, ["message", "module", "stage", "stageKey", "project"]);
 
+  if (isOperationAgentsEnabled()) {
+    try {
+      const project = await upsertOperationProject(member, payload);
+      const transferBlocks = await loadOperationTransferBlocks(project.id, member.id);
+      const thread = await loadOperationThread(project.id, member.id);
+      const activeAgentId = resolveOperationAgentId(project, payload);
+      await saveOperationMessage(project.id, member.id, payload.stageKey, "user", payload.message, {
+        agent_id: activeAgentId
+      });
+
+      const agentResult = await runOperationAgent({
+        ...payload,
+        member,
+        project: {
+          ...payload.project,
+          id: project.id,
+          name: project.name
+        },
+        activeAgentId,
+        transferBlocks,
+        thread: thread.length ? thread : payload.thread
+      });
+
+      await saveOperationMessage(project.id, member.id, payload.stageKey, "assistant", agentResult.answer, {
+        agent_id: agentResult.agent_id,
+        status: agentResult.status,
+        next_agent_id: agentResult.next_agent_id || null
+      });
+      await saveOperationAgentRun(project.id, member.id, payload, agentResult);
+      await updateOperationProjectAfterAgent(project.id, payload, agentResult);
+
+      return {
+        ok: true,
+        answer: agentResult.answer,
+        agent_id: agentResult.agent_id,
+        status: agentResult.status,
+        transfer_block: agentResult.transfer_block,
+        next_agent_id: agentResult.next_agent_id,
+        next_recommended_agent: agentResult.next_agent_id,
+        provider: agentResult.provider
+      };
+    } catch (error) {
+      console.warn("Operation agent runner failed", error);
+      if (process.env.OPERATION_ASSISTANT_STRICT === "true") {
+        throw httpError(502, "operation_agent_failed");
+      }
+    }
+  }
+
   const endpoint = process.env.N8N_OPERATION_ASSISTANT_WEBHOOK_URL;
   if (!endpoint) {
     return {
@@ -419,6 +469,192 @@ async function handleOperationAssistant(payload) {
   } finally {
     clearTimeout(timeout);
   }
+}
+
+async function upsertOperationProject(member, payload) {
+  const projectId = nullableUuid(payload.project?.id) || crypto.randomUUID();
+  const projectName = nullableText(payload.project?.name) || "Projeto sem nome";
+  const projectJson = {
+    ...(payload.project && typeof payload.project === "object" ? payload.project : {}),
+    id: projectId,
+    name: projectName
+  };
+
+  const result = await query(
+    `
+      insert into operation_projects (
+        id,
+        member_id,
+        name,
+        current_module,
+        current_stage_key,
+        project_json,
+        updated_at
+      ) values ($1, $2, $3, $4, $5, $6::jsonb, now())
+      on conflict (id) do update set
+        name = excluded.name,
+        current_module = excluded.current_module,
+        current_stage_key = excluded.current_stage_key,
+        project_json = operation_projects.project_json || excluded.project_json,
+        updated_at = now()
+      where operation_projects.member_id = excluded.member_id
+      returning *
+    `,
+    [
+      projectId,
+      member.id,
+      projectName,
+      nullableText(payload.module?.id) || "module-1",
+      nullableText(payload.stageKey) || "module-1.0",
+      jsonValue(projectJson)
+    ]
+  );
+
+  if (!result.rows[0]) {
+    throw httpError(403, "project_not_owned_by_member");
+  }
+
+  return result.rows[0];
+}
+
+async function loadOperationTransferBlocks(projectId, memberId) {
+  const result = await query(
+    `
+      select project_section, transfer_block_json
+      from operation_agent_runs
+      where project_id = $1
+        and member_id = $2
+        and status = 'result'
+        and project_section is not null
+      order by created_at asc
+    `,
+    [projectId, memberId]
+  );
+
+  return result.rows.reduce((blocks, row) => {
+    blocks[row.project_section] = row.transfer_block_json;
+    return blocks;
+  }, {});
+}
+
+async function loadOperationThread(projectId, memberId) {
+  const result = await query(
+    `
+      select role, content, created_at
+      from operation_conversation_messages
+      where project_id = $1 and member_id = $2
+      order by created_at desc
+      limit 30
+    `,
+    [projectId, memberId]
+  );
+
+  return result.rows.reverse().map((row) => ({
+    role: row.role,
+    text: row.content,
+    createdAt: row.created_at
+  }));
+}
+
+async function saveOperationMessage(projectId, memberId, stageKey, role, content, metadata = {}) {
+  await query(
+    `
+      insert into operation_conversation_messages (
+        project_id,
+        member_id,
+        stage_key,
+        role,
+        content,
+        metadata_json
+      ) values ($1, $2, $3, $4, $5, $6::jsonb)
+    `,
+    [
+      projectId,
+      memberId,
+      nullableText(stageKey) || "module-1.0",
+      role,
+      String(content || ""),
+      jsonValue(metadata)
+    ]
+  );
+}
+
+async function saveOperationAgentRun(projectId, memberId, payload, agentResult) {
+  await query(
+    `
+      insert into operation_agent_runs (
+        project_id,
+        member_id,
+        stage_key,
+        agent_id,
+        status,
+        user_message,
+        assistant_answer,
+        project_section,
+        transfer_block_json,
+        raw_response_json,
+        openai_response_id
+      ) values ($1, $2, $3, $4, $5, $6, $7, $8, $9::jsonb, $10::jsonb, $11)
+    `,
+    [
+      projectId,
+      memberId,
+      nullableText(payload.stageKey) || "module-1.0",
+      nullableText(agentResult.agent_id) || firstAgentId(),
+      agentResult.status === "result" ? "result" : "conversation",
+      String(payload.message || ""),
+      String(agentResult.answer || ""),
+      nullableText(agentResult.project_section),
+      jsonValue(agentResult.transfer_block || null),
+      jsonValue(agentResult.raw_agent_output || agentResult),
+      nullableText(agentResult.raw_response_id)
+    ]
+  );
+}
+
+async function updateOperationProjectAfterAgent(projectId, payload, agentResult) {
+  const projectPatch = {
+    lastAgentId: agentResult.agent_id || null,
+    activeAgentId: agentResult.agent_id || firstAgentId(),
+    nextAgentId: agentResult.status === "result" ? agentResult.next_agent_id || null : null,
+    lastAgentStatus: agentResult.status,
+    lastAssistantAt: new Date().toISOString()
+  };
+
+  const strategicPlanPatch = agentResult.status === "result" && agentResult.project_section
+    ? { [agentResult.project_section]: agentResult.transfer_block || null }
+    : {};
+
+  await query(
+    `
+      update operation_projects
+      set
+        project_json = project_json || $2::jsonb,
+        strategic_plan_json = strategic_plan_json || $3::jsonb,
+        strategic_plan_markdown = case
+          when $4::text <> '' then concat(strategic_plan_markdown, E'\n\n## ', $4::text, E'\n\n', $5::text)
+          else strategic_plan_markdown
+        end,
+        current_module = $6,
+        current_stage_key = $7,
+        updated_at = now()
+      where id = $1
+    `,
+    [
+      projectId,
+      jsonValue(projectPatch),
+      jsonValue(strategicPlanPatch),
+      agentResult.status === "result" ? nullableText(agentResult.transfer_block?.section_title) || "" : "",
+      agentResult.status === "result" ? nullableText(agentResult.transfer_block?.content) || "" : "",
+      nullableText(payload.module?.id) || "module-1",
+      nullableText(payload.stageKey) || "module-1.0"
+    ]
+  );
+}
+
+function resolveOperationAgentId(project, payload) {
+  const requestedAgentId = nullableText(payload.stage?.agentId) || firstAgentId();
+  return requestedAgentId;
 }
 
 async function handleWizardLoad(payload) {

@@ -11,6 +11,11 @@ services:
       N8N_OPERATION_ASSISTANT_WEBHOOK_URL: "https://workflows.axnconsult.com.br/webhook/operacao-comercial-assistente-simple"
       N8N_OPERATION_ASSISTANT_SECRET: "CHANGE_THIS_OPERATION_ASSISTANT_SECRET"
       N8N_OPERATION_ASSISTANT_TIMEOUT_MS: "45000"
+      OPERATION_ASSISTANT_PROVIDER: "agents"
+      OPERATION_ASSISTANT_STRICT: "true"
+      OPERATION_AGENT_MODEL: "gpt-5.5"
+      OPERATION_AGENT_REASONING_EFFORT: "low"
+      OPENAI_API_KEY: "CHANGE_THIS_OPENAI_API_KEY"
     networks:
       - network_swarm_public
     healthcheck:
@@ -27,8 +32,8 @@ services:
           - node.role == manager
       resources:
         limits:
-          cpus: "0.25"
-          memory: 128M
+          cpus: "0.50"
+          memory: 384M
       labels:
         - "traefik.enable=true"
         - "traefik.docker.network=network_swarm_public"
