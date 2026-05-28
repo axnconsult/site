@@ -889,6 +889,21 @@ function updateAssistantMessage(index, text) {
   };
 }
 
+function buildAssistantThreadForApi(key, currentInput) {
+  const thread = [...(memberApp.state.assistantThreads[key] || [])];
+  const pendingText = "Estou organizando sua resposta e preparando o proximo passo.";
+
+  if (thread.at(-1)?.role === "assistant" && thread.at(-1)?.text === pendingText) {
+    thread.pop();
+  }
+
+  if (thread.at(-1)?.role === "user" && String(thread.at(-1)?.text || "").trim() === String(currentInput || "").trim()) {
+    thread.pop();
+  }
+
+  return thread;
+}
+
 async function requestLessonAgentAnswer(module, stage, input) {
   if (!memberApp.token || memberApp.token.startsWith("local-")) {
     return {
@@ -914,7 +929,7 @@ async function requestLessonAgentAnswer(module, stage, input) {
     stage: stagePayload,
     stageKey: key,
     message: input,
-    thread: memberApp.state.assistantThreads[key] || []
+    thread: buildAssistantThreadForApi(key, input)
   });
 
   const answer = response.answer || buildLessonAgentAnswer(module, stage, input);
