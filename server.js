@@ -5,7 +5,7 @@ import http from "node:http";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
 import pg from "pg";
-import { firstAgentId, isOperationAgentsEnabled, runOperationAgent } from "./server/operation-agents.js";
+import { firstAgentId, isOperationAgentsEnabled, nextAgentFor, runOperationAgent } from "./server/operation-agents.js";
 
 const { Pool } = pg;
 
@@ -706,11 +706,129 @@ async function handleWizardSave(payload) {
 }
 
 async function handleWizardAsk(payload) {
-  await getAuthenticatedMember(payload);
-  requireFields(payload, ["stepTitle", "question"]);
+  const member = await getAuthenticatedMember(payload);
+  requireFields(payload, ["message"]);
 
-  const answer = buildWizardAnswer(payload.stepTitle, payload.question, payload.context);
-  return { ok: true, answer };
+  if (!isOperationAgentsEnabled()) {
+    return {
+      ok: true,
+      fallback: true,
+      answer: buildWizardAnswer(payload.stepTitle || "Módulo 1", payload.message, payload.context)
+    };
+  }
+
+  const state = await loadWizardState(member.id);
+  const project = state.project;
+
+  const wizardProjectId = project.wizardProjectId || crypto.randomUUID();
+  const activeAgentId = project.activeAgentId || firstAgentId();
+  const transferBlocks = project.transferBlocks && typeof project.transferBlocks === "object"
+    ? project.transferBlocks
+    : {};
+
+  await upsertWizardProject(wizardProjectId, member, project);
+
+  const thread = await loadOperationThread(wizardProjectId, member.id);
+
+  await saveOperationMessage(wizardProjectId, member.id, `module-1.${activeAgentId}`, "user", payload.message, {
+    agent_id: activeAgentId
+  });
+
+  const agentResult = await runOperationAgent({
+    message: payload.message,
+    member,
+    project: { id: wizardProjectId, name: project.name || "" },
+    module: { id: "module-1", title: "Módulo 1" },
+    stage: { agentId: activeAgentId },
+    stageKey: `module-1.${activeAgentId}`,
+    activeAgentId,
+    transferBlocks,
+    thread
+  });
+
+  await saveOperationMessage(wizardProjectId, member.id, `module-1.${agentResult.agent_id}`, "assistant", agentResult.answer, {
+    agent_id: agentResult.agent_id,
+    status: agentResult.status,
+    next_agent_id: agentResult.next_agent_id || null
+  });
+
+  const nextAgentId = agentResult.status === "result"
+    ? (agentResult.next_agent_id || nextAgentFor(activeAgentId) || "")
+    : activeAgentId;
+
+  const newTransferBlocks = agentResult.status === "result" && agentResult.project_section
+    ? { ...transferBlocks, [agentResult.project_section]: agentResult.transfer_block }
+    : transferBlocks;
+
+  await saveWizardAgentState(member.id, state, {
+    wizardProjectId,
+    activeAgentId: nextAgentId,
+    transferBlocks: newTransferBlocks
+  });
+
+  return {
+    ok: true,
+    answer: agentResult.answer,
+    agent_id: agentResult.agent_id,
+    status: agentResult.status,
+    transfer_block: agentResult.transfer_block,
+    next_agent_id: agentResult.next_agent_id
+  };
+}
+
+async function upsertWizardProject(projectId, member, project) {
+  await query(
+    `
+      insert into operation_projects (
+        id, member_id, name, current_module, current_stage_key, project_json, updated_at
+      ) values ($1, $2, $3, $4, $5, $6::jsonb, now())
+      on conflict (id) do update set
+        name = excluded.name,
+        updated_at = now()
+      where operation_projects.member_id = excluded.member_id
+    `,
+    [
+      projectId,
+      member.id,
+      project.name || "Wizard",
+      "module-1",
+      "module-1.0",
+      jsonValue({ id: projectId, name: project.name || "Wizard" })
+    ]
+  );
+}
+
+async function saveWizardAgentState(memberId, currentState, agentPatch) {
+  const updatedState = {
+    ...currentState,
+    project: { ...currentState.project, ...agentPatch }
+  };
+  const sanitized = sanitizeWizardState(updatedState);
+  await query(
+    `
+      insert into wizard_progress (
+        member_id, project_json, current_step, completed_steps_json, checklist_json,
+        current_module, current_lesson, updated_at
+      ) values ($1, $2::jsonb, $3, $4::jsonb, $5::jsonb, $6, $7, now())
+      on conflict (member_id) do update set
+        project_json = excluded.project_json,
+        current_step = excluded.current_step,
+        completed_steps_json = excluded.completed_steps_json,
+        checklist_json = excluded.checklist_json,
+        current_module = excluded.current_module,
+        current_lesson = excluded.current_lesson,
+        updated_at = now()
+    `,
+    [
+      memberId,
+      jsonValue(sanitized.project),
+      sanitized.currentStep,
+      jsonValue(sanitized.completedSteps),
+      jsonValue(sanitized.checklist),
+      sanitized.currentModule,
+      sanitized.currentLesson
+    ]
+  );
 }
 
 async function getAuthenticatedMember(payload) {
@@ -818,7 +936,12 @@ function sanitizeWizardState(state) {
       serverIp: nullableText(project.serverIp) || "",
       technicalEmail: nullableText(project.technicalEmail) || "",
       hostName: nullableText(project.hostName) || "manager01",
-      siteImage: nullableText(project.siteImage) || "ghcr.io/axnconsult/site:main"
+      siteImage: nullableText(project.siteImage) || "ghcr.io/axnconsult/site:main",
+      wizardProjectId: nullableUuid(project.wizardProjectId) || "",
+      activeAgentId: nullableText(project.activeAgentId) || "",
+      transferBlocks: project.transferBlocks && typeof project.transferBlocks === "object"
+        ? project.transferBlocks
+        : {}
     },
     currentStep: nullableText(state?.currentStep) || fallback.currentStep,
     currentModule: nullableText(state?.currentModule) || fallback.currentModule,
