@@ -1002,22 +1002,7 @@ function buildWizardAnswer(stepTitle, question, context) {
 }
 
 function buildOperationAssistantFallback(module, stage, message) {
-  const moduleTitle = nullableText(module?.title) || "Operacao Comercial";
-  const stageTitle = Array.isArray(stage) ? stage[0] : nullableText(stage?.title) || "Etapa atual";
-  const stageSummary = Array.isArray(stage) ? stage[1] : nullableText(stage?.summary) || "";
-  const cleanMessage = String(message || "").slice(0, 1200);
-
-  return [
-    `Modulo: ${moduleTitle}`,
-    `Etapa: ${stageTitle}`,
-    "",
-    stageSummary ? `Foco desta etapa: ${stageSummary}` : "",
-    cleanMessage ? `O que voce trouxe: ${cleanMessage}` : "",
-    "",
-    "Ainda estou sem o webhook do n8n configurado neste ambiente. Enquanto isso, transforme sua resposta em tres pontos: decisao tomada, informacao que falta e proxima acao concreta."
-  ]
-    .filter(Boolean)
-    .join("\n");
+  return "Estou com uma instabilidade temporária. Tente novamente em alguns instantes.";
 }
 
 function getPool() {
