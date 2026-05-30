@@ -7,14 +7,15 @@ services:
     environment:
       NODE_ENV: production
       PORT: "80"
-      # --- Segredos: substituir antes de colar no Portainer ---
-      DATABASE_URL: "postgres://axon_app:SENHA_DO_POSTGRES@axon_postgres:5432/axon_ops"
-      OPENAI_API_KEY: "sk-..."
-      # ---------------------------------------------------------
+      DATABASE_URL: "postgres://axon_app:CHANGE_THIS_STRONG_PASSWORD@axon_postgres:5432/axon_ops"
+      N8N_OPERATION_ASSISTANT_WEBHOOK_URL: "https://workflows.axnconsult.com.br/webhook/operacao-comercial-assistente-simple"
+      N8N_OPERATION_ASSISTANT_SECRET: "CHANGE_THIS_OPERATION_ASSISTANT_SECRET"
+      N8N_OPERATION_ASSISTANT_TIMEOUT_MS: "45000"
       OPERATION_ASSISTANT_PROVIDER: "agents"
       OPERATION_ASSISTANT_STRICT: "true"
       OPERATION_AGENT_MODEL: "gpt-5.5"
       OPERATION_AGENT_REASONING_EFFORT: "low"
+      OPENAI_API_KEY: "CHANGE_THIS_OPENAI_API_KEY"
     networks:
       - network_swarm_public
     healthcheck:
