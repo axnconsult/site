@@ -855,7 +855,7 @@ function buildLessonAgentAnswer(module, lesson, input) {
     "Entrada recebida:",
     input,
     "",
-    "Proxima entrega: transforme essa resposta em uma acao concreta do projeto, com decisao, contexto, pendencias e proximo passo. Na versao com n8n/OpenAI, este painel chamara o agente real desta etapa."
+    "Nao consegui acionar o assistente real agora. Tente novamente em instantes; sua resposta ficou registrada nesta conversa."
   ].join("\n");
 }
 

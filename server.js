@@ -354,120 +354,67 @@ async function handleOperationAssistant(payload) {
   const member = await getAuthenticatedMember(payload);
   requireFields(payload, ["message", "module", "stage", "stageKey", "project"]);
 
-  if (isOperationAgentsEnabled()) {
-    try {
-      const project = await upsertOperationProject(member, payload);
-      const transferBlocks = await loadOperationTransferBlocks(project.id, member.id);
-      const thread = await loadOperationThread(project.id, member.id);
-      const activeAgentId = resolveOperationAgentId(project, payload);
-      await saveOperationMessage(project.id, member.id, payload.stageKey, "user", payload.message, {
-        agent_id: activeAgentId
-      });
-
-      const agentResult = await runOperationAgent({
-        ...payload,
-        member,
-        project: {
-          ...payload.project,
-          id: project.id,
-          name: project.name
-        },
-        activeAgentId,
-        transferBlocks,
-        thread: thread.length ? thread : payload.thread
-      });
-
-      await saveOperationMessage(project.id, member.id, payload.stageKey, "assistant", agentResult.answer, {
-        agent_id: agentResult.agent_id,
-        status: agentResult.status,
-        next_agent_id: agentResult.next_agent_id || null
-      });
-      await saveOperationAgentRun(project.id, member.id, payload, agentResult);
-      await updateOperationProjectAfterAgent(project.id, payload, agentResult);
-
-      return {
-        ok: true,
-        answer: agentResult.answer,
-        agent_id: agentResult.agent_id,
-        status: agentResult.status,
-        transfer_block: agentResult.transfer_block,
-        next_agent_id: agentResult.next_agent_id,
-        next_recommended_agent: agentResult.next_agent_id,
-        provider: agentResult.provider
-      };
-    } catch (error) {
-      console.warn("Operation agent runner failed", error);
-      if (process.env.OPERATION_ASSISTANT_STRICT === "true") {
-        throw httpError(502, "operation_agent_failed");
-      }
-    }
-  }
-
-  const endpoint = process.env.N8N_OPERATION_ASSISTANT_WEBHOOK_URL;
-  if (!endpoint) {
+  if (!isOperationAgentsEnabled()) {
     return {
       ok: true,
       fallback: true,
-      answer: buildOperationAssistantFallback(payload.module, payload.stage, payload.message)
+      fallback_reason: "operation_agents_not_configured",
+      answer: "O assistente da Operacao Comercial ainda nao esta ativo neste servidor. Confira a variavel OPERATION_ASSISTANT_PROVIDER=agents no deploy do site."
     };
   }
-
-  const n8nPayload = {
-    member,
-    project: payload.project,
-    module: payload.module,
-    stage: payload.stage,
-    stageKey: payload.stageKey,
-    message: payload.message,
-    thread: Array.isArray(payload.thread) ? payload.thread.slice(-20) : [],
-    sentAt: new Date().toISOString()
-  };
-
-  const controller = new AbortController();
-  const timeoutMs = Number(process.env.N8N_OPERATION_ASSISTANT_TIMEOUT_MS || 45000);
-  const timeout = setTimeout(() => controller.abort(), timeoutMs);
 
   try {
-    const response = await fetch(endpoint, {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-        ...(process.env.N8N_OPERATION_ASSISTANT_SECRET
-          ? { "X-Axon-Webhook-Secret": process.env.N8N_OPERATION_ASSISTANT_SECRET }
-          : {})
-      },
-      body: JSON.stringify(n8nPayload),
-      signal: controller.signal
+    const project = await upsertOperationProject(member, payload);
+    const transferBlocks = await loadOperationTransferBlocks(project.id, member.id);
+    const thread = await loadOperationThread(project.id, member.id);
+    const activeAgentId = resolveOperationAgentId(project, payload);
+    await saveOperationMessage(project.id, member.id, payload.stageKey, "user", payload.message, {
+      agent_id: activeAgentId
     });
 
-    const data = await response.json().catch(() => ({}));
-    if (!response.ok || data.ok === false) {
-      console.warn("n8n operation assistant returned", response.status, data);
-      return {
-        ok: true,
-        fallback: true,
-        answer: buildOperationAssistantFallback(payload.module, payload.stage, payload.message)
-      };
+    const agentResult = await runOperationAgent({
+      ...payload,
+      member,
+      project: {
+        ...payload.project,
+        id: project.id,
+        name: project.name
+      },
+      activeAgentId,
+      transferBlocks,
+      thread: thread.length ? thread : payload.thread
+    });
+
+    await saveOperationMessage(project.id, member.id, payload.stageKey, "assistant", agentResult.answer, {
+      agent_id: agentResult.agent_id,
+      status: agentResult.status,
+      next_agent_id: agentResult.next_agent_id || null
+    });
+    await saveOperationAgentRun(project.id, member.id, payload, agentResult);
+    await updateOperationProjectAfterAgent(project.id, payload, agentResult);
+
+    return {
+      ok: true,
+      answer: agentResult.answer,
+      agent_id: agentResult.agent_id,
+      status: agentResult.status,
+      transfer_block: agentResult.transfer_block,
+      next_agent_id: agentResult.next_agent_id,
+      next_recommended_agent: agentResult.next_agent_id,
+      provider: agentResult.provider
+    };
+  } catch (error) {
+    console.warn("Operation agent runner failed", error);
+    if (process.env.OPERATION_ASSISTANT_STRICT === "true") {
+      throw httpError(502, "operation_agent_failed");
     }
 
     return {
       ok: true,
-      answer: data.answer || data.summary_for_user || buildOperationAssistantFallback(payload.module, payload.stage, payload.message),
-      agent_id: data.agent_id || payload.stage?.agentId || null,
-      status: data.status || (data.saved ? "saved" : null),
-      project_section: data.project_section || null,
-      transfer_block: data.transfer_block || null,
-      next_recommended_agent: data.next_recommended_agent || null
-    };
-  } catch (error) {
-    console.warn("n8n operation assistant failed", error);
-    return {
-      ok: true,
       fallback: true,
-      answer: buildOperationAssistantFallback(payload.module, payload.stage, payload.message)
+      fallback_reason: "operation_agent_failed",
+      answer: "Nao consegui acionar os agentes da Operacao Comercial agora. Tente novamente em instantes; se repetir, confira os logs do servico do site."
     };
-  } finally {
-    clearTimeout(timeout);
   }
 }
 
