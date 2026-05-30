@@ -29,27 +29,6 @@ const EMPTY_TRANSFER_BLOCK = {
   key_points: []
 };
 
-const COMMON_RUNTIME_CONTRACT = [
-  "O campo assistant_message e a unica mensagem visivel para o aluno.",
-  "Escreva como conversa natural, nao como relatorio.",
-  "Nao use secoes fixas como 'Resumo do que entendi', 'O que entendi', 'Proxima acao' ou blocos 1, 2, 3.",
-  "Nao liste seu entendimento da resposta do usuario. Use no maximo uma frase curta de acolhimento e avance.",
-  "Faca no maximo duas perguntas por resposta.",
-  "Quando fizer duas perguntas, use numeracao simples somente nas perguntas: '1)' e '2)'.",
-  "Nao exponha raciocinio interno, checklist oculto, criterios de avaliacao, JSON, tags, status ou nomes internos dos agentes.",
-  "Se o usuario trouxer assunto de etapa futura, reconheca em uma frase e estacione o assunto para depois."
-];
-
-const BUSINESS_MODELING_RUNTIME_CONTRACT = [
-  "Voce esta apenas na modelagem inicial do negocio.",
-  "Nao defina publico-alvo detalhado, preco, bio de Instagram, canais, calendario, identidade visual, promessa final ou oferta completa.",
-  "Se o usuario trouxer preco, canal, Instagram ou venda, nao desenvolva esse tema agora; diga que isso sera tratado depois e volte para a hipotese de negocio.",
-  "Conclua esta etapa assim que houver: ideia ou produto principal, problema que resolve, comprador amplo possivel e resultado central prometido.",
-  "Nao espere refinamento perfeito de nicho ou cliente ideal; isso e trabalho do proximo agente.",
-  "Antes de concluir com status=result, use Web Search para checar sinais minimos de mercado quando houver contexto suficiente.",
-  "Quando concluir, next_agent_id deve ser 'target_audience'."
-];
-
 const AGENT_ORDER = [
   "business_modeling",
   "target_audience",
@@ -58,25 +37,6 @@ const AGENT_ORDER = [
   "product_concept",
   "visual_identity"
 ];
-
-const AGENT_ALIASES = {
-  publico_alvo: "target_audience",
-  público_alvo: "target_audience",
-  public_alvo: "target_audience",
-  "02_target_audience": "target_audience",
-  "axn | 02 publico-alvo": "target_audience",
-  "axn | 02 público-alvo": "target_audience",
-  diferencial_estrategico: "strategic_differentiation",
-  "diferencial estratégico": "strategic_differentiation",
-  "03_strategic_differentiation": "strategic_differentiation",
-  precificacao_estrategica: "strategic_pricing",
-  precificação_estratégica: "strategic_pricing",
-  "04_strategic_pricing": "strategic_pricing",
-  conceito_de_produto: "product_concept",
-  "05_product_concept": "product_concept",
-  identidade_visual: "visual_identity",
-  "06_visual_identity": "visual_identity"
-};
 
 const AGENT_DEFINITIONS = {
   business_modeling: {
@@ -268,7 +228,7 @@ Conclua quando houver um público-alvo claro o suficiente para orientar diferenc
     name: "AXN | 03 Diferencial Estratégico",
     section: "diferenciacao_e_posicionamento",
     next: "strategic_pricing",
-    tools: [webSearchPreview],
+    tools: [],
     reasoningEffort: "medium",
     instructions: `Você é o agente AXN de Diferencial Estratégico.
 
@@ -673,11 +633,6 @@ export async function runOperationAgent(payload) {
 }
 
 function buildAgentInput(payload, agentId) {
-  const runtimeContract = [
-    ...COMMON_RUNTIME_CONTRACT,
-    ...(agentId === "business_modeling" ? BUSINESS_MODELING_RUNTIME_CONTRACT : [])
-  ];
-
   const text = JSON.stringify({
     agent_id: agentId,
     project: payload.project || {},
@@ -688,12 +643,10 @@ function buildAgentInput(payload, agentId) {
     message: payload.message,
     previous_transfer_blocks: payload.transferBlocks || {},
     thread: normalizeThread(payload.thread),
-    runtime_contract: runtimeContract,
     expected_output: {
       status: "conversation | result",
       assistant_message: "texto visivel para o aluno",
-      valid_agent_ids: AGENT_ORDER,
-      next_agent_id: `quando status=result, use exatamente '${nextAgentFor(agentId) || ""}'`,
+      next_agent_id: "id do proximo agente apenas quando status=result",
       transfer_block: EMPTY_TRANSFER_BLOCK
     }
   }, null, 2);
@@ -716,7 +669,7 @@ function normalizeAgentOutput(output, agentId) {
   return {
     status,
     assistant_message: String(parsed.assistant_message || "Vamos continuar. Me diga um pouco mais sobre essa ideia."),
-    next_agent_id: status === "result" ? normalizeNextAgentId(parsed.next_agent_id, agentId) : "",
+    next_agent_id: status === "result" ? resolveAgentId(parsed.next_agent_id || nextAgentFor(agentId) || "") : "",
     transfer_block: normalizeTransferBlock(parsed.transfer_block, status, agentId)
   };
 }
@@ -758,31 +711,6 @@ function parseJsonOutput(output) {
   }
 }
 
-function normalizeNextAgentId(candidate, currentAgentId) {
-  const known = resolveKnownAgentId(candidate);
-  if (known && known !== currentAgentId) {
-    return known;
-  }
-
-  return nextAgentFor(currentAgentId) || "";
-}
-
-function resolveKnownAgentId(agentId) {
-  const raw = String(agentId || "").trim();
-  if (!raw) {
-    return "";
-  }
-
-  if (AGENT_DEFINITIONS[raw]) {
-    return raw;
-  }
-
-  const lowercase = raw.toLowerCase();
-  const normalized = lowercase.normalize("NFD").replace(/[\u0300-\u036f]/g, "");
-
-  return AGENT_ALIASES[lowercase] || AGENT_ALIASES[normalized] || "";
-}
-
 function normalizeThread(thread) {
   if (!Array.isArray(thread)) {
     return [];
@@ -808,5 +736,5 @@ function publicMemberContext(member) {
 }
 
 function resolveAgentId(agentId) {
-  return resolveKnownAgentId(agentId) || firstAgentId();
+  return AGENT_DEFINITIONS[agentId] ? agentId : firstAgentId();
 }
