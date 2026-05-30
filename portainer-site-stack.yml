@@ -8,9 +8,10 @@ services:
       NODE_ENV: production
       PORT: "80"
       DATABASE_URL: "postgres://axon_app:CHANGE_THIS_STRONG_PASSWORD@axon_postgres:5432/axon_ops"
-      N8N_OPERATION_ASSISTANT_WEBHOOK_URL: "https://workflows.axnconsult.com.br/webhook/operacao-comercial-assistente-simple"
-      N8N_OPERATION_ASSISTANT_SECRET: "CHANGE_THIS_OPERATION_ASSISTANT_SECRET"
-      N8N_OPERATION_ASSISTANT_TIMEOUT_MS: "45000"
+      OPENAI_API_KEY: "CHANGE_THIS_OPENAI_API_KEY"
+      OPENAI_OPERATION_MODEL: "gpt-5.1"
+      OPENAI_OPERATION_TIMEOUT_MS: "60000"
+      OPENAI_OPERATION_WEB_SEARCH: "true"
     networks:
       - network_swarm_public
     healthcheck:

@@ -6,11 +6,12 @@ const COURSE_MODULES = [
     summary: "Entenda o negocio e monte o nucleo operacional antes de automatizar qualquer coisa.",
     result: "Planejamento Estrategico Operacional",
     stages: [
-      ["Diagnostico do negocio", "Mapeie nicho, produto, oferta e contexto operacional atual.", "Vamos identificar o que o negocio vende, para quem vende e qual problema operacional precisa ser resolvido primeiro.", "business_modeling"],
-      ["Metas, canais e rotina", "Organize metas financeiras, canais de aquisicao e rotina minima de execucao.", "Defina metas simples, canais prioritarios e uma rotina possivel para sustentar a operacao sem depender de improviso.", "target_audience"],
-      ["Necessidades operacionais", "Liste gargalos, tarefas recorrentes e pontos que precisam de apoio.", "Separe o que precisa ser feito por voce, pelo sistema e pelos agentes para clarear a implementacao.", "strategic_differentiation"],
-      ["Calendario e conteudo", "Monte a base do calendario e da estrutura de conteudo.", "Transforme a oferta em temas, datas e compromissos de publicacao coerentes com o momento do negocio.", "strategic_pricing"],
-      ["Agentes iniciais", "Defina os primeiros agentes e feche o planejamento operacional.", "Escolha os agentes que fazem sentido agora e consolide a entrega do modulo em um planejamento estrategico operacional.", "product_concept"]
+      ["Modelagem do negocio", "Transforme ideia, habilidades e restricoes em uma hipotese de negocio viavel.", "Vamos identificar o que o negocio vende, quais sinais de mercado existem e qual ideia principal faz mais sentido validar primeiro.", "business_modeling"],
+      ["Publico-alvo", "Defina quem tem maior probabilidade de comprar essa solucao.", "Vamos sair de uma audiencia vaga para um comprador possivel, com dores, desejos, contexto de compra e objeções claras.", "target_audience"],
+      ["Diferencial estrategico", "Encontre uma posicao clara para competir sem depender apenas de preco.", "Vamos comparar alternativas reais e definir um diferencial simples, relevante e comunicavel.", "strategic_differentiation"],
+      ["Precificacao estrategica", "Defina uma faixa inicial de preco coerente com mercado, valor e meta financeira.", "Vamos ligar preco a resultado, volume necessario de vendas e capacidade real de entrega.", "strategic_pricing"],
+      ["Conceito do produto", "Defina nome, promessa, formato e entregaveis centrais.", "Transforme a estrategia em um produto compreensivel, com promessa clara e formato vendavel.", "product_concept"],
+      ["Identidade visual inicial", "Defina a direcao visual para pagina, posts e materiais.", "Converta posicionamento, publico e conceito em uma identidade visual aplicavel.", "visual_identity"]
     ]
   },
   {
@@ -319,9 +320,11 @@ function wireModuleActions() {
 
     if (submit?.disabled) return;
 
+    const key = currentLessonKey();
+    const requestThread = (memberApp.state.assistantThreads[key] || []).slice(-20);
     addAssistantMessage("user", value);
     addAssistantMessage("assistant", "Estou organizando sua resposta e preparando o proximo passo.");
-    const pendingIndex = memberApp.state.assistantThreads[currentLessonKey()].length - 1;
+    const pendingIndex = memberApp.state.assistantThreads[key].length - 1;
     if (input) {
       input.value = "";
     }
@@ -330,8 +333,8 @@ function wireModuleActions() {
     renderAssistantThread();
 
     try {
-      const answer = await requestLessonAgentAnswer(module, stage, value);
-      updateAssistantMessage(pendingIndex, answer);
+      const result = await requestLessonAgentAnswer(module, stage, value, requestThread);
+      updateAssistantMessage(pendingIndex, result.answer);
     } catch {
       updateAssistantMessage(pendingIndex, buildLessonAgentAnswer(module, stage, value));
     } finally {
@@ -853,7 +856,7 @@ function buildLessonAgentAnswer(module, lesson, input) {
     "Entrada recebida:",
     input,
     "",
-    "Proxima entrega: transforme essa resposta em uma acao concreta do projeto, com decisao, contexto, pendencias e proximo passo. Na versao com n8n/OpenAI, este painel chamara o agente real desta etapa."
+    "Proxima entrega: transformar essa resposta em uma acao concreta do projeto, com decisao, contexto, pendencias e proximo passo."
   ].join("\n");
 }
 
@@ -887,9 +890,9 @@ function updateAssistantMessage(index, text) {
   };
 }
 
-async function requestLessonAgentAnswer(module, stage, input) {
+async function requestLessonAgentAnswer(module, stage, input, thread = null) {
   if (!memberApp.token || memberApp.token.startsWith("local-")) {
-    return buildLessonAgentAnswer(module, stage, input);
+    return { answer: buildLessonAgentAnswer(module, stage, input) };
   }
 
   ensureProjectId();
@@ -907,14 +910,19 @@ async function requestLessonAgentAnswer(module, stage, input) {
     stage: stagePayload,
     stageKey: key,
     message: input,
-    thread: memberApp.state.assistantThreads[key] || []
+    thread: thread || memberApp.state.assistantThreads[key] || []
   });
 
   const answer = response.answer || buildLessonAgentAnswer(module, stage, input);
-  if (response.status === "completed") {
+  if (response.status === "completed" || response.status === "result") {
     markCurrentStageComplete();
   }
-  return answer;
+  return {
+    answer,
+    status: response.status,
+    agentId: response.agent_id,
+    nextAgentId: response.next_agent_id || response.next_recommended_agent || ""
+  };
 }
 
 function buildStagePayload(stage, key) {

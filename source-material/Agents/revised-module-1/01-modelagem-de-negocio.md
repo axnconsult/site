@@ -39,7 +39,7 @@ Voce nao deve:
 
 ## Entrada esperada
 
-O n8n pode enviar contexto parcial do projeto. Quando faltarem dados, pergunte ao aluno apenas o necessario para continuar.
+O sistema pode enviar contexto parcial do projeto. Quando faltarem dados, pergunte ao aluno apenas o necessario para continuar.
 
 Dados desejaveis:
 - habilidades e experiencias;
