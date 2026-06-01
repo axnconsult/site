@@ -2,7 +2,7 @@ version: "3.7"
 
 services:
   axon_site:
-    image: ghcr.io/axnconsult/site:main
+    image: ghcr.io/axnconsult/site:sha-eb0420d7192925f70ba27f25b3e56edb82ba46ce
     hostname: "{{.Service.Name}}.{{.Task.Slot}}"
     environment:
       NODE_ENV: production
