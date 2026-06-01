@@ -56,9 +56,8 @@ export async function runOperationAgentTurn({ rootDir, query, member, payload })
   }
 
   const project = await upsertOperationProject(query, member, payload);
-  const activeAgentId = resolveAgentId(project.current_stage_key === payload.stageKey
-    ? payload.stage?.agentId
-    : agentIdFromStageKey(payload.stageKey));
+  const activeStageKey = normalizeStageKey(project.current_stage_key || payload.stageKey);
+  const activeAgentId = agentIdFromStageKey(activeStageKey);
   const agent = AGENT_BY_ID.get(activeAgentId) || AGENTS[0];
   const history = await loadProjectHistory(query, project.id);
   const thread = normalizeThread(payload.thread);
@@ -114,7 +113,8 @@ export async function runOperationAgentTurn({ rootDir, query, member, payload })
               project: payload.project,
               module: payload.module,
               stage: payload.stage,
-              stageKey: payload.stageKey,
+              requestedStageKey: payload.stageKey,
+              activeStageKey,
               activeAgentId,
               validAgentIds: AGENT_IDS,
               previousDeliveries: history.completedBlocks,
@@ -139,7 +139,7 @@ export async function runOperationAgentTurn({ rootDir, query, member, payload })
   const parsed = parseAgentOutput(response, agent);
   const status = normalizeStatus(parsed.status);
   const nextAgentId = status === "result"
-    ? normalizeNextAgentId(parsed.next_agent_id || parsed.next_recommended_agent, agent.id)
+    ? nextAgentIdFor(activeAgentId)
     : "";
   const answer = cleanAssistantMessage(parsed.assistant_message || parsed.summary_for_user || parsed.answer || response.output_text);
   const transferBlock = normalizeTransferBlock(parsed.transfer_block, status);
@@ -148,7 +148,7 @@ export async function runOperationAgentTurn({ rootDir, query, member, payload })
   await saveAgentRun(query, {
     project,
     member,
-    stageKey: payload.stageKey,
+    stageKey: activeStageKey,
     agentId: agent.id,
     status,
     userMessage: payload.message,
@@ -163,6 +163,8 @@ export async function runOperationAgentTurn({ rootDir, query, member, payload })
     await updateProjectStage(query, project.id, nextAgentId, payload.project);
   }
 
+  const nextStageKey = nextAgentId ? stageKeyFromAgentId(nextAgentId) : activeStageKey;
+
   return {
     ok: true,
     answer,
@@ -172,6 +174,8 @@ export async function runOperationAgentTurn({ rootDir, query, member, payload })
     transfer_block: transferBlock,
     next_agent_id: nextAgentId,
     next_recommended_agent: nextAgentId,
+    active_stage_key: activeStageKey,
+    next_stage_key: nextStageKey,
     openai_response_id: response.id || null
   };
 }
@@ -212,19 +216,20 @@ function resolveAgentId(value) {
   return aliases[key] || "business_modeling";
 }
 
-function normalizeNextAgentId(value, currentAgentId) {
-  const resolved = resolveAgentId(value);
+function nextAgentIdFor(currentAgentId) {
   const currentIndex = AGENT_IDS.indexOf(currentAgentId);
-  const resolvedIndex = AGENT_IDS.indexOf(resolved);
-
-  if (!value) return AGENT_IDS[currentIndex + 1] || "";
-  if (resolvedIndex > currentIndex) return resolved;
   return AGENT_IDS[currentIndex + 1] || "";
 }
 
 function agentIdFromStageKey(stageKey) {
   const index = Number(String(stageKey || "").split(".")[1] || 0);
   return AGENT_IDS[index] || "business_modeling";
+}
+
+function normalizeStageKey(stageKey) {
+  const index = Number(String(stageKey || "").split(".")[1] || 0);
+  const safeIndex = Number.isFinite(index) ? Math.min(Math.max(index, 0), AGENT_IDS.length - 1) : 0;
+  return `module-1.${safeIndex}`;
 }
 
 function stageKeyFromAgentId(agentId) {
@@ -420,7 +425,7 @@ async function upsertOperationProject(query, member, payload) {
       on conflict (id) do update set
         name = excluded.name,
         current_module = excluded.current_module,
-        current_stage_key = excluded.current_stage_key,
+        current_stage_key = operation_projects.current_stage_key,
         project_json = operation_projects.project_json || excluded.project_json,
         updated_at = now()
       returning *

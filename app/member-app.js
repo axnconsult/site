@@ -346,6 +346,7 @@ function wireModuleActions() {
     try {
       const result = await requestLessonAgentAnswer(module, stage, value, requestThread);
       updateAssistantMessage(pendingIndex, result.answer);
+      applyAssistantProgress(result);
     } catch (error) {
       updateAssistantMessage(
         pendingIndex,
@@ -364,6 +365,23 @@ function wireModuleActions() {
       document.querySelector("#assistant-submit")?.click();
     }
   });
+}
+
+function applyAssistantProgress(result) {
+  if (!result || !["completed", "result"].includes(result.status)) {
+    return;
+  }
+
+  const nextStageKey = result.nextStageKey || stageKeyForAgentId(result.nextAgentId);
+  if (!nextStageKey) {
+    markCurrentStageComplete();
+    return;
+  }
+
+  markCurrentStageComplete();
+  memberApp.state.currentLesson = normalizeStageKey(memberApp.state.currentModule, nextStageKey);
+  memberApp.state.currentLessonStep = "main";
+  ensureAssistantThread(currentModule(), currentLesson());
 }
 
 async function hydrateSession() {
@@ -945,15 +963,25 @@ async function requestLessonAgentAnswer(module, stage, input, thread = null) {
   });
 
   const answer = response.answer || buildLessonAgentAnswer(module, stage, input);
-  if (response.status === "completed" || response.status === "result") {
-    markCurrentStageComplete();
-  }
   return {
     answer,
     status: response.status,
     agentId: response.agent_id,
-    nextAgentId: response.next_agent_id || response.next_recommended_agent || ""
+    nextAgentId: response.next_agent_id || response.next_recommended_agent || "",
+    nextStageKey: response.next_stage_key || ""
   };
+}
+
+function stageKeyForAgentId(agentId) {
+  const index = [
+    "business_modeling",
+    "target_audience",
+    "strategic_differentiation",
+    "strategic_pricing",
+    "product_concept",
+    "visual_identity"
+  ].indexOf(agentId);
+  return index >= 0 ? `module-1.${index}` : "";
 }
 
 function isLocalPreview() {
