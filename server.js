@@ -15,6 +15,7 @@ const port = Number(process.env.PORT || 80);
 const maxBodyBytes = Number(process.env.MAX_BODY_BYTES || 1024 * 1024);
 
 let pool;
+let operationalTablesReady = false;
 
 const contentTypes = {
   ".css": "text/css; charset=utf-8",
@@ -293,6 +294,7 @@ async function handleProfile(payload) {
 }
 
 async function handleMemberRegister(payload) {
+  await ensureOperationalTables();
   requireFields(payload, ["name", "email", "password"]);
   requirePassword(payload.password);
 
@@ -320,6 +322,7 @@ async function handleMemberRegister(payload) {
 }
 
 async function handleMemberLogin(payload) {
+  await ensureOperationalTables();
   requireFields(payload, ["email", "password"]);
   const email = normalizeEmail(payload.email);
 
@@ -342,6 +345,7 @@ async function handleMemberLogin(payload) {
 }
 
 async function handleMemberSession(payload) {
+  await ensureOperationalTables();
   const member = await getAuthenticatedMember(payload);
   return {
     ok: true,
@@ -351,6 +355,7 @@ async function handleMemberSession(payload) {
 }
 
 async function handleOperationAssistant(payload) {
+  await ensureOperationalTables();
   const member = await getAuthenticatedMember(payload);
   requireFields(payload, ["message", "module", "stage", "stageKey", "project"]);
 
@@ -364,14 +369,15 @@ async function handleOperationAssistant(payload) {
   } catch (error) {
     console.warn("operation assistant failed", error);
     return {
-      ok: true,
-      fallback: true,
-      answer: "Nao consegui acionar o assistente agora. O app esta no ar, mas o servico de IA falhou nesta tentativa. Tente novamente em instantes."
+      ok: false,
+      error: "operation_assistant_failed",
+      answer: "Nao consegui acionar o assistente agora. O app esta no ar, mas o servico de IA falhou nesta tentativa. Confira os logs da stack."
     };
   }
 }
 
 async function handleWizardLoad(payload) {
+  await ensureOperationalTables();
   const member = await getAuthenticatedMember(payload);
   return {
     ok: true,
@@ -381,6 +387,7 @@ async function handleWizardLoad(payload) {
 }
 
 async function handleWizardSave(payload) {
+  await ensureOperationalTables();
   const member = await getAuthenticatedMember(payload);
   requireFields(payload, ["state"]);
 
@@ -420,6 +427,7 @@ async function handleWizardSave(payload) {
 }
 
 async function handleWizardAsk(payload) {
+  await ensureOperationalTables();
   await getAuthenticatedMember(payload);
   requireFields(payload, ["stepTitle", "question"]);
 
@@ -428,6 +436,7 @@ async function handleWizardAsk(payload) {
 }
 
 async function getAuthenticatedMember(payload) {
+  await ensureOperationalTables();
   const token = payload?.token;
   if (!token) {
     throw httpError(401, "missing_token");
@@ -450,6 +459,112 @@ async function getAuthenticatedMember(payload) {
   }
 
   return publicMember(member);
+}
+
+async function ensureOperationalTables() {
+  if (operationalTablesReady) {
+    return;
+  }
+
+  await query("create extension if not exists pgcrypto");
+
+  await query(`
+    create table if not exists wizard_members (
+      id uuid primary key default gen_random_uuid(),
+      created_at timestamptz not null default now(),
+      updated_at timestamptz not null default now(),
+      name text not null,
+      email text not null unique,
+      password_hash text not null,
+      password_salt text not null
+    )
+  `);
+
+  await query("create index if not exists idx_wizard_members_email on wizard_members (email)");
+
+  await query(`
+    create table if not exists wizard_member_sessions (
+      id uuid primary key default gen_random_uuid(),
+      created_at timestamptz not null default now(),
+      member_id uuid not null references wizard_members(id) on delete cascade,
+      token_hash text not null unique,
+      expires_at timestamptz not null
+    )
+  `);
+
+  await query("create index if not exists idx_wizard_sessions_member on wizard_member_sessions (member_id)");
+  await query("create index if not exists idx_wizard_sessions_expires_at on wizard_member_sessions (expires_at)");
+
+  await query(`
+    create table if not exists wizard_progress (
+      member_id uuid primary key references wizard_members(id) on delete cascade,
+      updated_at timestamptz not null default now(),
+      project_json jsonb not null default '{}'::jsonb,
+      current_step text not null default 'domain',
+      current_module text not null default 'module-1',
+      current_lesson text not null default 'module-1.0',
+      completed_steps_json jsonb not null default '[]'::jsonb,
+      checklist_json jsonb not null default '{}'::jsonb
+    )
+  `);
+
+  await query("create index if not exists idx_wizard_progress_updated_at on wizard_progress (updated_at desc)");
+
+  await query(`
+    create table if not exists operation_projects (
+      id uuid primary key,
+      member_id uuid not null references wizard_members(id) on delete cascade,
+      created_at timestamptz not null default now(),
+      updated_at timestamptz not null default now(),
+      name text not null default 'Projeto sem nome',
+      status text not null default 'active',
+      current_module text not null default 'module-1',
+      current_stage_key text not null default 'module-1.0',
+      project_json jsonb not null default '{}'::jsonb,
+      strategic_plan_json jsonb not null default '{}'::jsonb,
+      strategic_plan_markdown text not null default ''
+    )
+  `);
+
+  await query("create index if not exists idx_operation_projects_member on operation_projects (member_id)");
+  await query("create index if not exists idx_operation_projects_updated_at on operation_projects (updated_at desc)");
+
+  await query(`
+    create table if not exists operation_agent_runs (
+      id uuid primary key default gen_random_uuid(),
+      project_id uuid not null references operation_projects(id) on delete cascade,
+      member_id uuid not null references wizard_members(id) on delete cascade,
+      created_at timestamptz not null default now(),
+      stage_key text not null,
+      agent_id text not null,
+      status text not null default 'in_progress',
+      user_message text not null,
+      assistant_answer text not null default '',
+      project_section text,
+      transfer_block_json jsonb,
+      raw_response_json jsonb not null default '{}'::jsonb,
+      openai_response_id text
+    )
+  `);
+
+  await query("create index if not exists idx_operation_agent_runs_project on operation_agent_runs (project_id, created_at desc)");
+  await query("create index if not exists idx_operation_agent_runs_agent on operation_agent_runs (agent_id)");
+
+  await query(`
+    create table if not exists operation_conversation_messages (
+      id uuid primary key default gen_random_uuid(),
+      project_id uuid not null references operation_projects(id) on delete cascade,
+      member_id uuid not null references wizard_members(id) on delete cascade,
+      created_at timestamptz not null default now(),
+      stage_key text not null,
+      role text not null check (role in ('user', 'assistant', 'system')),
+      content text not null,
+      metadata_json jsonb not null default '{}'::jsonb
+    )
+  `);
+
+  await query("create index if not exists idx_operation_messages_project on operation_conversation_messages (project_id, created_at)");
+  operationalTablesReady = true;
 }
 
 async function createMemberSession(memberId) {

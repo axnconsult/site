@@ -132,6 +132,10 @@ export async function runOperationAgentTurn({ rootDir, query, member, payload })
   }
 
   const response = await callOpenAI(openaiRequest);
+  if (response.status === "failed") {
+    throw new Error(response.error?.message || response.error?.error?.message || "openai_operation_failed");
+  }
+
   const parsed = parseAgentOutput(response, agent);
   const status = normalizeStatus(parsed.status);
   const nextAgentId = status === "result"

@@ -252,7 +252,18 @@ function wireAuth() {
       renderMemberApp();
     } catch {
       if (memberApp.mode === "login") {
-        setMemberStatus("auth", "Nao consegui entrar pelo servidor. Se o banco local nao estiver ativo, crie uma conta para testar em modo local.", true);
+        setMemberStatus(
+          "auth",
+          isLocalPreview()
+            ? "Nao consegui entrar pelo servidor. Se o banco local nao estiver ativo, crie uma conta para testar em modo local."
+            : "Nao consegui entrar pelo servidor. Confira /api/health, usuario/senha e logs da stack.",
+          true
+        );
+        return;
+      }
+
+      if (!isLocalPreview()) {
+        setMemberStatus("auth", "Nao consegui criar sua conta no servidor. Confira /api/health e os logs da stack antes de testar o assistente.", true);
         return;
       }
 
@@ -335,8 +346,11 @@ function wireModuleActions() {
     try {
       const result = await requestLessonAgentAnswer(module, stage, value, requestThread);
       updateAssistantMessage(pendingIndex, result.answer);
-    } catch {
-      updateAssistantMessage(pendingIndex, buildLessonAgentAnswer(module, stage, value));
+    } catch (error) {
+      updateAssistantMessage(
+        pendingIndex,
+        error.message || "Nao consegui conectar ao assistente real agora. Confira a configuracao da OpenAI e os logs da stack."
+      );
     } finally {
       if (submit) submit.disabled = false;
       persistMemberState();
@@ -779,10 +793,22 @@ async function postMemberApi(endpoint, payload, includeJson = true) {
     : {};
 
   if (!response.ok || data.ok === false) {
-    throw new Error(data.error || "request_failed");
+    throw new Error(errorMessageForCode(data.error || "request_failed"));
   }
 
   return data;
+}
+
+function errorMessageForCode(code) {
+  const messages = {
+    missing_token: "Sessao expirada ou invalida. Saia e entre novamente.",
+    invalid_token: "Sessao expirada ou invalida. Saia e entre novamente.",
+    database_unavailable: "Banco indisponivel para salvar a conversa. Confira /api/health e a DATABASE_URL.",
+    openai_not_configured: "OPENAI_API_KEY ainda nao esta configurada no backend.",
+    operation_assistant_failed: "O backend chamou o assistente, mas a OpenAI/API falhou. Confira os logs da stack.",
+    request_failed: "A requisicao ao assistente falhou. Confira os logs da stack."
+  };
+  return messages[code] || `Erro do assistente: ${code}`;
 }
 
 function normalizeMemberState(state) {
@@ -892,7 +918,12 @@ function updateAssistantMessage(index, text) {
 
 async function requestLessonAgentAnswer(module, stage, input, thread = null) {
   if (!memberApp.token || memberApp.token.startsWith("local-")) {
-    return { answer: buildLessonAgentAnswer(module, stage, input) };
+    return {
+      answer: isLocalPreview()
+        ? buildLessonAgentAnswer(module, stage, input)
+        : "Voce esta em modo local nesta sessao. Saia, entre com uma conta criada no servidor e tente de novo para chamar o assistente real.",
+      status: "local_session"
+    };
   }
 
   ensureProjectId();
@@ -923,6 +954,10 @@ async function requestLessonAgentAnswer(module, stage, input, thread = null) {
     agentId: response.agent_id,
     nextAgentId: response.next_agent_id || response.next_recommended_agent || ""
   };
+}
+
+function isLocalPreview() {
+  return ["localhost", "127.0.0.1", ""].includes(window.location.hostname);
 }
 
 function buildStagePayload(stage, key) {
