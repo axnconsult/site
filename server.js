@@ -1,11 +1,10 @@
 import { createReadStream } from "node:fs";
 import { stat } from "node:fs/promises";
-import crypto from "node:crypto";
 import http from "node:http";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
 import pg from "pg";
-import { runOperationAgentTurn } from "./server/operation-agents.js";
+import { exportModule1Conversation, runModule1Turn } from "./server/module-1-agents.js";
 
 const { Pool } = pg;
 
@@ -33,13 +32,8 @@ const routes = new Map([
   ["/api/leads", handleLead],
   ["/api/consultoria", handleConsultoria],
   ["/api/perfil", handleProfile],
-  ["/api/members/register", handleMemberRegister],
-  ["/api/members/login", handleMemberLogin],
-  ["/api/members/session", handleMemberSession],
-  ["/api/operation/assistant", handleOperationAssistant],
-  ["/api/wizard/load", handleWizardLoad],
-  ["/api/wizard/save", handleWizardSave],
-  ["/api/wizard/ask", handleWizardAsk]
+  ["/api/module-1/chat", handleModule1Chat],
+  ["/api/module-1/export", handleModule1Export]
 ]);
 
 const server = http.createServer(async (request, response) => {
@@ -153,7 +147,6 @@ async function handleLead(payload) {
   ];
 
   const result = await query(sql, values);
-  await notifyN8n("lead", payload);
   return { ok: true, id: result.rows[0].id };
 }
 
@@ -211,7 +204,6 @@ async function handleConsultoria(payload) {
   ];
 
   const result = await query(sql, values);
-  await notifyN8n("consultoria", payload);
   return { ok: true, id: result.rows[0].id };
 }
 
@@ -288,327 +280,19 @@ async function handleProfile(payload) {
   ];
 
   const result = await query(sql, values);
-  await notifyN8n("perfil", payload);
   return { ok: true, id: result.rows[0].id };
 }
 
-async function handleMemberRegister(payload) {
-  requireFields(payload, ["name", "email", "password"]);
-  requirePassword(payload.password);
-
-  const email = normalizeEmail(payload.email);
-  const existing = await query("select id from wizard_members where email = $1", [email]);
-  if (existing.rowCount > 0) {
-    throw httpError(409, "member_already_exists");
+async function handleModule1Chat(payload) {
+  if (!process.env.OPENAI_API_KEY) {
+    throw httpError(503, "openai_not_configured");
   }
 
-  const { hash, salt } = hashPassword(payload.password);
-  const sql = `
-    insert into wizard_members (name, email, password_hash, password_salt)
-    values ($1, $2, $3, $4)
-    returning id, name, email, created_at
-  `;
-
-  const result = await query(sql, [payload.name, email, hash, salt]);
-  const member = result.rows[0];
-  return {
-    ok: true,
-    token: await createMemberSession(member.id),
-    member,
-    state: defaultWizardState()
-  };
+  return runModule1Turn({ payload, query });
 }
 
-async function handleMemberLogin(payload) {
-  requireFields(payload, ["email", "password"]);
-  const email = normalizeEmail(payload.email);
-
-  const result = await query(
-    "select id, name, email, password_hash, password_salt, created_at from wizard_members where email = $1",
-    [email]
-  );
-
-  const member = result.rows[0];
-  if (!member || !verifyPassword(payload.password, member.password_salt, member.password_hash)) {
-    throw httpError(401, "invalid_credentials");
-  }
-
-  return {
-    ok: true,
-    token: await createMemberSession(member.id),
-    member: publicMember(member),
-    state: await loadWizardState(member.id)
-  };
-}
-
-async function handleMemberSession(payload) {
-  const member = await getAuthenticatedMember(payload);
-  return {
-    ok: true,
-    member,
-    state: await loadWizardState(member.id)
-  };
-}
-
-async function handleOperationAssistant(payload) {
-  const member = await getAuthenticatedMember(payload);
-  requireFields(payload, ["message", "module", "stage", "stageKey", "project"]);
-
-  try {
-    return await runOperationAgentTurn({
-      rootDir: __dirname,
-      query,
-      member,
-      payload
-    });
-  } catch (error) {
-    console.warn("operation assistant failed", error);
-    return {
-      ok: true,
-      fallback: true,
-      answer: "Nao consegui acionar o assistente agora. O app esta no ar, mas o servico de IA falhou nesta tentativa. Tente novamente em instantes."
-    };
-  }
-}
-
-async function handleWizardLoad(payload) {
-  const member = await getAuthenticatedMember(payload);
-  return {
-    ok: true,
-    member,
-    state: await loadWizardState(member.id)
-  };
-}
-
-async function handleWizardSave(payload) {
-  const member = await getAuthenticatedMember(payload);
-  requireFields(payload, ["state"]);
-
-  const state = sanitizeWizardState(payload.state);
-  const sql = `
-    insert into wizard_progress (
-      member_id,
-      project_json,
-      current_step,
-      completed_steps_json,
-      checklist_json,
-      current_module,
-      current_lesson,
-      updated_at
-    ) values ($1, $2::jsonb, $3, $4::jsonb, $5::jsonb, $6, $7, now())
-    on conflict (member_id) do update set
-      project_json = excluded.project_json,
-      current_step = excluded.current_step,
-      completed_steps_json = excluded.completed_steps_json,
-      checklist_json = excluded.checklist_json,
-      current_module = excluded.current_module,
-      current_lesson = excluded.current_lesson,
-      updated_at = now()
-  `;
-
-  await query(sql, [
-    member.id,
-    jsonValue(state.project),
-    state.currentStep,
-    jsonValue(state.completedSteps),
-    jsonValue(state.checklist),
-    state.currentModule,
-    state.currentLesson
-  ]);
-
-  return { ok: true, state };
-}
-
-async function handleWizardAsk(payload) {
-  await getAuthenticatedMember(payload);
-  requireFields(payload, ["stepTitle", "question"]);
-
-  const answer = buildWizardAnswer(payload.stepTitle, payload.question, payload.context);
-  return { ok: true, answer };
-}
-
-async function getAuthenticatedMember(payload) {
-  const token = payload?.token;
-  if (!token) {
-    throw httpError(401, "missing_token");
-  }
-
-  const tokenHash = hashToken(token);
-  const result = await query(
-    `
-      select m.id, m.name, m.email, m.created_at
-      from wizard_member_sessions s
-      join wizard_members m on m.id = s.member_id
-      where s.token_hash = $1 and s.expires_at > now()
-    `,
-    [tokenHash]
-  );
-
-  const member = result.rows[0];
-  if (!member) {
-    throw httpError(401, "invalid_token");
-  }
-
-  return publicMember(member);
-}
-
-async function createMemberSession(memberId) {
-  const token = crypto.randomBytes(32).toString("base64url");
-  const tokenHash = hashToken(token);
-  const ttlMs = Number(process.env.MEMBER_TOKEN_TTL_MS || 1000 * 60 * 60 * 24 * 14);
-  const expiresAt = new Date(Date.now() + ttlMs).toISOString();
-
-  await query(
-    "insert into wizard_member_sessions (member_id, token_hash, expires_at) values ($1, $2, $3::timestamptz)",
-    [memberId, tokenHash, expiresAt]
-  );
-
-  return token;
-}
-
-function hashToken(token) {
-  return crypto.createHash("sha256").update(String(token)).digest("hex");
-}
-
-async function loadWizardState(memberId) {
-  const result = await query(
-    `
-      select project_json, current_step, completed_steps_json, checklist_json, current_module, current_lesson, updated_at
-      from wizard_progress
-      where member_id = $1
-    `,
-    [memberId]
-  );
-
-  const row = result.rows[0];
-  if (!row) {
-    return defaultWizardState();
-  }
-
-  return sanitizeWizardState({
-    project: row.project_json,
-    currentStep: row.current_step,
-    completedSteps: row.completed_steps_json,
-    checklist: row.checklist_json,
-    currentModule: row.current_module,
-    currentLesson: row.current_lesson,
-    updatedAt: row.updated_at
-  });
-}
-
-function defaultWizardState() {
-  return {
-    project: {
-      id: "",
-      name: "",
-      domain: "",
-      serverIp: "",
-      technicalEmail: "",
-      hostName: "manager01",
-      siteImage: "ghcr.io/axnconsult/site:main"
-    },
-    currentStep: "domain",
-    currentModule: "module-1",
-    currentLesson: "module-1.0",
-    completedSteps: [],
-    checklist: {},
-    updatedAt: null
-  };
-}
-
-function sanitizeWizardState(state) {
-  const fallback = defaultWizardState();
-  const project = {
-    ...fallback.project,
-    ...(state?.project && typeof state.project === "object" ? state.project : {})
-  };
-  const projectName = nullableText(project.name);
-
-  return {
-    project: {
-      id: nullableUuid(project.id) || fallback.project.id,
-      domain: nullableText(project.domain) || "",
-      name: projectName === "Meu negocio online" ? "" : projectName || "",
-      serverIp: nullableText(project.serverIp) || "",
-      technicalEmail: nullableText(project.technicalEmail) || "",
-      hostName: nullableText(project.hostName) || "manager01",
-      siteImage: nullableText(project.siteImage) || "ghcr.io/axnconsult/site:main"
-    },
-    currentStep: nullableText(state?.currentStep) || fallback.currentStep,
-    currentModule: nullableText(state?.currentModule) || fallback.currentModule,
-    currentLesson: nullableText(state?.currentLesson) || fallback.currentLesson,
-    completedSteps: Array.isArray(state?.completedSteps) ? state.completedSteps.map(String) : [],
-    checklist: state?.checklist && typeof state.checklist === "object" ? state.checklist : {},
-    updatedAt: state?.updatedAt || new Date().toISOString()
-  };
-}
-
-function publicMember(member) {
-  return {
-    id: member.id,
-    name: member.name,
-    email: member.email,
-    created_at: member.created_at
-  };
-}
-
-function normalizeEmail(email) {
-  return String(email || "").trim().toLowerCase();
-}
-
-function requirePassword(password) {
-  if (String(password).length < 8) {
-    throw httpError(422, "weak_password");
-  }
-}
-
-function hashPassword(password, salt = crypto.randomBytes(16).toString("hex")) {
-  const hash = crypto.scryptSync(String(password), salt, 64).toString("hex");
-  return { hash, salt };
-}
-
-function verifyPassword(password, salt, expectedHash) {
-  const { hash } = hashPassword(password, salt);
-  const left = Buffer.from(hash, "hex");
-  const right = Buffer.from(expectedHash, "hex");
-  return left.length === right.length && crypto.timingSafeEqual(left, right);
-}
-
-function buildWizardAnswer(stepTitle, question, context) {
-  const cleanStep = String(stepTitle).slice(0, 120);
-  const cleanQuestion = String(question).slice(0, 600);
-  const cleanContext = String(context || "").slice(0, 800);
-
-  return [
-    `Etapa: ${cleanStep}`,
-    "",
-    "Vamos simplificar: execute apenas a acao desta etapa e valide antes de avancar.",
-    cleanContext ? `Contexto atual: ${cleanContext}` : "",
-    `Sua duvida: ${cleanQuestion}`,
-    "",
-    "Proximo passo pratico: confira os campos preenchidos, copie o comando indicado e rode no lugar certo. Depois use a validacao da etapa. Se a validacao nao bater, pare e trate como problema de DNS, proxy, container ou banco antes de continuar."
-  ]
-    .filter(Boolean)
-    .join("\n");
-}
-
-function buildOperationAssistantFallback(module, stage, message) {
-  const moduleTitle = nullableText(module?.title) || "Operacao Comercial";
-  const stageTitle = Array.isArray(stage) ? stage[0] : nullableText(stage?.title) || "Etapa atual";
-  const stageSummary = Array.isArray(stage) ? stage[1] : nullableText(stage?.summary) || "";
-  const cleanMessage = String(message || "").slice(0, 1200);
-
-  return [
-    `Modulo: ${moduleTitle}`,
-    `Etapa: ${stageTitle}`,
-    "",
-    stageSummary ? `Foco desta etapa: ${stageSummary}` : "",
-    cleanMessage ? `O que voce trouxe: ${cleanMessage}` : "",
-    "",
-    "Ainda estou sem o webhook do n8n configurado neste ambiente. Enquanto isso, transforme sua resposta em tres pontos: decisao tomada, informacao que falta e proxima acao concreta."
-  ]
-    .filter(Boolean)
-    .join("\n");
+async function handleModule1Export(payload) {
+  return exportModule1Conversation({ payload, query });
 }
 
 function getPool() {
@@ -641,27 +325,6 @@ function query(sql, values = []) {
     console.error("Database query failed", error);
     throw httpError(503, "database_unavailable");
   });
-}
-
-async function notifyN8n(kind, payload) {
-  const endpoint = process.env[`N8N_${kind.toUpperCase()}_WEBHOOK_URL`];
-  if (!endpoint) {
-    return;
-  }
-
-  try {
-    const response = await fetch(endpoint, {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify(payload)
-    });
-
-    if (!response.ok) {
-      console.warn(`n8n ${kind} webhook returned ${response.status}`);
-    }
-  } catch (error) {
-    console.warn(`n8n ${kind} webhook failed`, error);
-  }
 }
 
 async function readJsonBody(request) {

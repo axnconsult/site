@@ -4,10 +4,12 @@ const DEFAULT_AXON_CONFIG = {
     youtube: "https://youtube.com/",
     linkedin: "https://linkedin.com/"
   },
-  webhooks: {
-    lead: "https://webhooks.axnconsult.com.br/webhook/site-lead",
-    consultoria: "https://webhooks.axnconsult.com.br/webhook/site-consultoria",
-    perfil: "https://webhooks.axnconsult.com.br/webhook/site-perfil"
+  endpoints: {
+    lead: "/api/leads",
+    consultoria: "/api/consultoria",
+    perfil: "/api/perfil",
+    module1Chat: "/api/module-1/chat",
+    module1Export: "/api/module-1/export"
   },
   checkout: {
     deploy: "",
@@ -29,22 +31,22 @@ const THANK_YOU_COPY = {
   curso: {
     title: "Seu interesse nos cursos da Axon foi registrado.",
     copy:
-      "Você entrou na fila das próximas turmas. O próximo passo natural é conectar este formulário a CRM, e-mail e checkout."
+      "VocÃª entrou na fila das prÃ³ximas turmas. O prÃ³ximo passo natural Ã© conectar este formulÃ¡rio a CRM, e-mail e checkout."
   },
   consultoria: {
     title: "Sua triagem de consultoria foi recebida.",
     copy:
-      "Agora a Axon já tem contexto suficiente para uma resposta manual mais inteligente. Em produção, este fluxo pode seguir para HubSpot, e-mail e agenda."
+      "Agora a Axon jÃ¡ tem contexto suficiente para uma resposta manual mais inteligente. Em produÃ§Ã£o, este fluxo pode seguir para HubSpot, e-mail e agenda."
   },
   ferramenta: {
     title: "Ferramenta liberada.",
     copy:
-      "Seu acesso foi registrado neste MVP. Abaixo da dobra está o gerador de prompts da Axon pronto para uso."
+      "Seu acesso foi registrado neste MVP. Abaixo da dobra estÃ¡ o gerador de prompts da Axon pronto para uso."
   }
 };
 
 const demoNewsProfile = {
-  niche: "Consultoria e implementação de operação comercial com IA para pequenas empresas.",
+  niche: "Consultoria e implementaÃ§Ã£o de operaÃ§Ã£o comercial com IA para pequenas empresas.",
   audience: "Empreendedores e donos de pequenas empresas travados entre teoria, atendimento caotico e vendas sem processo.",
   voice: "Direto, pratico, anti-teoria e orientado a execucao.",
   goal: "Gerar autoridade, conversa e interesse pelas ofertas da Axon."
@@ -57,7 +59,7 @@ const rankedNews = [
     source: "OpenAI",
     date: "12 mar 2026",
     summary: "Atualizacao reforca o foco da IA em fluxos reais de negocio, nao apenas em chats isolados.",
-    fit: "Conecta com a tese da Axon de tirar IA do piloto e levar para a operação.",
+    fit: "Conecta com a tese da Axon de tirar IA do piloto e levar para a operaÃ§Ã£o.",
     angle: "Quando a IA entra no processo, o diferencial sai da ferramenta e vai para a implementacao.",
     popularity: "Alta visibilidade por ser anuncio oficial de plataforma.",
     link: "https://openai.com/"
@@ -81,7 +83,7 @@ const rankedNews = [
     summary: "O movimento reforca que atendimento, follow-up e revenue workflows estao virando terreno central da IA.",
     fit: "Conversa diretamente com CRM, funil e previsibilidade comercial.",
     angle: "Sem processo comercial claro, IA vira custo bonito em vez de aumento real de receita.",
-    popularity: "Forte aderência para quem pensa em vendas e operação.",
+    popularity: "Forte aderÃªncia para quem pensa em vendas e operaÃ§Ã£o.",
     link: "https://www.salesforce.com/news/"
   },
   {
@@ -102,7 +104,7 @@ const rankedNews = [
     date: "8 mar 2026",
     summary: "O tema mostra que o jogo do atendimento saiu da curiosidade e entrou na infraestrutura comercial.",
     fit: "Abre uma boa conversa sobre resposta, triagem e qualidade de atendimento.",
-    angle: "Se você responde mal ou tarde, não precisa de mais lead. Precisa de operação.",
+    angle: "Se vocÃª responde mal ou tarde, nÃ£o precisa de mais lead. Precisa de operaÃ§Ã£o.",
     popularity: "Boa chance de gerar comentario pela proximidade com dor real do mercado.",
     link: "https://techcrunch.com/"
   },
@@ -122,9 +124,9 @@ const rankedNews = [
     title: "Microsoft leva Copilot para fluxos de vendas e atendimento",
     source: "Microsoft",
     date: "7 mar 2026",
-    summary: "A expansão mostra a IA cada vez mais perto da operação diária de revenue teams.",
+    summary: "A expansÃ£o mostra a IA cada vez mais perto da operaÃ§Ã£o diÃ¡ria de revenue teams.",
     fit: "Serve bem para falar de vendas, follow-up e produtividade comercial.",
-    angle: "O futuro próximo não é ter IA. É ter equipe e IA operando juntas com menos atrito.",
+    angle: "O futuro prÃ³ximo nÃ£o Ã© ter IA. Ã‰ ter equipe e IA operando juntas com menos atrito.",
     popularity: "Tema enterprise com alto alcance.",
     link: "https://news.microsoft.com/"
   },
@@ -145,7 +147,7 @@ const rankedNews = [
     source: "HubSpot",
     date: "5 mar 2026",
     summary: "Mais um sinal de que conteudo, CRM e comercial estao convergindo em um unico sistema.",
-    fit: "Muito alinhado ao discurso de operação comercial integrada.",
+    fit: "Muito alinhado ao discurso de operaÃ§Ã£o comercial integrada.",
     angle: "Marketing sozinho nao resolve. Vendas sozinhas tambem nao. O ganho aparece na conexao.",
     popularity: "Boa aderencia para o publico da Axon.",
     link: "https://blog.hubspot.com/"
@@ -173,42 +175,42 @@ const newsState = {
 const entrepreneurQuestions = [
   {
     id: "q1",
-    text: "Ganhar mais dinheiro e construir estabilidade financeira é o principal motivo para eu empreender hoje.",
-    helper: "Camada: motivação",
+    text: "Ganhar mais dinheiro e construir estabilidade financeira Ã© o principal motivo para eu empreender hoje.",
+    helper: "Camada: motivaÃ§Ã£o",
     type: "motivation",
     scoring: { money: 1 }
   },
   {
     id: "q2",
-    text: "Ter liberdade para decidir meu ritmo, minha agenda e meu jeito de trabalhar pesa mais do que crescer rápido.",
-    helper: "Camada: motivação",
+    text: "Ter liberdade para decidir meu ritmo, minha agenda e meu jeito de trabalhar pesa mais do que crescer rÃ¡pido.",
+    helper: "Camada: motivaÃ§Ã£o",
     type: "motivation",
     scoring: { autonomy: 1 }
   },
   {
     id: "q3",
     text: "Eu empreendo porque quero fazer algo que tenha significado real para mim e para outras pessoas.",
-    helper: "Camada: motivação",
+    helper: "Camada: motivaÃ§Ã£o",
     type: "motivation",
     scoring: { purpose: 1 }
   },
   {
     id: "q4",
-    text: "Se eu não fizer meu negócio andar, minha situação financeira ou profissional fica apertada rápido.",
-    helper: "Camada: motivação",
+    text: "Se eu nÃ£o fizer meu negÃ³cio andar, minha situaÃ§Ã£o financeira ou profissional fica apertada rÃ¡pido.",
+    helper: "Camada: motivaÃ§Ã£o",
     type: "motivation",
     scoring: { necessity: 1 }
   },
   {
     id: "q5",
-    text: "Mesmo sem vontade, eu consigo manter rotina, constância e entregas por bastante tempo.",
+    text: "Mesmo sem vontade, eu consigo manter rotina, constÃ¢ncia e entregas por bastante tempo.",
     helper: "Camada: comportamento",
     type: "behavior",
     scoring: { discipline: 1 }
   },
   {
     id: "q6",
-    text: "Eu tenho facilidade para imaginar novas possibilidades, campanhas, produtos e caminhos pouco óbvios.",
+    text: "Eu tenho facilidade para imaginar novas possibilidades, campanhas, produtos e caminhos pouco Ã³bvios.",
     helper: "Camada: comportamento",
     type: "behavior",
     scoring: { creativity: 1 }
@@ -222,21 +224,21 @@ const entrepreneurQuestions = [
   },
   {
     id: "q8",
-    text: "Quando algo dá errado, eu consigo manter clareza e seguir agindo sem me desmontar fácil.",
+    text: "Quando algo dÃ¡ errado, eu consigo manter clareza e seguir agindo sem me desmontar fÃ¡cil.",
     helper: "Camada: comportamento",
     type: "behavior",
     scoring: { emotional_stability: 1 }
   },
   {
     id: "q9",
-    text: "Eu enxergo com facilidade o que faz sentido construir, priorizar e para onde o negócio deveria ir.",
+    text: "Eu enxergo com facilidade o que faz sentido construir, priorizar e para onde o negÃ³cio deveria ir.",
     helper: "Camada: perfil operacional",
     type: "operational",
     scoring: { strategist: 1 }
   },
   {
     id: "q10",
-    text: "Eu funciono melhor quando existe algo concreto para executar agora, sem muita enrolação.",
+    text: "Eu funciono melhor quando existe algo concreto para executar agora, sem muita enrolaÃ§Ã£o.",
     helper: "Camada: perfil operacional",
     type: "operational",
     scoring: { executor: 1 }
@@ -250,7 +252,7 @@ const entrepreneurQuestions = [
   },
   {
     id: "q12",
-    text: "Eu gero mais valor quando aprofundo domínio técnico e resolvo problemas com alta qualidade.",
+    text: "Eu gero mais valor quando aprofundo domÃ­nio tÃ©cnico e resolvo problemas com alta qualidade.",
     helper: "Camada: perfil operacional",
     type: "operational",
     scoring: { specialist: 1 }
@@ -264,7 +266,7 @@ const entrepreneurQuestions = [
   },
   {
     id: "q14",
-    text: "Hoje meu maior gargalo não é ter ideias, e sim conseguir estruturar tudo para a operação não depender do meu improviso.",
+    text: "Hoje meu maior gargalo nÃ£o Ã© ter ideias, e sim conseguir estruturar tudo para a operaÃ§Ã£o nÃ£o depender do meu improviso.",
     helper: "Camada: perfil operacional",
     type: "operational",
     scoring: { executor: 0.5, manager: 0.5, strategist: 0.25 }
@@ -275,84 +277,84 @@ const entrepreneurResults = {
   strategist: {
     label: "Estrategista",
     description:
-      "Você lê bem direção, oportunidade e posicionamento. Seu valor aparece quando consegue enxergar o desenho maior antes da maioria.",
+      "VocÃª lÃª bem direÃ§Ã£o, oportunidade e posicionamento. Seu valor aparece quando consegue enxergar o desenho maior antes da maioria.",
     risk:
-      "Virar uma fábrica de ideias boas sem lastro de execução, ficando preso em visão sem materialização consistente.",
+      "Virar uma fÃ¡brica de ideias boas sem lastro de execuÃ§Ã£o, ficando preso em visÃ£o sem materializaÃ§Ã£o consistente.",
     blindspot:
-      "Confundir clareza estratégica com progresso real. Nem sempre pensar melhor significa operar melhor.",
+      "Confundir clareza estratÃ©gica com progresso real. Nem sempre pensar melhor significa operar melhor.",
     nextStep:
-      "Transformar direção em sistema: oferta, rotina comercial, CRM, follow-up e prioridade semanal.",
+      "Transformar direÃ§Ã£o em sistema: oferta, rotina comercial, CRM, follow-up e prioridade semanal.",
     ctaLabel: "Ver o Deploy",
     ctaHref: "./deploy.html",
     ctaCopy:
-      "Seu próximo salto tende a vir de execução assistida. O Deploy foi desenhado exatamente para tirar estratégia do papel."
+      "Seu prÃ³ximo salto tende a vir de execuÃ§Ã£o assistida. O Deploy foi desenhado exatamente para tirar estratÃ©gia do papel."
   },
   executor: {
     label: "Executor",
     description:
-      "Você ganha tração quando existe ação clara. Seu valor aparece na capacidade de fazer andar e não deixar o negócio parado.",
+      "VocÃª ganha traÃ§Ã£o quando existe aÃ§Ã£o clara. Seu valor aparece na capacidade de fazer andar e nÃ£o deixar o negÃ³cio parado.",
     risk:
       "Executar demais em cima de uma estrutura fraca e acabar produzindo volume sem previsibilidade.",
     blindspot:
       "Subestimar o peso de posicionamento, sistema comercial e acompanhamento de dados.",
     nextStep:
-      "Organizar melhor a estrutura antes de acelerar mais: funil, mensagem, rotina e automações básicas.",
-    ctaLabel: "Conhecer Operação Comercial",
+      "Organizar melhor a estrutura antes de acelerar mais: funil, mensagem, rotina e automaÃ§Ãµes bÃ¡sicas.",
+    ctaLabel: "Conhecer OperaÃ§Ã£o Comercial",
     ctaHref: "./operacao-comercial.html",
     ctaCopy:
-      "Você tende a aproveitar melhor um passo a passo estruturado. O curso Operação Comercial encaixa bem nesse momento."
+      "VocÃª tende a aproveitar melhor um passo a passo estruturado. O curso OperaÃ§Ã£o Comercial encaixa bem nesse momento."
   },
   communicator: {
     label: "Comunicador",
     description:
-      "Você gera valor em relação, influência, venda e leitura do outro. Seu negócio tende a ganhar quando a comunicação vira processo.",
+      "VocÃª gera valor em relaÃ§Ã£o, influÃªncia, venda e leitura do outro. Seu negÃ³cio tende a ganhar quando a comunicaÃ§Ã£o vira processo.",
     risk:
-      "Depender demais do carisma e deixar receita vulnerável quando a operação não acompanha sua capacidade comercial.",
+      "Depender demais do carisma e deixar receita vulnerÃ¡vel quando a operaÃ§Ã£o nÃ£o acompanha sua capacidade comercial.",
     blindspot:
-      "Achar que a força da comunicação substitui estrutura de atendimento, CRM e acompanhamento.",
+      "Achar que a forÃ§a da comunicaÃ§Ã£o substitui estrutura de atendimento, CRM e acompanhamento.",
     nextStep:
-      "Empacotar melhor o seu poder de venda dentro de uma operação com resposta, triagem e follow-up mais previsíveis.",
+      "Empacotar melhor o seu poder de venda dentro de uma operaÃ§Ã£o com resposta, triagem e follow-up mais previsÃ­veis.",
     ctaLabel: "Ver consultoria",
     ctaHref: "./consultoria.html",
     ctaCopy:
-      "Seu potencial cresce muito quando relacionamento e venda deixam de depender só de você. A consultoria pode acelerar isso."
+      "Seu potencial cresce muito quando relacionamento e venda deixam de depender sÃ³ de vocÃª. A consultoria pode acelerar isso."
   },
   specialist: {
     label: "Especialista",
     description:
-      "Você gera valor principalmente por domínio técnico, profundidade e qualidade da entrega. Seu negócio costuma ter substância real.",
+      "VocÃª gera valor principalmente por domÃ­nio tÃ©cnico, profundidade e qualidade da entrega. Seu negÃ³cio costuma ter substÃ¢ncia real.",
     risk:
-      "Virar refém do próprio conhecimento e crescer pouco porque marketing, vendas e follow-up ficam fracos.",
+      "Virar refÃ©m do prÃ³prio conhecimento e crescer pouco porque marketing, vendas e follow-up ficam fracos.",
     blindspot:
-      "Acreditar que um serviço excelente se vende sozinho, mesmo sem sistema de aquisição e atendimento.",
+      "Acreditar que um serviÃ§o excelente se vende sozinho, mesmo sem sistema de aquisiÃ§Ã£o e atendimento.",
     nextStep:
-      "Traduzir melhor seu valor para uma oferta mais clara e uma operação comercial que não dependa apenas de indicação.",
-    ctaLabel: "Começar pela Operação Comercial",
+      "Traduzir melhor seu valor para uma oferta mais clara e uma operaÃ§Ã£o comercial que nÃ£o dependa apenas de indicaÃ§Ã£o.",
+    ctaLabel: "ComeÃ§ar pela OperaÃ§Ã£o Comercial",
     ctaHref: "./operacao-comercial.html",
     ctaCopy:
-      "Seu caso normalmente melhora quando o técnico deixa de competir com o comercial. O curso pode te ajudar a montar essa ponte."
+      "Seu caso normalmente melhora quando o tÃ©cnico deixa de competir com o comercial. O curso pode te ajudar a montar essa ponte."
   },
   manager: {
     label: "Gestor",
     description:
-      "Você gera valor quando cria ordem, sistema, previsibilidade e processo. Sua força está em fazer o negócio funcionar com menos caos.",
+      "VocÃª gera valor quando cria ordem, sistema, previsibilidade e processo. Sua forÃ§a estÃ¡ em fazer o negÃ³cio funcionar com menos caos.",
     risk:
       "Organizar demais uma proposta ainda fraca ou burocratizar antes de validar o que realmente move receita.",
     blindspot:
       "Confundir controle com crescimento. Nem todo ajuste interno melhora o valor percebido pelo cliente.",
     nextStep:
-      "Equilibrar estrutura com aquisição e venda, para a operação sustentar crescimento em vez de só manter ordem.",
-    ctaLabel: "Pedir diagnóstico",
+      "Equilibrar estrutura com aquisiÃ§Ã£o e venda, para a operaÃ§Ã£o sustentar crescimento em vez de sÃ³ manter ordem.",
+    ctaLabel: "Pedir diagnÃ³stico",
     ctaHref: "./consultoria.html",
     ctaCopy:
-      "Seu perfil responde bem a ajuste fino de processo. A consultoria tende a fazer mais sentido quando o desafio já é estrutural."
+      "Seu perfil responde bem a ajuste fino de processo. A consultoria tende a fazer mais sentido quando o desafio jÃ¡ Ã© estrutural."
   }
 };
 
 const motivationLabels = {
   money: "Dinheiro",
   autonomy: "Autonomia",
-  purpose: "Propósito",
+  purpose: "PropÃ³sito",
   necessity: "Necessidade"
 };
 
@@ -424,7 +426,7 @@ function wireForms() {
       const formData = new FormData(form);
       const payload = formDataToObject(formData);
       const formType = form.dataset.formType || "curso";
-      const endpoint = getWebhookEndpoint(formType);
+      const endpoint = getSubmissionEndpoint(formType);
       const submitButton = form.querySelector('button[type="submit"]');
       const originalButtonText = submitButton ? submitButton.textContent : "";
       const status = ensureFormStatus(form);
@@ -434,7 +436,7 @@ function wireForms() {
 
       if (formType === "ferramenta") {
         try {
-          await submitWebhook(endpoint, {
+          await submitForm(endpoint, {
             ...buildSubmissionMeta(formType),
             ...payload
           });
@@ -456,7 +458,7 @@ function wireForms() {
       }
 
       try {
-        await submitWebhook(endpoint, {
+        await submitForm(endpoint, {
           ...buildSubmissionMeta(formType),
           ...payload
         });
@@ -477,16 +479,16 @@ function wireForms() {
   });
 }
 
-function getWebhookEndpoint(formType) {
+function getSubmissionEndpoint(formType) {
   if (formType === "consultoria") {
-    return AXON_CONFIG.webhooks.consultoria;
+    return AXON_CONFIG.endpoints.consultoria;
   }
 
   if (formType === "perfil_empreendedor") {
-    return AXON_CONFIG.webhooks.perfil;
+    return AXON_CONFIG.endpoints.perfil;
   }
 
-  return AXON_CONFIG.webhooks.lead;
+  return AXON_CONFIG.endpoints.lead;
 }
 
 function buildSubmissionMeta(formType) {
@@ -516,7 +518,7 @@ function buildTrackingMeta() {
   };
 }
 
-async function submitWebhook(endpoint, payload) {
+async function submitForm(endpoint, payload) {
   const response = await fetch(endpoint, {
     method: "POST",
     headers: {
@@ -526,7 +528,7 @@ async function submitWebhook(endpoint, payload) {
   });
 
   if (!response.ok) {
-    throw new Error(`Webhook request failed with status ${response.status}`);
+    throw new Error(`Form request failed with status ${response.status}`);
   }
 
   const contentType = response.headers.get("content-type") || "";
@@ -659,7 +661,7 @@ function wireEntrepreneurProfile() {
     resultSection.scrollIntoView({ behavior: "smooth", block: "start" });
 
     try {
-      await submitWebhook(getWebhookEndpoint("perfil_empreendedor"), {
+      await submitForm(getSubmissionEndpoint("perfil_empreendedor"), {
         ...buildSubmissionMeta("perfil_empreendedor"),
         lead: leadPayload,
         answers,
@@ -669,7 +671,7 @@ function wireEntrepreneurProfile() {
       setFormStatus(
         quizStatus,
         "error",
-        "Seu diagnóstico foi exibido, mas não conseguimos registrar seus dados agora. Se quiser, tente enviar novamente em alguns instantes."
+        "Seu diagnÃ³stico foi exibido, mas nÃ£o conseguimos registrar seus dados agora. Se quiser, tente enviar novamente em alguns instantes."
       );
     } finally {
       setFormLoading(submitButton, false, originalButtonText);
@@ -752,7 +754,7 @@ function evaluateEntrepreneurProfile(answers) {
     motivationScores,
     behaviorScores,
     operationalScores,
-    composite: `Você é um ${operationalCopy.label}, motivado por ${motivationLabels[dominantMotivation].toLowerCase()}, com tendência dominante de ${behaviorLabels[dominantBehavior].toLowerCase()}.`,
+    composite: `VocÃª Ã© um ${operationalCopy.label}, motivado por ${motivationLabels[dominantMotivation].toLowerCase()}, com tendÃªncia dominante de ${behaviorLabels[dominantBehavior].toLowerCase()}.`,
     title: `${operationalCopy.label}: seu valor existe, mas a estrutura ainda define o tamanho do seu crescimento.`,
     description: operationalCopy.description,
     risk: operationalCopy.risk,
@@ -787,11 +789,11 @@ function paintEntrepreneurResult(result) {
         <p>${entrepreneurResults[result.dominantOperational].label}</p>
       </article>
       <article class="layer-card">
-        <h4>Motivação dominante</h4>
+        <h4>MotivaÃ§Ã£o dominante</h4>
         <p>${motivationLabels[result.dominantMotivation]}</p>
       </article>
       <article class="layer-card">
-        <h4>Tendência comportamental</h4>
+        <h4>TendÃªncia comportamental</h4>
         <p>${behaviorLabels[result.dominantBehavior]}</p>
       </article>
     `;
@@ -1006,7 +1008,7 @@ function buildPrompt(values) {
   const format = compact(values.format);
   const constraints = compact(values.constraints);
 
-  let prompt = `Você é ${role}.\n\n`;
+  let prompt = `VocÃª Ã© ${role}.\n\n`;
   prompt += `Publico-alvo: ${audience}.\n\n`;
   prompt += `Contexto: ${context}.\n\n`;
   prompt += `Objetivo: ${goal}.\n\n`;
@@ -1028,8 +1030,8 @@ function buildNewsPost(profile, news, platform) {
   const voice = compact(profile.voice);
   const goal = compact(profile.goal);
 
-  const hook = `A notícia sobre "${news.title}" mostra uma coisa: IA está saindo do discurso e entrando na operação.`;
-  const bridge = `Para quem atua com ${niche}, o ponto central não é a novidade em si. É o que ela revela sobre como empresas vão divulgar, atender e vender daqui para frente.`;
+  const hook = `A notÃ­cia sobre "${news.title}" mostra uma coisa: IA estÃ¡ saindo do discurso e entrando na operaÃ§Ã£o.`;
+  const bridge = `Para quem atua com ${niche}, o ponto central nÃ£o Ã© a novidade em si. Ã‰ o que ela revela sobre como empresas vÃ£o divulgar, atender e vender daqui para frente.`;
   const practical = `Para um publico como ${audience}, isso importa porque processo bem desenhado com IA tende a vencer improviso bonito.`;
 
   if (platform === "Instagram") {
@@ -1051,14 +1053,14 @@ Tom da casa: ${voice}.
 
 ${goal}
 
-Você acha que o mercado já percebeu isso ou ainda está preso no hype?`;
+VocÃª acha que o mercado jÃ¡ percebeu isso ou ainda estÃ¡ preso no hype?`;
   }
 
   if (platform === "X") {
     return `${news.title}
 
 Minha opiniao:
-IA está migrando de "recurso legal" para infra de operação.
+IA estÃ¡ migrando de "recurso legal" para infra de operaÃ§Ã£o.
 
 ${practical}
 
@@ -1080,11 +1082,11 @@ ${practical}
 
 O mercado esta ficando menos impressionado com acesso a IA e mais atento a quem consegue integrar IA a marketing, atendimento e vendas com consistencia.
 
-Na prática, isso muda a conversa: a vantagem não está em testar mais uma ferramenta. Está em desenhar uma operação que use melhor as ferramentas que já existem.
+Na prÃ¡tica, isso muda a conversa: a vantagem nÃ£o estÃ¡ em testar mais uma ferramenta. EstÃ¡ em desenhar uma operaÃ§Ã£o que use melhor as ferramentas que jÃ¡ existem.
 
 Tom: ${voice}.
 
-Como você enxerga isso hoje no seu negócio: IA ainda é experimento ou já virou parte da operação?`;
+Como vocÃª enxerga isso hoje no seu negÃ³cio: IA ainda Ã© experimento ou jÃ¡ virou parte da operaÃ§Ã£o?`;
   }
 
   return `${news.title}
@@ -1109,13 +1111,13 @@ O sinal mais importante nao e o lancamento isolado. E a direcao do mercado: IA e
 
 Aprendizado para a audiencia
 
-Se o seu negócio ainda trata IA como curiosidade ou entretenimento, você provavelmente está perdendo tempo. O ganho real aparece quando a tecnologia organiza melhor a operação.
+Se o seu negÃ³cio ainda trata IA como curiosidade ou entretenimento, vocÃª provavelmente estÃ¡ perdendo tempo. O ganho real aparece quando a tecnologia organiza melhor a operaÃ§Ã£o.
 
 Fechamento
 
 ${goal}
 
-Pergunta final: no seu mercado, qual parte da operação deveria ser redesenhada primeiro por causa dessa mudança?`;
+Pergunta final: no seu mercado, qual parte da operaÃ§Ã£o deveria ser redesenhada primeiro por causa dessa mudanÃ§a?`;
 }
 
 function wireThankYouPage() {
@@ -1141,9 +1143,9 @@ function mergeConfig(base, override) {
       ...base.social,
       ...(override.social || {})
     },
-    webhooks: {
-      ...base.webhooks,
-      ...(override.webhooks || {})
+    endpoints: {
+      ...base.endpoints,
+      ...(override.endpoints || {})
     },
     checkout: {
       ...base.checkout,

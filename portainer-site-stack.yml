@@ -8,10 +8,6 @@ services:
       NODE_ENV: production
       PORT: "80"
       DATABASE_URL: "postgres://axon_app:CHANGE_THIS_STRONG_PASSWORD@axon_postgres:5432/axon_ops"
-      OPENAI_API_KEY: "CHANGE_THIS_OPENAI_API_KEY"
-      OPENAI_OPERATION_MODEL: "gpt-5.1"
-      OPENAI_OPERATION_TIMEOUT_MS: "60000"
-      OPENAI_OPERATION_WEB_SEARCH: "true"
     networks:
       - network_swarm_public
     healthcheck:

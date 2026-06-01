@@ -80,12 +80,6 @@ O front envia para:
 
 Antes de publicar, edite `portainer-site-stack.yml` e troque `CHANGE_THIS_STRONG_PASSWORD` pela senha real do usuario `axon_app`.
 
-## n8n opcional
+## n8n separado
 
-O n8n nao esta mais no fluxo critico dos formularios. Se quiser manter automacoes depois da gravacao no banco, configure uma ou mais variaveis no container do site:
-
-- `N8N_LEAD_WEBHOOK_URL`
-- `N8N_CONSULTORIA_WEBHOOK_URL`
-- `N8N_PERFIL_WEBHOOK_URL`
-
-Detalhes em `N8N_WEBHOOKS.md`.
+O n8n nao faz parte do fluxo critico dos formularios do site. Ele permanece como infraestrutura de automacao separada, para fluxos assincronos futuros.

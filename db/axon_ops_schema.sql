@@ -70,38 +70,35 @@ create index if not exists idx_profile_created_at on entrepreneur_profile_result
 create index if not exists idx_profile_email on entrepreneur_profile_results (lead_email);
 create index if not exists idx_profile_operational on entrepreneur_profile_results (dominant_operational);
 
-create table if not exists wizard_members (
-  id uuid primary key default gen_random_uuid(),
+create table if not exists module1_conversations (
+  id uuid primary key,
   created_at timestamptz not null default now(),
   updated_at timestamptz not null default now(),
-  name text not null,
-  email text not null unique,
-  password_hash text not null,
-  password_salt text not null
+  active_workflow_id text,
+  status text not null default 'active',
+  metadata_json jsonb not null default '{}'::jsonb
 );
 
-create index if not exists idx_wizard_members_email on wizard_members (email);
-
-create table if not exists wizard_member_sessions (
-  id uuid primary key default gen_random_uuid(),
+create table if not exists module1_messages (
+  id uuid primary key,
+  conversation_id uuid not null references module1_conversations(id) on delete cascade,
   created_at timestamptz not null default now(),
-  member_id uuid not null references wizard_members(id) on delete cascade,
-  token_hash text not null unique,
-  expires_at timestamptz not null
+  role text not null check (role in ('user', 'assistant')),
+  workflow_id text,
+  content text not null
 );
 
-create index if not exists idx_wizard_sessions_member on wizard_member_sessions (member_id);
-create index if not exists idx_wizard_sessions_expires_at on wizard_member_sessions (expires_at);
-
-create table if not exists wizard_progress (
-  member_id uuid primary key references wizard_members(id) on delete cascade,
-  updated_at timestamptz not null default now(),
-  project_json jsonb not null default '{}'::jsonb,
-  current_step text not null default 'domain',
-  current_module text not null default 'module-1',
-  current_lesson text not null default 'module-1.0',
-  completed_steps_json jsonb not null default '[]'::jsonb,
-  checklist_json jsonb not null default '{}'::jsonb
+create table if not exists module1_transfer_blocks (
+  id uuid primary key,
+  conversation_id uuid not null references module1_conversations(id) on delete cascade,
+  created_at timestamptz not null default now(),
+  workflow_id text not null,
+  section_title text,
+  content text,
+  key_points_json jsonb not null default '[]'::jsonb,
+  raw_json jsonb not null default '{}'::jsonb
 );
 
-create index if not exists idx_wizard_progress_updated_at on wizard_progress (updated_at desc);
+create index if not exists idx_module1_conversations_updated_at on module1_conversations (updated_at desc);
+create index if not exists idx_module1_messages_conversation_created on module1_messages (conversation_id, created_at);
+create index if not exists idx_module1_blocks_conversation_created on module1_transfer_blocks (conversation_id, created_at);

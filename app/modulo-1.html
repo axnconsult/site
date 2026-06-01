@@ -1,0 +1,80 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Modulo 1 | Planejamento Estrategico AXN</title>
+    <meta
+      name="description"
+      content="Conversa guiada da AXN para construir o planejamento estrategico do negocio."
+    />
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Space+Grotesk:wght@400;500;700&display=swap"
+      rel="stylesheet"
+    />
+    <link rel="stylesheet" href="./styles.css" />
+  </head>
+  <body data-page="modulo-1">
+    <div class="site-bg"></div>
+    <header class="topbar">
+      <a class="brand" href="./index.html" aria-label="Axon">
+        <img class="brand-logo" src="./assets/simbolo-axon-branco.png" alt="Simbolo Axon" />
+        <span class="brand-copy"><strong>Axon</strong><small>Seu tempo e a unica moeda.</small></span>
+      </a>
+      <button class="menu-toggle" type="button" aria-expanded="false" aria-controls="site-nav">Menu</button>
+      <nav id="site-nav" class="site-nav">
+        <a href="./membros.html">Dashboard</a>
+        <a href="./modulo-1.html">Modulo 1</a>
+        <a href="./operacao-comercial.html">Operacao Comercial</a>
+        <a href="./consultoria.html">Consultoria</a>
+      </nav>
+    </header>
+
+    <main class="page-main module-app-main">
+      <section class="section module-app-shell">
+        <div class="module-app-head">
+          <div>
+            <span class="status-label">Modulo 1</span>
+            <h1>Planejamento estrategico em conversa.</h1>
+            <p>
+              Responda com naturalidade. A AXN conduz a conversa por etapas e salva os blocos do seu documento operacional conforme as decisoes amadurecem.
+            </p>
+          </div>
+          <div class="module-app-actions">
+            <button class="button button-secondary" type="button" id="module-reset">Reiniciar</button>
+            <button class="button button-primary" type="button" id="module-export">Exportar plano</button>
+          </div>
+        </div>
+
+        <div class="module-workspace module-workspace-single">
+          <section class="module-chat-panel" aria-label="Conversa com a AXN">
+            <div class="assistant-thread module-chat-thread" id="module-chat-thread"></div>
+            <form class="module-chat-form" id="module-chat-form">
+              <label class="visually-hidden" for="module-chat-input">Sua resposta</label>
+              <textarea
+                id="module-chat-input"
+                name="message"
+                rows="3"
+                placeholder="Escreva sua resposta aqui..."
+                required
+              ></textarea>
+              <button class="button button-primary" type="submit" id="module-send">Enviar</button>
+            </form>
+            <p class="form-status" id="module-chat-status" role="status" aria-live="polite"></p>
+          </section>
+        </div>
+        <nav class="stage-navigation module-stage-navigation" aria-label="Navegacao do modulo">
+          <a class="button button-secondary" href="./membros.html">Voltar</a>
+          <span>Modulo 1</span>
+          <a class="button button-primary" href="./membros.html" id="module-next">Next</a>
+        </nav>
+      </section>
+    </main>
+
+    <script src="./runtime-config.js"></script>
+    <script src="./script.js"></script>
+    <script src="./modulo-1.js"></script>
+  </body>
+</html>
