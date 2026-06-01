@@ -843,7 +843,12 @@ function applyCacheHeaders(response, ext) {
     return;
   }
 
-  if ([".css", ".js", ".png", ".jpg", ".jpeg", ".svg", ".webp", ".ico"].includes(ext)) {
+  if ([".css", ".js"].includes(ext)) {
+    response.setHeader("Cache-Control", "no-cache, max-age=0, must-revalidate");
+    return;
+  }
+
+  if ([".png", ".jpg", ".jpeg", ".svg", ".webp", ".ico"].includes(ext)) {
     response.setHeader("Cache-Control", "public, max-age=604800, immutable");
   }
 }

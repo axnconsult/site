@@ -9,6 +9,8 @@ COPY package.json package-lock.json ./
 RUN npm ci --omit=dev
 
 COPY server.js ./
+COPY server ./server
+COPY source-material/Agents/revised-module-1 ./source-material/Agents/revised-module-1
 COPY app ./app
 
 EXPOSE 80
