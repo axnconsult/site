@@ -6,6 +6,7 @@ on:
       - main
     paths:
       - "app/**"
+      - "server/**"
       - "server.js"
       - "package.json"
       - "package-lock.json"
