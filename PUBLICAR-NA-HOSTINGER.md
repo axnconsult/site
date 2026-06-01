@@ -11,7 +11,7 @@ O processo tem 6 partes:
 3. subir o projeto para um repositorio remoto
 4. publicar com `Compose a partir de URL`
 5. apontar o dominio
-6. testar o site e ligar os webhooks
+6. testar o site
 
 ## Parte 1: preencher a configuracao do site
 
@@ -82,8 +82,7 @@ O compose deste projeto ja esta preparado para:
 
 - construir o container com `Dockerfile`
 - servir o site em `nginx`
-- entrar na rede `n8n_default`
-- ser lido pelo `Traefik` que ja esta no projeto `n8n`
+- ser lido pelo `Traefik` existente
 - usar o resolver `mytlschallenge`
 - responder ao dominio `axnconsult.com.br`
 
@@ -91,16 +90,13 @@ Importante:
 
 - nao crie um segundo `Traefik`
 - nao publique portas manualmente no projeto do site
-- o proxy publico da VPS ja esta sendo feito por `n8n-traefik-1`
+- o proxy publico da VPS ja esta sendo feito pelo Traefik existente
 
 ## Parte 5: apontar o dominio
 
 No DNS da Hostinger, crie ou confira:
 
 - registro `A` para `axnconsult.com.br` apontando para o IP da VPS
-- registro `A` para `hooks.axnconsult.com.br` apontando para o IP da VPS
-- opcionalmente `A` para `n8n.axnconsult.com.br` apontando para o IP da VPS
-
 Se o dominio principal ja estiver ligado a essa VPS, normalmente os subdominios usam o mesmo IP.
 
 ## Parte 6: testar o site
@@ -115,7 +111,7 @@ Depois que o projeto subir:
 6. Abra `Perfil Empreendedor`
 7. Teste um envio de formulario
 
-Se o site abrir, mas o formulario falhar, o problema nao esta no deploy do site. O problema estara nos webhooks do `n8n`.
+Se o site abrir, mas o formulario falhar, verifique a API interna do site e a conexao com o Postgres operacional.
 
 ## Redeploy padrao quando houver novos commits
 
@@ -155,34 +151,6 @@ Verifique nesta ordem:
 3. o navegador esta com cache
 4. o Cloudflare esta servindo cache antigo
 
-## Ligar os webhooks do n8n
-
-Crie 3 endpoints no `n8n`:
-
-- `POST /site-lead`
-- `POST /site-consultoria`
-- `POST /site-perfil`
-
-Cada fluxo deve:
-
-1. receber JSON
-2. validar campos obrigatorios
-3. gravar em planilha ou banco
-4. enviar notificacao interna
-5. responder com:
-
-```json
-{
-  "ok": true
-}
-```
-
-Tambem precisa responder estes cabecalhos:
-
-- `Access-Control-Allow-Origin: https://axnconsult.com.br`
-- `Access-Control-Allow-Methods: POST, OPTIONS`
-- `Access-Control-Allow-Headers: Content-Type`
-
 ## Ordem recomendada para iniciantes
 
 Se voce quiser o menor caminho para colocar no ar:
@@ -190,12 +158,8 @@ Se voce quiser o menor caminho para colocar no ar:
 1. preencher `runtime-config.js`
 2. publicar o site
 3. abrir o dominio
-4. so depois ligar os webhooks
 
-Assim voce separa o problema em duas partes:
-
-- primeiro o site no ar
-- depois a captura de leads
+Assim voce separa o problema em partes pequenas.
 
 ## Checklist final
 
@@ -205,7 +169,6 @@ Assim voce separa o problema em duas partes:
 - Docker Manager com novo projeto `axon-site`
 - dominio apontando para a VPS
 - site abrindo em HTTPS
-- webhooks do `n8n` ativos
 - formulario retornando sucesso real
 
 ## Se der erro
@@ -223,9 +186,9 @@ Verifique:
 
 Verifique:
 
-- URL dos webhooks em `app/runtime-config.js`
-- se os webhooks do `n8n` estao publicados
-- se o `n8n` responde com CORS
+- endpoints internos em `app/runtime-config.js`
+- se o backend responde em `/api/health`
+- se o Postgres operacional esta acessivel pelo container do site
 
 ### O projeto nao sobe no Docker Manager
 
@@ -234,7 +197,7 @@ Verifique:
 - se a URL do repositorio esta correta
 - se o repositorio tem `docker-compose.yml` na raiz
 - se `Dockerfile`, `nginx.conf` e `app/` tambem estao na raiz
-- se o compose esta usando `n8n_default`
+- se o compose esta usando a rede correta do proxy publico
 - se o certresolver esta como `mytlschallenge`
 
 ### O site sobe, mas continua com a versao antiga
