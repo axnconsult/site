@@ -5,7 +5,7 @@ import http from "node:http";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
 import pg from "pg";
-import { runOperationAgentTurn, streamOperationAgentTurn } from "./server/operation-agents.js";
+import { runOperationAgentTurn, streamOperationAgentTurn, generateStrategicPlanMarkdown } from "./server/operation-agents.js";
 
 const { Pool } = pg;
 
@@ -43,6 +43,7 @@ const routes = new Map([
   ["/api/wizard/ask", handleWizardAsk]
 ]);
 
+
 const server = http.createServer(async (request, response) => {
   try {
     const url = new URL(request.url || "/", `http://${request.headers.host || "localhost"}`);
@@ -57,6 +58,23 @@ const server = http.createServer(async (request, response) => {
 
     if (request.method === "OPTIONS" && routes.has(url.pathname)) {
       return sendJson(response, 204, null);
+    }
+
+    // Rotas de arquivo — retornam conteúdo binário/texto diretamente
+    if (url.pathname === "/api/operation/plan/download") {
+      if (request.method === "OPTIONS") {
+        response.writeHead(204, {
+          "Access-Control-Allow-Origin": "*",
+          "Access-Control-Allow-Methods": "POST, OPTIONS",
+          "Access-Control-Allow-Headers": "Content-Type"
+        });
+        response.end();
+        return;
+      }
+      if (request.method === "POST") {
+        const payload = await readJsonBody(request);
+        return await handlePlanDownload(payload, response);
+      }
     }
 
     // Rota SSE (streaming) — precisa controlar o response diretamente
@@ -157,8 +175,49 @@ async function handleApiHealth(response) {
     await query("select 1");
     return sendJson(response, 200, { ok: true, database: "ok" });
   } catch (error) {
-    console.error("Database healthcheck failed", error);
-    return sendJson(response, 503, { ok: false, database: "unavailable" });
+    const message = error?.message || "unknown";
+    console.error("Database healthcheck failed:", message, error);
+    return sendJson(response, 503, {
+      ok: false,
+      database: "unavailable",
+      hint: message.includes("password") || message.includes("auth")
+        ? "Verifique DATABASE_URL ou PGPASSWORD na stack."
+        : message.includes("ECONNREFUSED") || message.includes("connect")
+          ? "Banco inacessivel. Verifique host/porta e se o servico esta rodando."
+          : message
+    });
+  }
+}
+
+async function handlePlanDownload(payload, response) {
+  await ensureOperationalTables();
+
+  let member;
+  try {
+    member = await getAuthenticatedMember(payload);
+  } catch (error) {
+    return sendJson(response, 401, { ok: false, error: error.code || "auth_failed" });
+  }
+
+  const projectId = payload.project?.id;
+  if (!projectId) {
+    return sendJson(response, 400, { ok: false, error: "missing_project_id" });
+  }
+
+  try {
+    const projectName = payload.project?.name || "Meu Negócio";
+    const markdown = await generateStrategicPlanMarkdown(query, projectId, projectName);
+
+    const filename = `planejamento-estrategico.md`;
+    response.writeHead(200, {
+      "Content-Type": "text/markdown; charset=utf-8",
+      "Content-Disposition": `attachment; filename="${filename}"`,
+      "Access-Control-Allow-Origin": "*"
+    });
+    response.end(markdown, "utf8");
+  } catch (error) {
+    console.error("Plan download failed", error);
+    return sendJson(response, 500, { ok: false, error: "plan_generation_failed" });
   }
 }
 

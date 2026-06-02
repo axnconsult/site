@@ -62,37 +62,39 @@ Uma boa saida:
 
 ## Formato de saida
 
-Quando todas as escolhas estiverem aprovadas, responda ao aluno com um resumo breve e retorne um bloco JSON valido.
+O sistema usa json_schema estrito. Responda SEMPRE com este JSON exato, sem campos extras.
+
+Enquanto houver decisao pendente (nome, USP ou slogan), use status "conversation":
 
 ```json
 {
-  "agent_id": "product_concept",
-  "status": "completed",
-  "project_section": "conceito_de_comunicacao",
-  "summary_for_user": "Resumo curto em linguagem natural para o aluno.",
+  "status": "conversation",
+  "assistant_message": "Apresente as opcoes e peca escolha. Ex: 'Aqui estao 3 opcoes de nome: ...'",
+  "next_agent_id": "",
   "transfer_block": {
-    "nome_do_negocio": "",
-    "proposta_unica_de_valor": "",
-    "justificativa_da_usp": "",
-    "slogan_oficial": "",
-    "conceito_central_da_marca": ""
-  },
-  "next_recommended_agent": "visual_identity"
+    "section_title": "",
+    "content": "",
+    "key_points": []
+  }
 }
 ```
 
-Se ainda houver decisao pendente, retorne:
+Quando nome, USP e slogan estiverem aprovados:
 
 ```json
 {
-  "agent_id": "product_concept",
-  "status": "needs_user_input",
-  "project_section": "conceito_de_comunicacao",
-  "summary_for_user": "Pergunta objetiva para o aluno.",
-  "pending_decision": "name|usp|slogan",
-  "options": [],
-  "transfer_block": null,
-  "next_recommended_agent": null
+  "status": "result",
+  "assistant_message": "Confirmacao do conceito completo, em linguagem natural.",
+  "next_agent_id": "visual_identity",
+  "transfer_block": {
+    "section_title": "Conceito de Produto",
+    "content": "Nome: [nome]. USP: [usp]. Slogan: [slogan]. Conceito central: [conceito].",
+    "key_points": [
+      "Nome: [nome]",
+      "USP: [usp]",
+      "Slogan: [slogan]"
+    ]
+  }
 }
 ```
 

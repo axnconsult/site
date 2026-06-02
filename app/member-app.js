@@ -371,7 +371,84 @@ function wireModuleActions() {
       document.querySelector("#assistant-submit")?.click();
     }
   });
+
+  // Botão "Continuar" do overlay de transição entre agentes
+  document.querySelector("#transition-continue")?.addEventListener("click", () => {
+    const overlay = document.querySelector("#agent-transition-overlay");
+    if (!overlay) return;
+
+    const nextStageKey = overlay.dataset.nextStageKey || "";
+    overlay.classList.add("hidden");
+    overlay.dataset.nextStageKey = "";
+    overlay.dataset.completedAgentId = "";
+
+    if (nextStageKey) {
+      markCurrentStageComplete();
+      memberApp.state.currentLesson = normalizeStageKey(memberApp.state.currentModule, nextStageKey);
+      memberApp.state.currentLessonStep = "main";
+      ensureAssistantThread(currentModule(), currentLesson());
+      persistMemberState();
+      renderModuleDetail();
+    }
+  });
+
+  // Botão de download do overlay de conclusão do módulo
+  document.querySelector("#completion-download")?.addEventListener("click", async () => {
+    const button = document.querySelector("#completion-download");
+    const status = document.querySelector("#completion-status");
+
+    if (button) button.disabled = true;
+    if (status) {
+      status.textContent = "Gerando seu planejamento...";
+      status.classList.remove("hidden");
+    }
+
+    try {
+      const response = await fetch("/api/operation/plan/download", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          token: memberApp.token,
+          project: memberApp.state.project
+        })
+      });
+
+      if (!response.ok) {
+        const data = await response.json().catch(() => ({}));
+        throw new Error(data.error || "download_failed");
+      }
+
+      const blob = await response.blob();
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement("a");
+      const projectName = memberApp.state.project?.name || "meu-negocio";
+      a.href = url;
+      a.download = `planejamento-estrategico-${projectName.toLowerCase().replace(/\s+/g, "-")}.md`;
+      document.body.appendChild(a);
+      a.click();
+      a.remove();
+      URL.revokeObjectURL(url);
+
+      if (status) {
+        status.textContent = "Download iniciado!";
+      }
+    } catch (error) {
+      if (status) {
+        status.textContent = `Erro ao gerar o arquivo: ${error.message}`;
+      }
+    } finally {
+      if (button) button.disabled = false;
+    }
+  });
 }
+
+const AGENT_TRANSITION_LABELS = {
+  "business_modeling":        { done: "Você definiu sua hipótese de negócio.",      next: "Agora vamos descobrir quem é o seu cliente ideal." },
+  "target_audience":          { done: "Você definiu seu público-alvo.",              next: "Agora vamos encontrar o seu diferencial no mercado." },
+  "strategic_differentiation":{ done: "Você definiu seu diferencial estratégico.",   next: "Agora vamos construir sua estratégia de preços." },
+  "strategic_pricing":        { done: "Você definiu sua precificação.",              next: "Agora vamos dar forma ao seu conceito de produto." },
+  "product_concept":          { done: "Você definiu o conceito do seu produto.",     next: "Agora vamos criar a identidade visual do seu negócio." }
+};
 
 function applyAssistantProgress(result) {
   if (!result || !["completed", "result"].includes(result.status)) {
@@ -379,15 +456,76 @@ function applyAssistantProgress(result) {
   }
 
   const nextStageKey = result.nextStageKey || stageKeyForAgentId(result.nextAgentId);
-  if (!nextStageKey) {
+  const completedAgentId = result.agentId || "";
+
+  // Fim do Módulo 1 — último agente concluiu
+  if (!nextStageKey && completedAgentId === "visual_identity") {
     markCurrentStageComplete();
+    persistMemberState();
+    showModuleCompletionOverlay();
     return;
   }
 
+  // Transição entre agentes do Módulo 1 — exibe overlay com confetti
+  if (nextStageKey && currentModule()?.id === "module-1") {
+    showAgentTransitionOverlay(completedAgentId, nextStageKey);
+    return;
+  }
+
+  // Comportamento padrão (outros módulos)
   markCurrentStageComplete();
-  memberApp.state.currentLesson = normalizeStageKey(memberApp.state.currentModule, nextStageKey);
-  memberApp.state.currentLessonStep = "main";
-  ensureAssistantThread(currentModule(), currentLesson());
+  if (nextStageKey) {
+    memberApp.state.currentLesson = normalizeStageKey(memberApp.state.currentModule, nextStageKey);
+    memberApp.state.currentLessonStep = "main";
+    ensureAssistantThread(currentModule(), currentLesson());
+  }
+}
+
+function showAgentTransitionOverlay(completedAgentId, nextStageKey) {
+  const labels = AGENT_TRANSITION_LABELS[completedAgentId] || {
+    done: "Etapa concluída.",
+    next: "Avançando para a próxima etapa."
+  };
+
+  const overlay = document.querySelector("#agent-transition-overlay");
+  if (!overlay) return;
+
+  document.querySelector("#transition-title").textContent = `🎉 Parabéns! ${labels.done}`;
+  document.querySelector("#transition-subtitle").textContent = labels.next + " Preparado?";
+
+  overlay.classList.remove("hidden");
+  fireConfetti(false);
+
+  // Armazena callback no dataset para o listener do botão
+  overlay.dataset.nextStageKey = nextStageKey;
+  overlay.dataset.completedAgentId = completedAgentId;
+}
+
+function showModuleCompletionOverlay() {
+  const overlay = document.querySelector("#module-completion-overlay");
+  if (!overlay) return;
+  overlay.classList.remove("hidden");
+  fireConfetti(true);
+  const status = document.querySelector("#completion-status");
+  if (status) status.classList.add("hidden");
+}
+
+function fireConfetti(intense) {
+  if (typeof confetti !== "function") return;
+
+  const baseOpts = {
+    particleCount: intense ? 180 : 90,
+    spread: intense ? 100 : 70,
+    origin: { y: 0.55 },
+    colors: ["#ccff00", "#ffffff", "#b8bdc7", "#111111", "#ccff00"]
+  };
+
+  confetti(baseOpts);
+
+  if (intense) {
+    setTimeout(() => confetti({ ...baseOpts, origin: { x: 0.2, y: 0.6 } }), 200);
+    setTimeout(() => confetti({ ...baseOpts, origin: { x: 0.8, y: 0.6 } }), 400);
+  }
 }
 
 async function hydrateSession() {
@@ -910,15 +1048,31 @@ function buildLessonAgentAnswer(module, lesson, input) {
   ].join("\n");
 }
 
+const MODULE1_AGENT_OPENINGS = {
+  "business_modeling":         "Vamos começar pelo fundamento do seu negócio. Me conta: quais são as habilidades, experiências ou interesses que você já tem e que poderiam virar uma fonte de renda?",
+  "target_audience":           "Agora vou pesquisar quem tem maior probabilidade de comprar o que você vai oferecer. Preciso só confirmar uma coisa: a ideia principal ficou clara para você ou quer ajustar algo antes de continuar?",
+  "strategic_differentiation": "Vou mapear os concorrentes e encontrar onde o mercado está falhando. Antes de pesquisar: tem algum concorrente ou referência que você já conhece e quer que eu considere?",
+  "strategic_pricing":         "Vou pesquisar os preços praticados no mercado para você. Só me diz: qual seria sua meta de faturamento mensal? Com isso consigo mostrar quantas vendas você precisaria fazer.",
+  "product_concept":           "Com tudo que construímos até aqui, vou propor nome, proposta de valor e slogan para o seu negócio. Posso começar?",
+  "visual_identity":           "Vou criar a direção visual do seu negócio com base no posicionamento e conceito que definimos. Posso apresentar minha proposta?"
+};
+
 function ensureAssistantThread(module, lesson) {
   const key = currentLessonKey();
   if (memberApp.state.assistantThreads[key]?.length) {
     return;
   }
 
-  const opening = lesson[2] === "technical"
-    ? "Vamos configurar esta parte como conversa guiada. Me diga o dominio, IP da VPS, e-mail tecnico e o que voce quer publicar."
-    : `Vamos trabalhar a etapa "${lesson[0]}". Me conte o contexto do seu negocio para eu transformar isso em um proximo passo claro.`;
+  let opening;
+  if (module.id === "module-1") {
+    const agentId = lesson[3] || agentIdForStageKey(key);
+    opening = MODULE1_AGENT_OPENINGS[agentId]
+      || `Vamos trabalhar a etapa "${lesson[0]}". Pode começar.`;
+  } else if (lesson[2] === "technical") {
+    opening = "Vamos configurar esta parte como conversa guiada. Me diga o dominio, IP da VPS, e-mail tecnico e o que voce quer publicar.";
+  } else {
+    opening = `Vamos trabalhar a etapa "${lesson[0]}". Me conte o contexto do seu negocio para eu transformar isso em um proximo passo claro.`;
+  }
 
   memberApp.state.assistantThreads[key] = [{ role: "assistant", text: opening }];
 }

@@ -774,6 +774,65 @@ async function callOpenAIStream(body, onDelta, onComplete) {
   }
 }
 
+// ─── Geração do Planejamento Estratégico ─────────────────────────────────────
+
+export async function generateStrategicPlanMarkdown(query, projectId, projectName) {
+  const result = await query(
+    `
+      select agent_id, project_section, status, transfer_block_json, created_at
+      from operation_agent_runs
+      where project_id = $1::uuid
+      order by created_at asc
+    `,
+    [projectId]
+  );
+
+  // Pega o último result de cada agente
+  const blocks = {};
+  for (const row of result.rows) {
+    if (normalizeStatus(row.status) === "result" && row.transfer_block_json) {
+      blocks[row.agent_id] = row.transfer_block_json;
+    }
+  }
+
+  const date = new Date().toLocaleDateString("pt-BR", { day: "2-digit", month: "long", year: "numeric" });
+
+  const SECTION_LABELS = [
+    { id: "business_modeling",         title: "1. Modelagem de Negócio" },
+    { id: "target_audience",           title: "2. Público-Alvo" },
+    { id: "strategic_differentiation", title: "3. Diferencial Estratégico" },
+    { id: "strategic_pricing",         title: "4. Precificação Estratégica" },
+    { id: "product_concept",           title: "5. Conceito de Produto" },
+    { id: "visual_identity",           title: "6. Identidade Visual" }
+  ];
+
+  const lines = [
+    `# Planejamento Estratégico — ${projectName}`,
+    `Gerado em: ${date}`,
+    ""
+  ];
+
+  for (const section of SECTION_LABELS) {
+    const block = blocks[section.id];
+    lines.push(`## ${section.title}`);
+    if (!block) {
+      lines.push("_Etapa não concluída._");
+    } else {
+      if (block.section_title) lines.push(`**${block.section_title}**`);
+      if (block.content) lines.push("", block.content);
+      if (Array.isArray(block.key_points) && block.key_points.length) {
+        lines.push("");
+        for (const point of block.key_points) {
+          lines.push(`- ${point}`);
+        }
+      }
+    }
+    lines.push("");
+  }
+
+  return lines.join("\n");
+}
+
 // ─── Infraestrutura de banco (mantida abaixo) ────────────────────────────────
 
 async function updateProjectStage(query, projectId, nextAgentId, projectPayload) {

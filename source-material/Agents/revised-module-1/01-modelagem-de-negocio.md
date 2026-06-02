@@ -79,32 +79,37 @@ Uma boa saida:
 
 ## Formato de saida
 
-Ao concluir, responda ao aluno com um resumo breve e, em seguida, retorne um bloco JSON valido.
-
-Use exatamente esta estrutura:
+O sistema usa json_schema estrito. Responda SEMPRE com este JSON exato, sem campos extras:
 
 ```json
 {
-  "agent_id": "business_modeling",
-  "status": "completed",
-  "project_section": "fundamento_do_negocio",
-  "summary_for_user": "Resumo curto em linguagem natural para o aluno.",
+  "status": "conversation",
+  "assistant_message": "Sua mensagem para o aluno aqui.",
+  "next_agent_id": "",
   "transfer_block": {
-    "perfil_do_aluno": "",
-    "hipoteses_consideradas": [
-      {
-        "nome": "",
-        "descricao": "",
-        "sinais_de_mercado": "",
-        "risco_principal": ""
-      }
-    ],
-    "ideia_escolhida": "",
-    "justificativa_da_escolha": "",
-    "sugestoes_de_nome": ["", "", ""],
-    "observacoes_operacionais": ""
-  },
-  "next_recommended_agent": "target_audience"
+    "section_title": "",
+    "content": "",
+    "key_points": []
+  }
+}
+```
+
+Quando a etapa estiver concluida (aluno escolheu uma hipotese):
+
+```json
+{
+  "status": "result",
+  "assistant_message": "Resumo confirmando a escolha, em linguagem natural.",
+  "next_agent_id": "target_audience",
+  "transfer_block": {
+    "section_title": "Modelagem de Negocio",
+    "content": "Hipotese escolhida: [nome]. Justificativa: [justificativa]. Sinais de mercado: [sinais]. Perfil do empreendedor: [perfil].",
+    "key_points": [
+      "Hipotese: [nome da ideia]",
+      "Mercado: [sinal principal]",
+      "Restricoes conhecidas: [restricoes]"
+    ]
+  }
 }
 ```
 

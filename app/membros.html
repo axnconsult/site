@@ -227,6 +227,27 @@
           </section>
         </div>
       </section>
+    <!-- Overlay: transição entre agentes do Módulo 1 -->
+    <div class="agent-overlay hidden" id="agent-transition-overlay" role="dialog" aria-modal="true" aria-label="Etapa concluída">
+      <div class="agent-overlay-card">
+        <div class="agent-overlay-icon">🎉</div>
+        <p class="agent-overlay-title" id="transition-title"></p>
+        <p class="agent-overlay-subtitle" id="transition-subtitle"></p>
+        <button class="button button-primary" type="button" id="transition-continue">Continuar</button>
+      </div>
+    </div>
+
+    <!-- Overlay: conclusão do Módulo 1 -->
+    <div class="agent-overlay hidden" id="module-completion-overlay" role="dialog" aria-modal="true" aria-label="Módulo concluído">
+      <div class="agent-overlay-card">
+        <div class="agent-overlay-icon">🏆</div>
+        <p class="agent-overlay-title">Parabéns! Você completou o Módulo 01 — Planejamento Estratégico.</p>
+        <p class="agent-overlay-subtitle">Seu plano está pronto. Clique abaixo para baixar.</p>
+        <button class="button button-primary" type="button" id="completion-download">Baixar meu Planejamento Estratégico</button>
+        <p class="agent-overlay-status hidden" id="completion-status"></p>
+      </div>
+    </div>
+
     </main>
 
     <footer class="site-footer">
@@ -255,6 +276,7 @@
 
     <script src="./runtime-config.js"></script>
     <script src="./script.js"></script>
-    <script src="./member-app.js?v=20260601-streaming-sse"></script>
+    <script src="https://cdn.jsdelivr.net/npm/canvas-confetti@1.9.3/dist/confetti.browser.min.js"></script>
+    <script src="./member-app.js?v=20260602-transitions"></script>
   </body>
 </html>

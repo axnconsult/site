@@ -1998,3 +1998,66 @@ button:focus {
     grid-template-columns: 1fr;
   }
 }
+
+/* ─── Overlays de transição e conclusão do Módulo 1 ─────────────────────── */
+
+.agent-overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 1000;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: rgba(0, 0, 0, 0.75);
+  backdrop-filter: blur(6px);
+  padding: 24px;
+  animation: overlay-in 0.22s ease;
+}
+
+.agent-overlay.hidden {
+  display: none;
+}
+
+@keyframes overlay-in {
+  from { opacity: 0; transform: scale(0.97); }
+  to   { opacity: 1; transform: scale(1); }
+}
+
+.agent-overlay-card {
+  background: var(--panel-strong);
+  border: 1px solid var(--line);
+  border-radius: var(--radius-xl);
+  padding: 48px 40px;
+  max-width: 480px;
+  width: 100%;
+  text-align: center;
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  box-shadow: var(--shadow);
+}
+
+.agent-overlay-icon {
+  font-size: 3rem;
+  line-height: 1;
+}
+
+.agent-overlay-title {
+  font-size: 1.25rem;
+  font-weight: 700;
+  color: var(--text);
+  margin: 0;
+  line-height: 1.4;
+}
+
+.agent-overlay-subtitle {
+  color: var(--muted);
+  margin: 0;
+  line-height: 1.5;
+}
+
+.agent-overlay-status {
+  color: var(--muted);
+  font-size: 0.875rem;
+  margin: 0;
+}
