@@ -244,9 +244,15 @@ function wireAuth() {
     setMemberStatus("auth", "Entrando...");
     try {
       const response = await postMemberApi(endpoint, payload, false);
+      // Preserva threads locais antes de sobrescrever o state com o do servidor
+      // (assistantThreads não é salvo no banco, só fica no localStorage)
+      const localThreads = memberApp.state.assistantThreads || {};
       memberApp.token = response.token;
       memberApp.member = response.member;
-      memberApp.state = normalizeMemberState(response.state);
+      memberApp.state = normalizeMemberState({
+        ...response.state,
+        assistantThreads: Object.keys(localThreads).length ? localThreads : {}
+      });
       saveMemberApp();
       setMemberStatus("auth", "");
       renderMemberApp();
