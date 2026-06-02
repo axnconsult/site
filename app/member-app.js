@@ -947,28 +947,92 @@ async function requestLessonAgentAnswer(module, stage, input, thread = null) {
   ensureProjectId();
   const key = currentLessonKey();
   const stagePayload = buildStagePayload(stage, key);
-  const response = await postMemberApi("/api/operation/assistant", {
+  const body = {
     token: memberApp.token,
     project: memberApp.state.project,
-    module: {
-      id: module.id,
-      number: module.number,
-      title: module.title,
-      summary: module.summary
-    },
+    module: { id: module.id, number: module.number, title: module.title, summary: module.summary },
     stage: stagePayload,
     stageKey: key,
     message: input,
     thread: thread || memberApp.state.assistantThreads[key] || []
-  });
+  };
 
-  const answer = response.answer || buildLessonAgentAnswer(module, stage, input);
+  // Módulo 1 usa streaming SSE; demais módulos usam resposta JSON simples
+  if (module.id === "module-1") {
+    return await streamLessonAgentAnswer(body, key);
+  }
+
+  const response = await postMemberApi("/api/operation/assistant", body);
   return {
-    answer,
+    answer: response.answer || buildLessonAgentAnswer(module, stage, input),
     status: response.status,
     agentId: response.agent_id,
     nextAgentId: response.next_agent_id || response.next_recommended_agent || "",
     nextStageKey: response.next_stage_key || ""
+  };
+}
+
+async function streamLessonAgentAnswer(body, key) {
+  // pendingIndex aponta para o placeholder "Estou organizando..." já adicionado antes desta chamada
+  const pendingIndex = (memberApp.state.assistantThreads[key] || []).length - 1;
+  let accumulated = "";
+
+  const response = await fetch("/api/operation/stream", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify(body)
+  });
+
+  if (!response.ok) {
+    throw new Error("stream_failed");
+  }
+
+  const reader = response.body.getReader();
+  const decoder = new TextDecoder();
+  let finalResult = null;
+
+  while (true) {
+    const { done, value } = await reader.read();
+    if (done) break;
+
+    const chunk = decoder.decode(value, { stream: true });
+    for (const line of chunk.split("\n")) {
+      if (!line.startsWith("data: ")) continue;
+
+      let event;
+      try {
+        event = JSON.parse(line.slice(6));
+      } catch {
+        continue;
+      }
+
+      if (event.type === "delta") {
+        accumulated += event.text;
+        // Atualiza a bolha do assistente em tempo real com cursor piscante
+        updateAssistantMessage(pendingIndex, accumulated + "▌");
+        renderAssistantThread();
+      } else if (event.type === "done") {
+        finalResult = {
+          answer: event.answer || accumulated,
+          status: event.status,
+          agentId: event.agent_id,
+          nextAgentId: event.next_agent_id || event.next_recommended_agent || "",
+          nextStageKey: event.next_stage_key || ""
+        };
+        // Remove cursor e mostra texto final
+        updateAssistantMessage(pendingIndex, finalResult.answer);
+        renderAssistantThread();
+      } else if (event.type === "error") {
+        throw new Error(errorMessageForCode(event.code || "request_failed"));
+      }
+    }
+  }
+
+  return finalResult || {
+    answer: accumulated || "Nao obtive resposta. Tente novamente.",
+    status: "conversation",
+    nextAgentId: "",
+    nextStageKey: ""
   };
 }
 

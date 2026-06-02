@@ -14,3 +14,7 @@ Thumbs.db
 
 # Node local dependencies
 node_modules/
+
+# Variáveis de ambiente locais (nunca subir chaves)
+.env
+.env.local

@@ -5,7 +5,7 @@ import http from "node:http";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
 import pg from "pg";
-import { runOperationAgentTurn } from "./server/operation-agents.js";
+import { runOperationAgentTurn, streamOperationAgentTurn } from "./server/operation-agents.js";
 
 const { Pool } = pg;
 
@@ -59,6 +59,23 @@ const server = http.createServer(async (request, response) => {
       return sendJson(response, 204, null);
     }
 
+    // Rota SSE (streaming) — precisa controlar o response diretamente
+    if (url.pathname === "/api/operation/stream") {
+      if (request.method === "OPTIONS") {
+        response.writeHead(204, {
+          "Access-Control-Allow-Origin": "*",
+          "Access-Control-Allow-Methods": "POST, OPTIONS",
+          "Access-Control-Allow-Headers": "Content-Type"
+        });
+        response.end();
+        return;
+      }
+      if (request.method === "POST") {
+        const payload = await readJsonBody(request);
+        return await handleOperationStream(payload, response);
+      }
+    }
+
     if (request.method === "POST" && routes.has(url.pathname)) {
       const payload = await readJsonBody(request);
       const result = await routes.get(url.pathname)(payload);
@@ -83,6 +100,57 @@ const server = http.createServer(async (request, response) => {
 server.listen(port, () => {
   console.log(`Axon site listening on :${port}`);
 });
+
+async function handleOperationStream(payload, response) {
+  await ensureOperationalTables();
+
+  response.writeHead(200, {
+    "Content-Type": "text/event-stream; charset=utf-8",
+    "Cache-Control": "no-cache",
+    "Connection": "keep-alive",
+    "Access-Control-Allow-Origin": "*",
+    "X-Content-Type-Options": "nosniff"
+  });
+
+  const send = (obj) => response.write(`data: ${JSON.stringify(obj)}\n\n`);
+
+  let member;
+  try {
+    member = await getAuthenticatedMember(payload);
+  } catch (error) {
+    send({ type: "error", code: error.code || "auth_failed" });
+    response.end();
+    return;
+  }
+
+  try {
+    requireFields(payload, ["message", "module", "stage", "stageKey", "project"]);
+  } catch (error) {
+    send({ type: "error", code: error.code || "invalid_request" });
+    response.end();
+    return;
+  }
+
+  try {
+    await streamOperationAgentTurn({
+      rootDir: __dirname,
+      query,
+      member,
+      payload,
+      onDelta(text) {
+        send({ type: "delta", text });
+      },
+      async onDone(result) {
+        send({ type: "done", ...result });
+        response.end();
+      }
+    });
+  } catch (error) {
+    console.warn("operation stream handler failed", error);
+    send({ type: "error", message: "stream_failed" });
+    response.end();
+  }
+}
 
 async function handleApiHealth(response) {
   try {

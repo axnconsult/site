@@ -1,6 +1,51 @@
 import { readFile } from "node:fs/promises";
 import path from "node:path";
 
+// Extrai o campo assistant_message do JSON estruturado enquanto ele chega em stream.
+// A Responses API com json_schema emite os campos na ordem do schema:
+// status → assistant_message → next_agent_id → transfer_block.
+// O extractor rastreia essa sequência caractere a caractere.
+class AssistantMessageExtractor {
+  constructor() {
+    this._buffer = "";
+    this._phase = "seeking_key"; // seeking_key | seeking_quote | in_value | done
+    this._KEY_MARKER = '"assistant_message":';
+    this._escaped = false;
+  }
+
+  push(chunk) {
+    if (this._phase === "done") return "";
+    let result = "";
+    for (const char of chunk) {
+      if (this._phase === "seeking_key") {
+        this._buffer += char;
+        if (
+          this._buffer.length >= this._KEY_MARKER.length &&
+          this._buffer.slice(-this._KEY_MARKER.length) === this._KEY_MARKER
+        ) {
+          this._phase = "seeking_quote";
+        }
+      } else if (this._phase === "seeking_quote") {
+        if (char === '"') this._phase = "in_value";
+        // ignora espaços/quebras entre ':' e '"'
+      } else if (this._phase === "in_value") {
+        if (this._escaped) {
+          this._escaped = false;
+          const unescaped = { n: "\n", t: "\t", r: "\r", '"': '"', "\\": "\\" }[char] || char;
+          result += unescaped;
+        } else if (char === "\\") {
+          this._escaped = true;
+        } else if (char === '"') {
+          this._phase = "done";
+        } else {
+          result += char;
+        }
+      }
+    }
+    return result;
+  }
+}
+
 const AGENTS = [
   {
     id: "business_modeling",
@@ -529,6 +574,207 @@ async function saveAgentRun(query, data) {
     ]
   );
 }
+
+// ─── Versão streaming ───────────────────────────────────────────────────────
+
+export async function streamOperationAgentTurn({ rootDir, query, member, payload, onDelta, onDone }) {
+  if (!process.env.OPENAI_API_KEY) {
+    onDone({
+      ok: true,
+      fallback: true,
+      answer: "A conexao com a OpenAI ainda nao esta configurada neste ambiente. Configure OPENAI_API_KEY na stack do site e rode o deploy novamente.",
+      status: "configuration_error",
+      agent_id: resolveAgentId(payload.stage?.agentId),
+      next_agent_id: "",
+      next_stage_key: payload.stageKey || "module-1.0",
+      transfer_block: emptyTransferBlock()
+    });
+    return;
+  }
+
+  const project = await upsertOperationProject(query, member, payload);
+  const activeStageKey = normalizeStageKey(project.current_stage_key || payload.stageKey);
+  const activeAgentId = agentIdFromStageKey(activeStageKey);
+  const agent = AGENT_BY_ID.get(activeAgentId) || AGENTS[0];
+  const history = await loadProjectHistory(query, project.id);
+  const thread = normalizeThread(payload.thread);
+  const instructions = await buildInstructions(rootDir, agent, history);
+
+  const openaiRequest = {
+    model: process.env.OPENAI_OPERATION_MODEL || "gpt-5.1",
+    instructions,
+    text: {
+      format: {
+        type: "json_schema",
+        name: "operation_agent_turn",
+        strict: true,
+        schema: {
+          type: "object",
+          additionalProperties: false,
+          required: ["status", "assistant_message", "next_agent_id", "transfer_block"],
+          properties: {
+            status: { type: "string", enum: ["conversation", "result"] },
+            assistant_message: { type: "string" },
+            next_agent_id: { type: "string" },
+            transfer_block: {
+              type: "object",
+              additionalProperties: false,
+              required: ["section_title", "content", "key_points"],
+              properties: {
+                section_title: { type: "string" },
+                content: { type: "string" },
+                key_points: { type: "array", items: { type: "string" } }
+              }
+            }
+          }
+        }
+      }
+    },
+    input: [
+      {
+        role: "user",
+        content: [
+          {
+            type: "input_text",
+            text: JSON.stringify({
+              project: payload.project,
+              module: payload.module,
+              stage: payload.stage,
+              requestedStageKey: payload.stageKey,
+              activeStageKey,
+              activeAgentId,
+              validAgentIds: AGENT_IDS,
+              previousDeliveries: history.completedBlocks,
+              conversationThread: thread,
+              userMessage: payload.message
+            })
+          }
+        ]
+      }
+    ],
+    stream: true
+  };
+
+  if (agent.webSearch && process.env.OPENAI_OPERATION_WEB_SEARCH !== "false") {
+    openaiRequest.tools = [{ type: "web_search_preview" }];
+  }
+
+  await callOpenAIStream(openaiRequest, onDelta, async (fullText, responseId) => {
+    const parsed = parseAgentOutput({ output_text: fullText }, agent);
+    const status = normalizeStatus(parsed.status);
+    const nextAgentId = status === "result" ? nextAgentIdFor(activeAgentId) : "";
+    const answer = cleanAssistantMessage(parsed.assistant_message || parsed.summary_for_user || parsed.answer || fullText);
+    const transferBlock = normalizeTransferBlock(parsed.transfer_block, status);
+    const projectSection = parsed.project_section || agent.section;
+
+    await saveAgentRun(query, {
+      project,
+      member,
+      stageKey: activeStageKey,
+      agentId: agent.id,
+      status,
+      userMessage: payload.message,
+      answer,
+      projectSection,
+      transferBlock,
+      rawResponse: { output_text: fullText },
+      openaiResponseId: responseId
+    });
+
+    if (status === "result" && nextAgentId) {
+      await updateProjectStage(query, project.id, nextAgentId, payload.project);
+    }
+
+    const nextStageKey = nextAgentId ? stageKeyFromAgentId(nextAgentId) : activeStageKey;
+
+    onDone({
+      ok: true,
+      answer,
+      agent_id: agent.id,
+      status,
+      project_section: projectSection,
+      transfer_block: transferBlock,
+      next_agent_id: nextAgentId,
+      next_recommended_agent: nextAgentId,
+      active_stage_key: activeStageKey,
+      next_stage_key: nextStageKey,
+      openai_response_id: responseId || null
+    });
+  });
+}
+
+async function callOpenAIStream(body, onDelta, onComplete) {
+  const controller = new AbortController();
+  const timeout = setTimeout(
+    () => controller.abort(),
+    Number(process.env.OPENAI_OPERATION_TIMEOUT_MS || 90000)
+  );
+  const extractor = new AssistantMessageExtractor();
+  let fullText = "";
+  let responseId = null;
+
+  try {
+    const response = await fetch("https://api.openai.com/v1/responses", {
+      method: "POST",
+      headers: {
+        Authorization: `Bearer ${process.env.OPENAI_API_KEY}`,
+        "Content-Type": "application/json"
+      },
+      body: JSON.stringify(body),
+      signal: controller.signal
+    });
+
+    if (!response.ok) {
+      const data = await response.json().catch(() => ({}));
+      console.warn("OpenAI stream returned", response.status, data);
+      const fallbackMsg = "Nao consegui acionar o assistente agora. Tente novamente em instantes.";
+      onDelta(fallbackMsg);
+      await onComplete(
+        `{"status":"conversation","assistant_message":${JSON.stringify(fallbackMsg)},"next_agent_id":"","transfer_block":{"section_title":"","content":"","key_points":[]}}`,
+        null
+      );
+      return;
+    }
+
+    const reader = response.body.getReader();
+    const decoder = new TextDecoder();
+
+    while (true) {
+      const { done, value } = await reader.read();
+      if (done) break;
+
+      const chunk = decoder.decode(value, { stream: true });
+      for (const line of chunk.split("\n")) {
+        if (!line.startsWith("data: ")) continue;
+        const dataStr = line.slice(6).trim();
+        if (dataStr === "[DONE]") continue;
+
+        let event;
+        try {
+          event = JSON.parse(dataStr);
+        } catch {
+          continue;
+        }
+
+        if (event.type === "response.created" && event.response?.id) {
+          responseId = event.response.id;
+        }
+
+        if (event.type === "response.output_text.delta" && event.delta) {
+          fullText += event.delta;
+          const extracted = extractor.push(event.delta);
+          if (extracted) onDelta(extracted);
+        }
+      }
+    }
+
+    await onComplete(fullText, responseId);
+  } finally {
+    clearTimeout(timeout);
+  }
+}
+
+// ─── Infraestrutura de banco (mantida abaixo) ────────────────────────────────
 
 async function updateProjectStage(query, projectId, nextAgentId, projectPayload) {
   const stageKey = stageKeyFromAgentId(nextAgentId);
