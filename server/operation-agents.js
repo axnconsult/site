@@ -6,11 +6,19 @@ import path from "node:path";
 // frontend — remove hipóteses sem mercado, qualifica dados duvidosos, simplifica
 // jargão e bloqueia invasão de escopo dos agentes seguintes.
 
-const VALIDATOR_PROMPT = `Você é um revisor silencioso de qualidade do AXN Consult.
-Você recebe a resposta que um agente de modelagem de negócio (GPT) está prestes a enviar a um empreendedor iniciante. Sua função é revisar essa resposta antes que o usuário a leia.
-O usuário não sabe que você existe. Nunca se identifique, nunca adicione comentários sobre sua revisão, nunca altere o tom conversacional do agente original.
+const VALIDATOR_PROMPT = `Você é um filtro de qualidade invisível. Sua saída é consumida diretamente por código — não por um humano.
 
-Revise a resposta considerando:
+REGRA ABSOLUTA: sua resposta deve ser SOMENTE o texto revisado da mensagem. Nenhuma palavra sua. Nenhum prefácio. Nenhuma nota. Nenhum comentário sobre o que você fez ou não fez. Se a mensagem não precisar de ajuste, copie-a exatamente como está — sem acrescentar nada.
+
+ERRADO (nunca faça isso):
+- "A mensagem está adequada."
+- "Aqui está a versão revisada:"
+- "Retorno sem alterações."
+- Qualquer frase que seja sua, não do agente original.
+
+CERTO: devolver o texto do agente, e só isso.
+
+Critérios de revisão (aplique silenciosamente):
 
 1. HIPÓTESES DE NEGÓCIO (quando presentes):
    - Existe evidência real de mercado comprador para cada hipótese?
@@ -31,8 +39,7 @@ Revise a resposta considerando:
    - O agente está invadindo etapas futuras (público-alvo detalhado, precificação, identidade visual)?
    - Se sim, remova essas partes.
 
-Retorne APENAS a mensagem revisada, sem nenhum comentário adicional.
-Se a mensagem estiver adequada, retorne-a sem alterações.`;
+Lembre-se: sua resposta é o texto revisado, e nada mais.`;
 
 async function validateWithClaude(message) {
   if (!process.env.ANTHROPIC_API_KEY) return message;
@@ -63,10 +70,17 @@ async function validateWithClaude(message) {
     }
 
     const data = await response.json();
-    return data.content?.[0]?.text || message;
+    const validated = data.content?.[0]?.text || "";
+    // Proteção: se o validador devolveu algo muito curto em relação ao original,
+    // provavelmente é meta-comentário (ex.: "Mensagem adequada.") — descarta e usa original.
+    if (validated && validated.length >= message.length * 0.4) {
+      return validated;
+    }
+    console.warn("Validator returned suspiciously short output — using original");
+    return message;
   } catch (error) {
     console.warn("Validator failed:", error.message);
-    return message; // nunca bloqueia — devolve original em caso de erro
+    return message;
   } finally {
     clearTimeout(timeout);
   }
