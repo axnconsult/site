@@ -30,11 +30,11 @@ const COURSE_MODULES = [
     summary: "Coloque a infraestrutura no ar com dominio, VPS, Docker, Swarm e servicos base.",
     result: "Infraestrutura digital operacional",
     stages: [
-      ["Dominio e Cloudflare", "Compre o dominio, conecte na Cloudflare e prepare os registros DNS.", "A etapa guia dominio, nameservers, registros principais e validacao simples antes de seguir."],
-      ["VPS, Docker e Swarm", "Acesse a VPS, instale Docker e inicialize o Swarm.", "Prepare o servidor como base operacional, com comandos copiaveis e validacao objetiva."],
-      ["Portainer e Traefik", "Suba o painel operacional e o proxy publico da infraestrutura.", "Publique o Portainer, mantenha Traefik como proxy unico e confirme HTTPS nos servicos."],
-      ["PostgreSQL e Redis", "Suba os bancos e servicos de apoio para site, n8n e automacoes.", "Configure Postgres, Redis e a rede interna para que os servicos conversem de forma previsivel."],
-      ["Validacao da infra", "Revise DNS, servicos, logs e saude da estrutura.", "Use a validacao final para confirmar que a base tecnica esta pronta para receber o sistema operacional."]
+      ["Dominio e Cloudflare", "Compre o dominio, conecte na Cloudflare e prepare os registros DNS.", "technical", null, ["domain", "dns", "email"]],
+      ["VPS, Docker e Swarm", "Acesse a VPS, instale Docker e inicialize o Swarm.", "technical", null, ["vps", "swarm"]],
+      ["Portainer e Traefik", "Suba o painel operacional e o proxy publico da infraestrutura.", "technical", null, ["traefik", "portainer"]],
+      ["PostgreSQL e Redis", "Suba os bancos e servicos de apoio para site, n8n e automacoes.", "technical", null, ["site", "postgres", "n8n"]],
+      ["Validacao da infra", "Revise DNS, servicos, logs e saude da estrutura.", "technical", null, ["ops"]]
     ]
   },
   {
@@ -136,51 +136,477 @@ const WIZARD_STEPS = [
     id: "traefik",
     title: "Subir Traefik",
     objective: "Publicar o proxy publico unico com HTTP, HTTPS e Let's Encrypt.",
-    actions: ["Abra o template do Traefik.", "Troque o e-mail tecnico.", "Suba a stack.", "Confira os logs."],
+    actions: ["No Portainer, va em Stacks > Add stack.", "Cole o YAML abaixo no editor.", "Suba a stack.", "Confira os logs."],
     command: "docker service ls\ndocker service logs traefik_traefik --tail 100",
     validation: "O servico Traefik deve aparecer com replica 1/1.",
     done: "Traefik rodar e portas 80/443 estarem abertas.",
-    checklist: ["Stack criada", "E-mail Let's Encrypt configurado", "Portas 80/443 abertas", "Servico 1/1"]
+    checklist: ["Stack criada no Portainer", "E-mail Let's Encrypt configurado", "Portas 80/443 abertas", "Servico 1/1"],
+    yaml: [{ name: "traefik — stack.yml", content: `version: "3.7"
+
+services:
+  traefik:
+    image: traefik:v2.11.8
+    command:
+      - "--api.dashboard=true"
+      - "--providers.docker.swarmMode=true"
+      - "--providers.docker.endpoint=unix:///var/run/docker.sock"
+      - "--providers.docker.exposedbydefault=false"
+      - "--providers.docker.network=network_swarm_public"
+      - "--entrypoints.web.address=:80"
+      - "--entrypoints.web.http.redirections.entryPoint.to=websecure"
+      - "--entrypoints.web.http.redirections.entryPoint.scheme=https"
+      - "--entrypoints.web.http.redirections.entrypoint.permanent=true"
+      - "--entrypoints.websecure.address=:443"
+      - "--certificatesresolvers.letsencryptresolver.acme.httpchallenge=true"
+      - "--certificatesresolvers.letsencryptresolver.acme.httpchallenge.entrypoint=web"
+      - "--certificatesresolvers.letsencryptresolver.acme.email={{technicalEmail}}"
+      - "--certificatesresolvers.letsencryptresolver.acme.storage=/etc/traefik/letsencrypt/acme.json"
+      - "--log.level=INFO"
+      - "--accesslog=true"
+    deploy:
+      placement:
+        constraints:
+          - node.role == manager
+      labels:
+        - "traefik.enable=true"
+        - "traefik.http.middlewares.redirect-https.redirectscheme.scheme=https"
+        - "traefik.http.middlewares.redirect-https.redirectscheme.permanent=true"
+        - "traefik.http.routers.http-catchall.rule=hostregexp(\`{host:.+}\`)"
+        - "traefik.http.routers.http-catchall.entrypoints=web"
+        - "traefik.http.routers.http-catchall.middlewares=redirect-https@docker"
+        - "traefik.http.routers.http-catchall.priority=1"
+    volumes:
+      - "/var/run/docker.sock:/var/run/docker.sock:ro"
+      - "vol_certificates:/etc/traefik/letsencrypt"
+    networks:
+      - network_swarm_public
+    ports:
+      - target: 80
+        published: 80
+        mode: host
+      - target: 443
+        published: 443
+        mode: host
+
+volumes:
+  vol_certificates:
+    external: true
+    name: volume_swarm_certificates
+
+networks:
+  network_swarm_public:
+    external: true
+    name: network_swarm_public` }]
   },
   {
     id: "portainer",
     title: "Subir Portainer",
     objective: "Abrir o painel operacional em HTTPS.",
-    actions: ["Use o template do Portainer.", "Troque painel pelo seu dominio.", "Suba a stack.", "Acesse pelo navegador."],
+    actions: ["No Portainer via SSH ou terminal, cole o YAML abaixo como nova stack.", "Acesse pelo navegador.", "Crie o usuario administrador."],
     command: "https://painel.{{domain}}",
     validation: "A tela do Portainer deve abrir com HTTPS valido.",
     done: "O Portainer mostrar o ambiente Swarm.",
-    checklist: ["Stack criada", "DNS painel validado", "HTTPS abriu", "Swarm conectado"]
+    checklist: ["Stack criada", "DNS painel validado", "HTTPS abriu", "Swarm conectado"],
+    yaml: [{ name: "portainer — stack.yml", content: `version: "3.7"
+
+services:
+  agent:
+    image: portainer/agent:sts
+    volumes:
+      - /var/run/docker.sock:/var/run/docker.sock
+      - /var/lib/docker/volumes:/var/lib/docker/volumes
+    networks:
+      - network_swarm_public
+    deploy:
+      mode: global
+      placement:
+        constraints:
+          - node.platform.os == linux
+
+  portainer:
+    image: portainer/portainer-ce:sts
+    command: -H tcp://tasks.agent:9001 --tlsskipverify
+    volumes:
+      - portainer_data:/data
+    networks:
+      - network_swarm_public
+    deploy:
+      mode: replicated
+      replicas: 1
+      placement:
+        constraints:
+          - node.role == manager
+      labels:
+        - "traefik.enable=true"
+        - "traefik.docker.network=network_swarm_public"
+        - "traefik.http.routers.portainer.rule=Host(\`painel.{{domain}}\`)"
+        - "traefik.http.routers.portainer.entrypoints=websecure"
+        - "traefik.http.routers.portainer.tls.certresolver=letsencryptresolver"
+        - "traefik.http.routers.portainer.service=portainer"
+        - "traefik.http.services.portainer.loadbalancer.server.port=9000"
+
+networks:
+  network_swarm_public:
+    external: true
+    attachable: true
+    name: network_swarm_public
+
+volumes:
+  portainer_data:
+    external: true
+    name: portainer_data` }]
   },
   {
     id: "site",
     title: "Publicar site",
     objective: "Publicar uma imagem Docker como site em dominio proprio.",
-    actions: ["Use o template do site.", "Configure a imagem.", "Configure DATABASE_URL.", "Valide /health."],
+    actions: ["Cole o YAML abaixo no Portainer como nova stack.", "Substitua SENHA_FORTE_AQUI pela senha do Postgres.", "Valide /health apos subir."],
     command: "curl -I https://{{domain}}\ncurl https://{{domain}}/health",
     validation: "O /health deve responder ok.",
     done: "O site abrir em HTTPS e o container nao reiniciar.",
-    checklist: ["Imagem configurada", "Labels Traefik configuradas", "DATABASE_URL preenchida", "/health ok"]
+    checklist: ["Imagem configurada", "Labels Traefik configuradas", "DATABASE_URL preenchida", "/health ok"],
+    yaml: [{ name: "site — stack.yml", content: `version: "3.7"
+
+services:
+  site:
+    image: {{siteImage}}
+    hostname: "{{.Service.Name}}.{{.Task.Slot}}"
+    environment:
+      NODE_ENV: production
+      PORT: "80"
+      DATABASE_URL: "postgres://axon_app:SENHA_FORTE_AQUI@axon_postgres:5432/axon_ops"
+    networks:
+      - network_swarm_public
+    healthcheck:
+      test: ["CMD-SHELL", "wget -qO- http://127.0.0.1/health | grep -q ok"]
+      interval: 30s
+      timeout: 10s
+      retries: 5
+      start_period: 30s
+    deploy:
+      mode: replicated
+      replicas: 1
+      placement:
+        constraints:
+          - node.role == manager
+      resources:
+        limits:
+          cpus: "0.25"
+          memory: 128M
+      labels:
+        - "traefik.enable=true"
+        - "traefik.docker.network=network_swarm_public"
+        - "traefik.http.routers.site.rule=Host(\`{{domain}}\`) || Host(\`www.{{domain}}\`)"
+        - "traefik.http.routers.site.entrypoints=websecure"
+        - "traefik.http.routers.site.tls.certresolver=letsencryptresolver"
+        - "traefik.http.routers.site.service=site"
+        - "traefik.http.services.site.loadbalancer.server.port=80"
+        - "traefik.http.services.site.loadbalancer.passHostHeader=true"
+      update_config:
+        parallelism: 1
+        delay: 10s
+        order: start-first
+        failure_action: rollback
+      rollback_config:
+        parallelism: 1
+        order: stop-first
+
+networks:
+  network_swarm_public:
+    external: true
+    name: network_swarm_public` }]
   },
   {
     id: "postgres",
     title: "Subir Postgres",
     objective: "Criar banco operacional para o site e automacoes.",
-    actions: ["Suba a stack do Postgres.", "Crie o banco axon_ops.", "Crie o usuario axon_app.", "Teste conexao interna."],
+    actions: ["Cole o YAML abaixo no Portainer como nova stack.", "Substitua SENHA_FORTE_AQUI por uma senha forte.", "Apos subir, crie o banco e o usuario via terminal."],
     command: "docker run --rm -it --network network_swarm_public postgres:16 psql \"postgres://axon_app:SENHA_FORTE_AQUI@axon_postgres:5432/axon_ops\"",
     validation: "O prompt do psql deve abrir sem erro.",
     done: "O host interno axon_postgres funcionar.",
-    checklist: ["Stack Postgres rodando", "Banco axon_ops criado", "Usuario axon_app criado", "Conexao interna validada"]
+    checklist: ["Stack Postgres rodando", "Banco axon_ops criado", "Usuario axon_app criado", "Conexao interna validada"],
+    yaml: [{ name: "postgres — stack.yml", content: `version: "3.7"
+
+services:
+  axon_postgres:
+    image: pgvector/pgvector:pg16
+    hostname: "{{.Service.Name}}.{{.Task.Slot}}"
+    networks:
+      - network_swarm_public
+    command:
+      - postgres
+      - --max_connections=200
+      - --port=5432
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    environment:
+      POSTGRES_PASSWORD: SENHA_FORTE_AQUI
+      POSTGRES_INITDB_ARGS: "--auth-host=scram-sha-256"
+    deploy:
+      mode: replicated
+      replicas: 1
+      placement:
+        constraints:
+          - node.role == manager
+      resources:
+        limits:
+          cpus: "1"
+          memory: 1024M
+
+volumes:
+  postgres_data:
+    external: true
+    name: postgres_data
+
+networks:
+  network_swarm_public:
+    external: true
+    name: network_swarm_public` }]
   },
   {
     id: "n8n",
     title: "n8n em fila",
-    objective: "Subir editor, webhooks, worker, runners e Redis.",
-    actions: ["Suba Redis.", "Suba editor.", "Suba webhooks.", "Suba worker e runners.", "Execute um workflow simples."],
+    objective: "Subir editor, webhooks, worker, runners e Redis. Suba uma stack por vez, na ordem abaixo.",
+    actions: ["Suba Redis (1a stack).", "Suba o editor (2a stack).", "Suba os webhooks (3a stack).", "Suba o worker (4a stack).", "Suba os runners (5a stack).", "Execute um workflow simples."],
     command: "docker service ls | grep n8n\ndocker service logs n8n_worker --tail 100",
     validation: "Editor abre em workflows e jobs executam no worker.",
     done: "Um workflow manual executar sem erro.",
-    checklist: ["Redis rodando", "Editor publicado", "Webhooks publicados", "Worker rodando", "Runners conectados"]
+    checklist: ["Redis rodando", "Editor publicado", "Webhooks publicados", "Worker rodando", "Runners conectados"],
+    yaml: [
+      { name: "1 — redis-n8n (stack.yml)", content: `version: "3.7"
+
+services:
+  redis_n8n:
+    image: redis:7-alpine
+    command: redis-server --appendonly yes
+    networks:
+      - network_swarm_public
+    volumes:
+      - redis_n8n_data:/data
+    deploy:
+      mode: replicated
+      replicas: 1
+      placement:
+        constraints:
+          - node.role == manager
+      resources:
+        limits:
+          cpus: "0.25"
+          memory: 256M
+
+volumes:
+  redis_n8n_data:
+    external: true
+    name: redis_n8n_data
+
+networks:
+  network_swarm_public:
+    external: true
+    name: network_swarm_public` },
+      { name: "2 — n8n-editor (stack.yml)", content: `version: "3.7"
+
+services:
+  n8n_editor:
+    image: n8nio/n8n:2.16.1
+    hostname: "{{.Service.Name}}.{{.Task.Slot}}"
+    command: start
+    networks:
+      - network_swarm_public
+    environment:
+      N8N_ENCRYPTION_KEY: N8N_ENCRYPTION_KEY_AQUI
+      NODE_ENV: production
+      GENERIC_TIMEZONE: America/Sao_Paulo
+      N8N_RUNNERS_MODE: external
+      N8N_RUNNERS_AUTH_TOKEN: N8N_RUNNERS_AUTH_TOKEN_AQUI
+      DB_TYPE: postgresdb
+      DB_POSTGRESDB_DATABASE: n8n
+      DB_POSTGRESDB_HOST: axon_postgres
+      DB_POSTGRESDB_PORT: "5432"
+      DB_POSTGRESDB_USER: postgres
+      DB_POSTGRESDB_PASSWORD: SENHA_FORTE_AQUI
+      N8N_PORT: "5678"
+      N8N_HOST: workflows.{{domain}}
+      N8N_EDITOR_BASE_URL: https://workflows.{{domain}}/
+      N8N_PROTOCOL: https
+      WEBHOOK_URL: https://webhooks.{{domain}}/
+      EXECUTIONS_MODE: queue
+      QUEUE_BULL_REDIS_HOST: redis_n8n
+      QUEUE_BULL_REDIS_PORT: "6379"
+      QUEUE_BULL_REDIS_DB: "2"
+      N8N_EMAIL_MODE: smtp
+      N8N_SMTP_HOST: smtp.mailersend.net
+      N8N_SMTP_PORT: "587"
+      N8N_SMTP_USER: MAILERSEND_SMTP_USER_AQUI
+      N8N_SMTP_PASS: MAILERSEND_SMTP_PASS_AQUI
+      N8N_SMTP_SENDER: contato@{{domain}}
+      N8N_SMTP_SSL: "false"
+      N8N_SECURE_COOKIE: "true"
+    deploy:
+      mode: replicated
+      replicas: 1
+      placement:
+        constraints:
+          - node.role == manager
+      resources:
+        limits:
+          cpus: "1"
+          memory: 1024M
+      labels:
+        - "traefik.enable=true"
+        - "traefik.http.routers.n8n_editor.rule=Host(\`workflows.{{domain}}\`)"
+        - "traefik.http.routers.n8n_editor.entrypoints=websecure"
+        - "traefik.http.routers.n8n_editor.tls.certresolver=letsencryptresolver"
+        - "traefik.http.routers.n8n_editor.service=n8n_editor"
+        - "traefik.http.services.n8n_editor.loadbalancer.server.port=5678"
+        - "traefik.http.services.n8n_editor.loadbalancer.passHostHeader=true"
+      update_config:
+        parallelism: 1
+        delay: 30s
+        order: start-first
+        failure_action: rollback
+
+networks:
+  network_swarm_public:
+    external: true
+    name: network_swarm_public` },
+      { name: "3 — n8n-webhook (stack.yml)", content: `version: "3.7"
+
+services:
+  n8n_webhook:
+    image: n8nio/n8n:2.16.1
+    hostname: "{{.Service.Name}}.{{.Task.Slot}}"
+    command: webhook
+    networks:
+      - network_swarm_public
+    environment:
+      N8N_ENCRYPTION_KEY: N8N_ENCRYPTION_KEY_AQUI
+      NODE_ENV: production
+      GENERIC_TIMEZONE: America/Sao_Paulo
+      N8N_RUNNERS_MODE: external
+      N8N_RUNNERS_AUTH_TOKEN: N8N_RUNNERS_AUTH_TOKEN_AQUI
+      DB_TYPE: postgresdb
+      DB_POSTGRESDB_DATABASE: n8n
+      DB_POSTGRESDB_HOST: axon_postgres
+      DB_POSTGRESDB_PORT: "5432"
+      DB_POSTGRESDB_USER: postgres
+      DB_POSTGRESDB_PASSWORD: SENHA_FORTE_AQUI
+      N8N_PORT: "5678"
+      N8N_HOST: workflows.{{domain}}
+      N8N_EDITOR_BASE_URL: https://workflows.{{domain}}/
+      N8N_PROTOCOL: https
+      WEBHOOK_URL: https://webhooks.{{domain}}/
+      EXECUTIONS_MODE: queue
+      QUEUE_BULL_REDIS_HOST: redis_n8n
+      QUEUE_BULL_REDIS_PORT: "6379"
+      QUEUE_BULL_REDIS_DB: "2"
+    deploy:
+      mode: replicated
+      replicas: 3
+      placement:
+        constraints:
+          - node.role == manager
+      resources:
+        limits:
+          cpus: "1"
+          memory: 1024M
+      labels:
+        - "traefik.enable=true"
+        - "traefik.http.routers.n8n_webhook.rule=Host(\`webhooks.{{domain}}\`)"
+        - "traefik.http.routers.n8n_webhook.entrypoints=websecure"
+        - "traefik.http.routers.n8n_webhook.tls.certresolver=letsencryptresolver"
+        - "traefik.http.routers.n8n_webhook.service=n8n_webhook"
+        - "traefik.http.services.n8n_webhook.loadbalancer.server.port=5678"
+        - "traefik.http.services.n8n_webhook.loadbalancer.passHostHeader=true"
+      update_config:
+        parallelism: 1
+        delay: 30s
+        order: start-first
+        failure_action: rollback
+
+networks:
+  network_swarm_public:
+    external: true
+    name: network_swarm_public` },
+      { name: "4 — n8n-worker (stack.yml)", content: `version: "3.7"
+
+services:
+  n8n_worker:
+    image: n8nio/n8n:2.16.1
+    hostname: "{{.Service.Name}}.{{.Task.Slot}}"
+    command: worker --concurrency=10
+    networks:
+      - network_swarm_public
+    environment:
+      N8N_ENCRYPTION_KEY: N8N_ENCRYPTION_KEY_AQUI
+      NODE_ENV: production
+      GENERIC_TIMEZONE: America/Sao_Paulo
+      N8N_RUNNERS_MODE: external
+      N8N_RUNNERS_BROKER_LISTEN_ADDRESS: 0.0.0.0
+      N8N_RUNNERS_AUTH_TOKEN: N8N_RUNNERS_AUTH_TOKEN_AQUI
+      DB_TYPE: postgresdb
+      DB_POSTGRESDB_DATABASE: n8n
+      DB_POSTGRESDB_HOST: axon_postgres
+      DB_POSTGRESDB_PORT: "5432"
+      DB_POSTGRESDB_USER: postgres
+      DB_POSTGRESDB_PASSWORD: SENHA_FORTE_AQUI
+      N8N_PORT: "5678"
+      EXECUTIONS_MODE: queue
+      QUEUE_BULL_REDIS_HOST: redis_n8n
+      QUEUE_BULL_REDIS_PORT: "6379"
+      QUEUE_BULL_REDIS_DB: "2"
+    deploy:
+      mode: replicated
+      replicas: 1
+      placement:
+        constraints:
+          - node.role == manager
+      resources:
+        limits:
+          cpus: "1"
+          memory: 1024M
+      update_config:
+        parallelism: 1
+        delay: 30s
+        order: start-first
+        failure_action: rollback
+
+networks:
+  network_swarm_public:
+    external: true
+    name: network_swarm_public` },
+      { name: "5 — n8n-runners (stack.yml)", content: `version: "3.7"
+
+services:
+  n8n_runners:
+    image: n8nio/runners:2.16.1
+    hostname: "{{.Service.Name}}.{{.Task.Slot}}"
+    command: ["javascript", "python"]
+    networks:
+      - network_swarm_public
+    environment:
+      N8N_RUNNERS_TASK_BROKER_URI: http://n8n_worker:5679
+      N8N_RUNNERS_AUTH_TOKEN: N8N_RUNNERS_AUTH_TOKEN_AQUI
+    deploy:
+      mode: replicated
+      replicas: 1
+      placement:
+        constraints:
+          - node.role == manager
+      resources:
+        limits:
+          cpus: "1"
+          memory: 1024M
+      update_config:
+        parallelism: 1
+        delay: 30s
+        order: start-first
+        failure_action: rollback
+
+networks:
+  network_swarm_public:
+    external: true
+    name: network_swarm_public` }
+    ]
   },
   {
     id: "ops",
@@ -378,6 +804,20 @@ function wireModuleActions() {
     if (event.key === "Enter" && (event.ctrlKey || event.metaKey)) {
       event.preventDefault();
       document.querySelector("#assistant-submit")?.click();
+    }
+  });
+
+  document.querySelector("#stuck-button")?.addEventListener("click", () => {
+    const module = currentModule();
+    if (module.id !== "module-3") return;
+    const stage = currentLesson();
+    const steps = getLessonSteps(stage);
+    const step = steps.find((s) => s.id === memberApp.state.currentLessonStep) || steps[0];
+    const input = document.querySelector("#assistant-input");
+    if (input && step) {
+      input.value = `Estou travado na etapa "${step.title}". Objetivo: ${step.content}. O que devo fazer?`;
+      input.focus();
+      document.querySelector(".assistant-panel")?.scrollIntoView({ behavior: "smooth" });
     }
   });
 
@@ -732,6 +1172,19 @@ function renderLessonDetail(module, index) {
   document.querySelector("#stage-progress-label").textContent = `Etapa ${index + 1} de ${module.stages.length}`;
   document.querySelector("#previous-stage").disabled = index === 0;
   document.querySelector("#next-stage").textContent = index === module.stages.length - 1 ? "Concluir modulo" : "Avancar";
+
+  const isModule3 = module.id === "module-3";
+  document.querySelector("#stage-video-placeholder")?.classList.toggle("hidden", isModule3);
+  document.querySelector("#stuck-button")?.classList.toggle("hidden", !isModule3);
+
+  if (isModule3) {
+    const steps = getLessonSteps(stage);
+    ensureValidLessonStep(steps);
+    renderLessonSteps(steps);
+    renderLessonStage(stage, steps);
+    wireWizardFields();
+  }
+
   ensureAssistantThread(module, stage);
   renderAssistantThread();
 }
@@ -811,7 +1264,9 @@ function ensureProjectId() {
 
 function getLessonSteps(lesson) {
   if (lesson[2] === "technical") {
-    return WIZARD_STEPS.map((step) => ({
+    const stepIds = Array.isArray(lesson[4]) ? lesson[4] : null;
+    const source = stepIds ? WIZARD_STEPS.filter((step) => stepIds.includes(step.id)) : WIZARD_STEPS;
+    return source.map((step) => ({
       id: step.id,
       title: step.title,
       content: step.objective,
@@ -935,10 +1390,17 @@ function renderLessonStage(lesson, steps) {
   document.querySelector("#lesson-step-title").textContent = step.title;
   document.querySelector("#lesson-step-content").innerHTML = buildLessonStepContent(step, lesson);
 
-  document.querySelectorAll("[data-copy-command]").forEach((button) => {
+  document.querySelectorAll("[data-copy-command], [data-copy-yaml]").forEach((button) => {
     button.addEventListener("click", async () => {
-      const command = button.closest(".technical-command")?.querySelector("code")?.textContent || "";
-      await navigator.clipboard?.writeText(command);
+      const text = button.closest(".technical-command")?.querySelector("code")?.textContent || "";
+      try {
+        await navigator.clipboard?.writeText(text);
+        const label = button.textContent;
+        button.textContent = "Copiado!";
+        setTimeout(() => { button.textContent = label; }, 1800);
+      } catch {
+        // clipboard indisponivel — usuario pode selecionar manualmente
+      }
     });
   });
 
@@ -965,7 +1427,7 @@ function buildLessonStepContent(step, lesson) {
     ? `
       <div class="technical-command">
         <div class="wizard-block-title">
-          <h4>Comando gerado</h4>
+          <h4>Comando</h4>
           <button class="button button-secondary" type="button" data-copy-command>Copiar</button>
         </div>
         <pre class="command-box"><code>${escapeHtml(fillTemplate(step.command))}</code></pre>
@@ -983,19 +1445,76 @@ function buildLessonStepContent(step, lesson) {
     `
     : "";
 
+  const yamlBlocks = lesson[2] === "technical" && step.yaml
+    ? (Array.isArray(step.yaml) ? step.yaml : [{ name: "stack.yml", content: step.yaml }])
+        .map(({ name, content }) => `
+          <div class="technical-command">
+            <div class="wizard-block-title">
+              <h4>${escapeHtml(name)}</h4>
+              <button class="button button-secondary" type="button" data-copy-yaml>Copiar YAML</button>
+            </div>
+            <pre class="command-box"><code>${escapeHtml(fillTemplate(content))}</code></pre>
+            <p class="wizard-yaml-note">Cole este conteudo no editor do Portainer em Stacks > Add stack > Web editor.</p>
+          </div>
+        `).join("")
+    : "";
+
   return `
     <p>${escapeHtml(step.content)}</p>
     ${technical}
+    ${yamlBlocks}
     <div class="wizard-checklist">${checklist}</div>
   `;
 }
 
 function buildStageContent(stage, module) {
+  if (module.id === "module-3") {
+    const project = memberApp.state.project;
+    const filled = Boolean(project.domain && project.serverIp);
+    return `
+      <details class="wizard-project-fields"${filled ? "" : " open"}>
+        <summary>Dados do projeto tecnico</summary>
+        <div class="wizard-project-form">
+          <label>Dominio<input id="wizard-field-domain" placeholder="seudominio.com" value="${escapeHtml(project.domain || "")}" /></label>
+          <label>IP da VPS<input id="wizard-field-server-ip" placeholder="123.123.123.123" value="${escapeHtml(project.serverIp || "")}" /></label>
+          <label>E-mail tecnico<input id="wizard-field-technical-email" type="email" placeholder="contato@seudominio.com" value="${escapeHtml(project.technicalEmail || "")}" /></label>
+          <label>Nome do host<input id="wizard-field-host-name" placeholder="manager01" value="${escapeHtml(project.hostName || "manager01")}" /></label>
+          <label>Imagem do site<input id="wizard-field-site-image" placeholder="ghcr.io/org/site:main" value="${escapeHtml(project.siteImage || "")}" /></label>
+          <button class="button button-secondary" type="button" id="save-wizard-fields">Salvar dados</button>
+        </div>
+      </details>
+      <div class="wizard-layout">
+        <nav class="wizard-steps" id="lesson-steps"></nav>
+        <div class="wizard-panel">
+          <p class="eyebrow" id="lesson-step-kicker"></p>
+          <h3 id="lesson-step-title"></h3>
+          <div id="lesson-step-content"></div>
+        </div>
+      </div>
+    `;
+  }
   const result = module.result ? `<p><strong>Resultado do modulo:</strong> ${escapeHtml(module.result)}.</p>` : "";
   return `
     <p>${escapeHtml(stage[2] || stage[1])}</p>
     ${result}
   `;
+}
+
+function wireWizardFields() {
+  const saveBtn = document.querySelector("#save-wizard-fields");
+  if (!saveBtn) return;
+  saveBtn.addEventListener("click", () => {
+    memberApp.state.project = {
+      ...memberApp.state.project,
+      domain: document.querySelector("#wizard-field-domain")?.value.trim() || memberApp.state.project.domain,
+      serverIp: document.querySelector("#wizard-field-server-ip")?.value.trim() || memberApp.state.project.serverIp,
+      technicalEmail: document.querySelector("#wizard-field-technical-email")?.value.trim() || memberApp.state.project.technicalEmail,
+      hostName: document.querySelector("#wizard-field-host-name")?.value.trim() || memberApp.state.project.hostName,
+      siteImage: document.querySelector("#wizard-field-site-image")?.value.trim() || memberApp.state.project.siteImage
+    };
+    persistMemberState();
+    renderModuleDetail();
+  });
 }
 
 function getLessonIndex() {
@@ -1157,8 +1676,12 @@ function ensureAssistantThread(module, lesson) {
     const agentId = lesson[3] || agentIdForStageKey(key);
     opening = MODULE1_AGENT_OPENINGS[agentId]
       || `Vamos trabalhar a etapa "${lesson[0]}". Pode começar.`;
-  } else if (lesson[2] === "technical") {
-    opening = "Vamos configurar esta parte como conversa guiada. Me diga o dominio, IP da VPS, e-mail tecnico e o que voce quer publicar.";
+  } else if (module.id === "module-3") {
+    const steps = getLessonSteps(lesson);
+    const first = steps[0];
+    opening = first
+      ? `Agora vamos configurar: ${lesson[0]}. Quando voce travar em qualquer passo, clique em "Estou travado" e me diga o que esta vendo na tela — eu ajudo a resolver.`
+      : `Vamos configurar esta parte da infraestrutura. Se travar, clique em "Estou travado" e me descreva o que esta vendo.`;
   } else {
     opening = `Vamos trabalhar a etapa "${lesson[0]}". Me conte o contexto do seu negocio para eu transformar isso em um proximo passo claro.`;
   }
@@ -1205,6 +1728,21 @@ async function requestLessonAgentAnswer(module, stage, input, thread = null) {
     message: input,
     thread: thread || memberApp.state.assistantThreads[key] || []
   };
+
+  if (module.id === "module-3") {
+    const steps = getLessonSteps(stage);
+    const activeStep = steps.find((s) => s.id === memberApp.state.currentLessonStep) || steps[0];
+    if (activeStep) {
+      body.wizardStep = {
+        id: activeStep.id,
+        title: activeStep.title,
+        objective: activeStep.content,
+        command: fillTemplate(activeStep.command || ""),
+        validation: activeStep.validation,
+        done: activeStep.done
+      };
+    }
+  }
 
   // Módulos 1 e 2 são agent-driven (streaming SSE); demais são guias técnicos (JSON simples)
   if (module.id === "module-1" || module.id === "module-2") {

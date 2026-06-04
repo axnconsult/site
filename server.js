@@ -5,7 +5,7 @@ import http from "node:http";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
 import pg from "pg";
-import { runOperationAgentTurn, streamOperationAgentTurn, generateStrategicPlanMarkdown } from "./server/operation-agents.js";
+import { runOperationAgentTurn, streamOperationAgentTurn, generateStrategicPlanMarkdown, runTechAssistantTurn } from "./server/operation-agents.js";
 
 const { Pool } = pg;
 
@@ -563,7 +563,13 @@ async function handleOperationAssistant(payload) {
   const member = await getAuthenticatedMember(payload);
   requireFields(payload, ["message", "module", "stage", "stageKey", "project"]);
 
+  const moduleId = payload.module?.id || "";
+  const isTechnicalModule = !["module-1", "module-2"].includes(moduleId);
+
   try {
+    if (isTechnicalModule) {
+      return await runTechAssistantTurn({ query, member, payload });
+    }
     return await runOperationAgentTurn({
       rootDir: __dirname,
       query,

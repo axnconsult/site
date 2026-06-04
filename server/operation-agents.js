@@ -656,6 +656,100 @@ async function saveAgentRun(query, data) {
   );
 }
 
+// ─── Assistente técnico (Módulos 3+) ────────────────────────────────────────
+
+export async function runTechAssistantTurn({ query, member, payload }) {
+  const step = payload.wizardStep || {};
+  const project = payload.project || {};
+  const stage = payload.stage || {};
+
+  const systemPrompt = [
+    "Voce e um assistente tecnico do AXN Consult.",
+    "Sua funcao e ajudar empreendedores sem experiencia tecnica a configurar infraestrutura digital passo a passo.",
+    "Responda em linguagem simples. Diga onde clicar, o que digitar, o que deve aparecer na tela.",
+    "Nao invente configuracoes. Maximo 4 paragrafos curtos.",
+    "",
+    `ETAPA ATUAL: ${stage.title || ""}`,
+    step.title ? `PASSO ATUAL: ${step.title}` : "",
+    step.objective ? `OBJETIVO: ${step.objective}` : "",
+    step.command ? `COMANDO: ${step.command}` : "",
+    step.validation ? `VALIDACAO: ${step.validation}` : "",
+    step.done ? `PODE SEGUIR SE: ${step.done}` : "",
+    "",
+    "DADOS DO PROJETO:",
+    `- Dominio: ${project.domain || "nao informado"}`,
+    `- IP da VPS: ${project.serverIp || "nao informado"}`,
+    `- E-mail tecnico: ${project.technicalEmail || "nao informado"}`
+  ].filter(Boolean).join("\n");
+
+  if (!process.env.ANTHROPIC_API_KEY && !process.env.OPENAI_API_KEY) {
+    return {
+      ok: true,
+      answer: step.objective
+        ? `${step.title}: ${step.objective} Valide assim: ${step.validation || ""}`
+        : "Configure OPENAI_API_KEY ou ANTHROPIC_API_KEY para ativar o assistente.",
+      status: "conversation"
+    };
+  }
+
+  if (process.env.ANTHROPIC_API_KEY) {
+    try {
+      const response = await fetch("https://api.anthropic.com/v1/messages", {
+        method: "POST",
+        headers: {
+          "x-api-key": process.env.ANTHROPIC_API_KEY,
+          "anthropic-version": "2023-06-01",
+          "content-type": "application/json"
+        },
+        body: JSON.stringify({
+          model: process.env.ANTHROPIC_TECH_MODEL || process.env.ANTHROPIC_VALIDATOR_MODEL || "claude-haiku-4-5",
+          max_tokens: 1024,
+          system: systemPrompt,
+          messages: [{ role: "user", content: payload.message }]
+        })
+      });
+      if (response.ok) {
+        const data = await response.json();
+        const answer = data.content?.[0]?.text || "Nao consegui processar sua duvida agora.";
+        return { ok: true, answer, status: "conversation" };
+      }
+    } catch (error) {
+      console.warn("Tech assistant (Anthropic) failed:", error.message);
+    }
+  }
+
+  try {
+    const response = await fetch("https://api.openai.com/v1/chat/completions", {
+      method: "POST",
+      headers: {
+        "Authorization": `Bearer ${process.env.OPENAI_API_KEY}`,
+        "Content-Type": "application/json"
+      },
+      body: JSON.stringify({
+        model: "gpt-4o-mini",
+        max_tokens: 1024,
+        messages: [
+          { role: "system", content: systemPrompt },
+          { role: "user", content: payload.message }
+        ]
+      })
+    });
+    if (response.ok) {
+      const data = await response.json();
+      const answer = data.choices?.[0]?.message?.content || "Nao consegui processar sua duvida agora.";
+      return { ok: true, answer, status: "conversation" };
+    }
+  } catch (error) {
+    console.warn("Tech assistant (OpenAI) failed:", error.message);
+  }
+
+  return {
+    ok: true,
+    answer: step.objective ? `${step.title}: ${step.objective}` : "Nao consegui acionar o assistente agora.",
+    status: "conversation"
+  };
+}
+
 // ─── Versão streaming ───────────────────────────────────────────────────────
 
 export async function streamOperationAgentTurn({ rootDir, query, member, payload, onDelta, onDone }) {
