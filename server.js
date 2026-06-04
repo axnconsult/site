@@ -100,6 +100,11 @@ const server = http.createServer(async (request, response) => {
       return sendJson(response, 200, result);
     }
 
+    // Download do relatório do Módulo 1 (hipótese de negócio em .md)
+    if (request.method === "GET" && url.pathname === "/api/module1/report") {
+      return await handleModule1Report(url.searchParams, response);
+    }
+
     if (request.method === "GET" || request.method === "HEAD") {
       return serveStatic(url.pathname, request, response);
     }
@@ -118,6 +123,78 @@ const server = http.createServer(async (request, response) => {
 server.listen(port, () => {
   console.log(`Axon site listening on :${port}`);
 });
+
+async function handleModule1Report(params, response) {
+  await ensureOperationalTables();
+
+  const token = params.get("token") || "";
+  const projectId = params.get("projectId") || "";
+
+  if (!token) {
+    response.writeHead(401, { "Content-Type": "text/plain" });
+    response.end("Token ausente");
+    return;
+  }
+
+  let member;
+  try {
+    member = await getAuthenticatedMember({ token });
+  } catch {
+    response.writeHead(401, { "Content-Type": "text/plain" });
+    response.end("Nao autorizado");
+    return;
+  }
+
+  // Busca o transfer_block do Agente 01 para este projeto
+  const sql = `
+    select transfer_block_json, created_at
+    from operation_agent_runs
+    where agent_id = 'business_modeling'
+      and member_id = $1
+      ${projectId ? "and project_id = $2::uuid" : ""}
+    order by created_at desc
+    limit 1
+  `;
+  const values = projectId ? [member.id, projectId] : [member.id];
+  const result = await query(sql, values);
+  const row = result.rows[0];
+
+  const block = row?.transfer_block_json || {};
+  const date = row?.created_at
+    ? new Date(row.created_at).toLocaleDateString("pt-BR")
+    : new Date().toLocaleDateString("pt-BR");
+
+  const title = block.section_title || "Modelagem de Negocio";
+  const content = block.content || "";
+  const points = Array.isArray(block.key_points) ? block.key_points : [];
+
+  const md = [
+    `# Sua Hipotese de Negocio`,
+    ``,
+    `Gerado em: ${date}`,
+    ``,
+    `## ${title}`,
+    ``,
+    content,
+    ``,
+    points.length ? `## Pontos-chave` : "",
+    ...points.map((p) => `- ${p}`),
+    ``,
+    `## Proximos passos`,
+    ``,
+    `No Modulo 2, vamos aprofundar quem e o seu cliente ideal`,
+    `e como posicionar este negocio no mercado.`
+  ]
+    .filter((line) => line !== null && line !== undefined)
+    .join("\n");
+
+  response.writeHead(200, {
+    "Content-Type": "text/markdown; charset=utf-8",
+    "Content-Disposition": 'attachment; filename="hipotese-de-negocio.md"',
+    "Cache-Control": "no-store"
+  });
+  response.end(md);
+}
 
 async function handleOperationStream(payload, response) {
   await ensureOperationalTables();

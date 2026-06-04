@@ -2,12 +2,21 @@ const COURSE_MODULES = [
   {
     id: "module-1",
     number: 1,
-    title: "Diagnostico Operacional",
-    summary: "Entenda o negocio e monte o nucleo operacional antes de automatizar qualquer coisa.",
+    title: "Modelagem de Negocio",
+    summary: "Explore seu perfil, habilidades e o mercado para chegar a uma hipotese de negocio viavel e validada.",
+    result: "Hipotese de negocio validada",
+    stages: [
+      ["Modelagem do negocio", "Transforme ideia, habilidades e restricoes em uma hipotese de negocio viavel.", "Vamos identificar o que o negocio vende, quais sinais de mercado existem e qual ideia principal faz mais sentido validar primeiro.", "business_modeling"]
+    ]
+  },
+  {
+    id: "module-2",
+    number: 2,
+    title: "Diagnostico Estrategico",
+    summary: "Com a hipotese definida, aprofunde publico, diferencial, precificacao, produto e identidade visual.",
     result: "Planejamento Estrategico Operacional",
     stages: [
-      ["Modelagem do negocio", "Transforme ideia, habilidades e restricoes em uma hipotese de negocio viavel.", "Vamos identificar o que o negocio vende, quais sinais de mercado existem e qual ideia principal faz mais sentido validar primeiro.", "business_modeling"],
-      ["Publico-alvo", "Defina quem tem maior probabilidade de comprar essa solucao.", "Vamos sair de uma audiencia vaga para um comprador possivel, com dores, desejos, contexto de compra e objeções claras.", "target_audience"],
+      ["Publico-alvo", "Defina quem tem maior probabilidade de comprar essa solucao.", "Vamos sair de uma audiencia vaga para um comprador possivel, com dores, desejos, contexto de compra e objecoes claras.", "target_audience"],
       ["Diferencial estrategico", "Encontre uma posicao clara para competir sem depender apenas de preco.", "Vamos comparar alternativas reais e definir um diferencial simples, relevante e comunicavel.", "strategic_differentiation"],
       ["Precificacao estrategica", "Defina uma faixa inicial de preco coerente com mercado, valor e meta financeira.", "Vamos ligar preco a resultado, volume necessario de vendas e capacidade real de entrega.", "strategic_pricing"],
       ["Conceito do produto", "Defina nome, promessa, formato e entregaveis centrais.", "Transforme a estrategia em um produto compreensivel, com promessa clara e formato vendavel.", "product_concept"],
@@ -15,8 +24,8 @@ const COURSE_MODULES = [
     ]
   },
   {
-    id: "module-2",
-    number: 2,
+    id: "module-3",
+    number: 3,
     title: "Estrutura Digital",
     summary: "Coloque a infraestrutura no ar com dominio, VPS, Docker, Swarm e servicos base.",
     result: "Infraestrutura digital operacional",
@@ -29,8 +38,8 @@ const COURSE_MODULES = [
     ]
   },
   {
-    id: "module-3",
-    number: 3,
+    id: "module-4",
+    number: 4,
     title: "Sistema Operacional da Empresa",
     summary: "Instale o nucleo operacional com n8n, OpenAI API, memoria e workflows.",
     result: "Nucleo operacional instalado",
@@ -43,8 +52,8 @@ const COURSE_MODULES = [
     ]
   },
   {
-    id: "module-4",
-    number: 4,
+    id: "module-5",
+    number: 5,
     title: "Presenca Comercial",
     summary: "Coloque o negocio vendendo com pagina, checkout, CTA e conteudo.",
     result: "Presenca comercial publicada",
@@ -57,8 +66,8 @@ const COURSE_MODULES = [
     ]
   },
   {
-    id: "module-5",
-    number: 5,
+    id: "module-6",
+    number: 6,
     title: "Operacao Assistida",
     summary: "Transforme IA em apoio operacional para rotina, decisao, tarefas e atendimento.",
     result: "Operacao assistida em funcionamento",
@@ -377,6 +386,12 @@ function wireModuleActions() {
     const overlay = document.querySelector("#agent-transition-overlay");
     if (!overlay) return;
 
+    // Conclusão do Módulo 1 → vai para Módulo 2
+    if (overlay.dataset.isModule1Completion === "true") {
+      goToModule2();
+      return;
+    }
+
     const nextStageKey = overlay.dataset.nextStageKey || "";
     overlay.classList.add("hidden");
     overlay.dataset.nextStageKey = "";
@@ -458,7 +473,15 @@ function applyAssistantProgress(result) {
   const nextStageKey = result.nextStageKey || stageKeyForAgentId(result.nextAgentId);
   const completedAgentId = result.agentId || "";
 
-  // Fim do Módulo 1 — último agente concluiu
+  // Módulo 1 concluído — Agente 01 (business_modeling) entregou a hipótese
+  if (completedAgentId === "business_modeling") {
+    markCurrentStageComplete();
+    persistMemberState();
+    showModule1CompletionOverlay();
+    return;
+  }
+
+  // Fim do Módulo 2 — visual_identity (último agente) concluiu
   if (!nextStageKey && completedAgentId === "visual_identity") {
     markCurrentStageComplete();
     persistMemberState();
@@ -466,8 +489,8 @@ function applyAssistantProgress(result) {
     return;
   }
 
-  // Transição entre agentes do Módulo 1 — exibe overlay com confetti
-  if (nextStageKey && currentModule()?.id === "module-1") {
+  // Transição entre agentes do Módulo 2
+  if (nextStageKey && currentModule()?.id === "module-2") {
     showAgentTransitionOverlay(completedAgentId, nextStageKey);
     return;
   }
@@ -479,6 +502,54 @@ function applyAssistantProgress(result) {
     memberApp.state.currentLessonStep = "main";
     ensureAssistantThread(currentModule(), currentLesson());
   }
+}
+
+function showModule1CompletionOverlay() {
+  // Reutiliza o overlay de transição com conteúdo específico do Módulo 1
+  const overlay = document.querySelector("#agent-transition-overlay");
+  if (!overlay) {
+    // Fallback: banner inline no thread do chat
+    const thread = document.querySelector("#assistant-thread");
+    if (thread) {
+      thread.insertAdjacentHTML("beforeend", `
+        <div class="module1-completion-banner">
+          <p class="eyebrow">Modulo 1 concluido</p>
+          <h3>Hipotese de negocio validada!</h3>
+          <p>Baixe o resumo e avance para o Modulo 2 quando estiver pronto.</p>
+          <button class="button button-primary" type="button" id="module1-go-to-2">Ir para o Modulo 2</button>
+        </div>
+      `);
+      document.querySelector("#module1-go-to-2")?.addEventListener("click", goToModule2);
+      thread.scrollTop = thread.scrollHeight;
+    }
+    return;
+  }
+
+  // Usa o overlay existente com texto do Módulo 1
+  const title = document.querySelector("#transition-title");
+  const subtitle = document.querySelector("#transition-subtitle");
+  const btn = document.querySelector("#transition-continue");
+
+  if (title) title.textContent = "Hipotese de negocio validada!";
+  if (subtitle) subtitle.textContent = "Seu Modulo 1 esta concluido. Avance para o Modulo 2 quando estiver pronto.";
+  if (btn) btn.textContent = "Ir para o Modulo 2";
+
+  overlay.dataset.nextStageKey = "";
+  overlay.dataset.isModule1Completion = "true";
+  overlay.classList.remove("hidden");
+  fireConfetti(false);
+}
+
+function goToModule2() {
+  const overlay = document.querySelector("#agent-transition-overlay");
+  if (overlay) {
+    overlay.classList.add("hidden");
+    overlay.dataset.isModule1Completion = "";
+    // Restaura texto padrão do botão
+    const btn = document.querySelector("#transition-continue");
+    if (btn) btn.textContent = "Continuar";
+  }
+  openModule("module-2");
 }
 
 function showAgentTransitionOverlay(completedAgentId, nextStageKey) {
@@ -1135,8 +1206,8 @@ async function requestLessonAgentAnswer(module, stage, input, thread = null) {
     thread: thread || memberApp.state.assistantThreads[key] || []
   };
 
-  // Módulo 1 usa streaming SSE; demais módulos usam resposta JSON simples
-  if (module.id === "module-1") {
+  // Módulos 1 e 2 são agent-driven (streaming SSE); demais são guias técnicos (JSON simples)
+  if (module.id === "module-1" || module.id === "module-2") {
     return await streamLessonAgentAnswer(body, key);
   }
 
@@ -1215,15 +1286,11 @@ async function streamLessonAgentAnswer(body, key) {
 }
 
 function stageKeyForAgentId(agentId) {
-  const index = [
-    "business_modeling",
-    "target_audience",
-    "strategic_differentiation",
-    "strategic_pricing",
-    "product_concept",
-    "visual_identity"
-  ].indexOf(agentId);
-  return index >= 0 ? `module-1.${index}` : "";
+  // Deve espelhar stageKeyFromAgentId() do servidor
+  if (agentId === "business_modeling") return "module-1.0";
+  const module2Agents = ["target_audience", "strategic_differentiation", "strategic_pricing", "product_concept", "visual_identity"];
+  const index = module2Agents.indexOf(agentId);
+  return index >= 0 ? `module-2.${index}` : "";
 }
 
 function isLocalPreview() {

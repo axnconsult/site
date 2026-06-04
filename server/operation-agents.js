@@ -1,6 +1,77 @@
 import { readFile } from "node:fs/promises";
 import path from "node:path";
 
+// ─── Agente Validador (Anthropic/Claude) ─────────────────────────────────────
+// Invisível ao usuário. Revisa cada resposta do Agente 01 antes de enviar ao
+// frontend — remove hipóteses sem mercado, qualifica dados duvidosos, simplifica
+// jargão e bloqueia invasão de escopo dos agentes seguintes.
+
+const VALIDATOR_PROMPT = `Você é um revisor silencioso de qualidade do AXN Consult.
+Você recebe a resposta que um agente de modelagem de negócio (GPT) está prestes a enviar a um empreendedor iniciante. Sua função é revisar essa resposta antes que o usuário a leia.
+O usuário não sabe que você existe. Nunca se identifique, nunca adicione comentários sobre sua revisão, nunca altere o tom conversacional do agente original.
+
+Revise a resposta considerando:
+
+1. HIPÓTESES DE NEGÓCIO (quando presentes):
+   - Existe evidência real de mercado comprador para cada hipótese?
+   - Se uma hipótese for claramente superior, destaque-a e reduza o peso das demais.
+   - Remova hipóteses que sejam apenas interesse pessoal sem demanda demonstrável.
+   - Máximo de 3 hipóteses. Se houver uma óbvia, apresente só ela.
+
+2. DADOS E PESQUISA:
+   - Afirmações sobre mercado, concorrência ou demanda parecem baseadas em dados reais?
+   - Se parecerem genéricas ou inventadas, remova-as ou substitua por linguagem cautelosa ("há indícios de que...", "vale verificar se...").
+
+3. LINGUAGEM:
+   - O usuário não tem conhecimento de administração ou marketing.
+   - Simplifique jargão técnico sem perder precisão.
+   - Menos opções é melhor. Clareza acima de completude.
+
+4. ESCOPO:
+   - O agente está invadindo etapas futuras (público-alvo detalhado, precificação, identidade visual)?
+   - Se sim, remova essas partes.
+
+Retorne APENAS a mensagem revisada, sem nenhum comentário adicional.
+Se a mensagem estiver adequada, retorne-a sem alterações.`;
+
+async function validateWithClaude(message) {
+  if (!process.env.ANTHROPIC_API_KEY) return message;
+
+  const controller = new AbortController();
+  const timeout = setTimeout(() => controller.abort(), 15000); // 15s max para o validador
+
+  try {
+    const response = await fetch("https://api.anthropic.com/v1/messages", {
+      method: "POST",
+      headers: {
+        "x-api-key": process.env.ANTHROPIC_API_KEY,
+        "anthropic-version": "2023-06-01",
+        "content-type": "application/json"
+      },
+      body: JSON.stringify({
+        model: process.env.ANTHROPIC_VALIDATOR_MODEL || "claude-haiku-4-5",
+        max_tokens: 2048,
+        system: VALIDATOR_PROMPT,
+        messages: [{ role: "user", content: message }]
+      }),
+      signal: controller.signal
+    });
+
+    if (!response.ok) {
+      console.warn("Validator returned", response.status);
+      return message; // fallback silencioso
+    }
+
+    const data = await response.json();
+    return data.content?.[0]?.text || message;
+  } catch (error) {
+    console.warn("Validator failed:", error.message);
+    return message; // nunca bloqueia — devolve original em caso de erro
+  } finally {
+    clearTimeout(timeout);
+  }
+}
+
 // Extrai o campo assistant_message do JSON estruturado enquanto ele chega em stream.
 // A Responses API com json_schema emite os campos na ordem do schema:
 // status → assistant_message → next_agent_id → transfer_block.
@@ -267,19 +338,29 @@ function nextAgentIdFor(currentAgentId) {
 }
 
 function agentIdFromStageKey(stageKey) {
-  const index = Number(String(stageKey || "").split(".")[1] || 0);
-  return AGENT_IDS[index] || "business_modeling";
+  // module-1.0  → business_modeling  (Agente 01, único no Módulo 1)
+  // module-2.N  → AGENTS[N+1]        (Agentes 02–06 no Módulo 2)
+  const [moduleId, stageStr] = String(stageKey || "").split(".");
+  const index = Number(stageStr || 0);
+  if (moduleId === "module-2") {
+    return AGENT_IDS[index + 1] || AGENT_IDS[1];
+  }
+  return AGENT_IDS[0]; // module-1 sempre usa Agente 01
 }
 
 function normalizeStageKey(stageKey) {
-  const index = Number(String(stageKey || "").split(".")[1] || 0);
-  const safeIndex = Number.isFinite(index) ? Math.min(Math.max(index, 0), AGENT_IDS.length - 1) : 0;
-  return `module-1.${safeIndex}`;
+  const [moduleId, stageStr] = String(stageKey || "").split(".");
+  const index = Number(stageStr || 0);
+  if (moduleId === "module-2") {
+    return `module-2.${Math.min(Math.max(Number.isFinite(index) ? index : 0, 0), 4)}`;
+  }
+  return "module-1.0";
 }
 
 function stageKeyFromAgentId(agentId) {
-  const index = Math.max(0, AGENT_IDS.indexOf(agentId));
-  return `module-1.${index}`;
+  const index = AGENT_IDS.indexOf(agentId);
+  if (index <= 0) return "module-1.0";
+  return `module-2.${index - 1}`; // target_audience→module-2.0, …, visual_identity→module-2.4
 }
 
 async function buildInstructions(rootDir, agent, history) {
@@ -659,11 +740,23 @@ export async function streamOperationAgentTurn({ rootDir, query, member, payload
     openaiRequest.tools = [{ type: "web_search_preview" }];
   }
 
-  await callOpenAIStream(openaiRequest, onDelta, async (fullText, responseId) => {
+  // Agente 01: suprimir streaming em tempo real → acumular → validar com Claude → enviar tudo de uma vez.
+  // Outros agentes: streaming direto ao frontend.
+  const shouldValidate = activeAgentId === "business_modeling";
+  const deltaProxy = shouldValidate ? () => {} : onDelta;
+
+  await callOpenAIStream(openaiRequest, deltaProxy, async (fullText, responseId) => {
     const parsed = parseAgentOutput({ output_text: fullText }, agent);
     const status = normalizeStatus(parsed.status);
     const nextAgentId = status === "result" ? nextAgentIdFor(activeAgentId) : "";
-    const answer = cleanAssistantMessage(parsed.assistant_message || parsed.summary_for_user || parsed.answer || fullText);
+    const rawAnswer = cleanAssistantMessage(parsed.assistant_message || parsed.summary_for_user || parsed.answer || fullText);
+
+    // Validação Claude (Agente 01 apenas)
+    const answer = shouldValidate ? await validateWithClaude(rawAnswer) : rawAnswer;
+
+    // Para o Agente 01, enviar a mensagem validada de uma vez ao frontend
+    if (shouldValidate) onDelta(answer);
+
     const transferBlock = normalizeTransferBlock(parsed.transfer_block, status);
     const projectSection = parsed.project_section || agent.section;
 
