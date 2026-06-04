@@ -622,7 +622,11 @@ function renderModules() {
 function openModule(moduleId) {
   memberApp.state.currentModule = moduleId;
   const module = currentModule();
-  memberApp.state.currentLesson = `${module.id}.0`;
+  // Preserva o progresso: só vai para .0 se o usuário ainda não tem etapa salva neste módulo
+  const alreadyInModule = String(memberApp.state.currentLesson || "").startsWith(moduleId + ".");
+  if (!alreadyInModule) {
+    memberApp.state.currentLesson = `${module.id}.0`;
+  }
   memberApp.state.currentLessonStep = "main";
   persistMemberState();
   renderModuleDetail();
@@ -640,7 +644,17 @@ function renderModuleDetail() {
 
 function renderLessonDetail(module, index) {
   const stage = module.stages[index] || module.stages[0];
-  document.querySelector("#stage-kicker").textContent = `Modulo ${module.number} - Etapa ${index + 1} de ${module.stages.length}`;
+  const isModule1 = module.id === "module-1";
+
+  // Módulo 1: navegação é controlada exclusivamente pelos agentes — esconde os botões
+  const nav = document.querySelector(".stage-navigation");
+  if (nav) nav.classList.toggle("hidden", isModule1);
+
+  // Kicker: no Módulo 1 mostra só o nome da etapa, sem "X de Y" para não sugerir navegação livre
+  document.querySelector("#stage-kicker").textContent = isModule1
+    ? `Modulo ${module.number} — ${stage[0]}`
+    : `Modulo ${module.number} - Etapa ${index + 1} de ${module.stages.length}`;
+
   document.querySelector("#stage-title").textContent = stage[0];
   document.querySelector("#stage-summary").textContent = stage[1];
   document.querySelector("#stage-content").innerHTML = buildStageContent(stage, module);
@@ -761,6 +775,10 @@ function getLessonSteps(lesson) {
 
 function moveStage(direction) {
   const module = currentModule();
+
+  // Módulo 1: navegação manual bloqueada — progressão só via agentes
+  if (module.id === "module-1") return;
+
   const index = getStageIndex(module);
 
   if (direction > 0) {
