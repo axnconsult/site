@@ -45,7 +45,11 @@ async function validateWithClaude(message) {
   if (!process.env.ANTHROPIC_API_KEY) return message;
 
   const controller = new AbortController();
-  const timeout = setTimeout(() => controller.abort(), 15000); // 15s max para o validador
+  const timeout = setTimeout(() => controller.abort(), 20000);
+
+  // Envolve o conteúdo em tags XML para que o modelo não confunda
+  // o texto do agente com instruções do sistema.
+  const userContent = `<mensagem_do_agente>\n${message}\n</mensagem_do_agente>\n\nRevise o texto acima conforme as instruções e devolva apenas o texto revisado.`;
 
   try {
     const response = await fetch("https://api.anthropic.com/v1/messages", {
@@ -59,7 +63,7 @@ async function validateWithClaude(message) {
         model: process.env.ANTHROPIC_VALIDATOR_MODEL || "claude-haiku-4-5",
         max_tokens: 2048,
         system: VALIDATOR_PROMPT,
-        messages: [{ role: "user", content: message }]
+        messages: [{ role: "user", content: userContent }]
       }),
       signal: controller.signal
     });
@@ -848,9 +852,9 @@ export async function streamOperationAgentTurn({ rootDir, query, member, payload
     openaiRequest.tools = [{ type: "web_search_preview" }];
   }
 
-  // Validador Anthropic desativado (causava alucinações). Streaming direto ao frontend para todos os agentes.
-  // Para reativar: trocar false por activeAgentId === "business_modeling"
-  const shouldValidate = false;
+  // Agente 01: acumula a resposta completa, valida com Claude, envia tudo de uma vez.
+  // Outros agentes: streaming direto ao frontend.
+  const shouldValidate = activeAgentId === "business_modeling";
   const deltaProxy = shouldValidate ? () => {} : onDelta;
 
   await callOpenAIStream(openaiRequest, deltaProxy, async (fullText, responseId) => {
