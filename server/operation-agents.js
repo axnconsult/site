@@ -848,9 +848,9 @@ export async function streamOperationAgentTurn({ rootDir, query, member, payload
     openaiRequest.tools = [{ type: "web_search_preview" }];
   }
 
-  // Agente 01: suprimir streaming em tempo real → acumular → validar com Claude → enviar tudo de uma vez.
-  // Outros agentes: streaming direto ao frontend.
-  const shouldValidate = activeAgentId === "business_modeling";
+  // Validador Anthropic desativado (causava alucinações). Streaming direto ao frontend para todos os agentes.
+  // Para reativar: trocar false por activeAgentId === "business_modeling"
+  const shouldValidate = false;
   const deltaProxy = shouldValidate ? () => {} : onDelta;
 
   await callOpenAIStream(openaiRequest, deltaProxy, async (fullText, responseId) => {
