@@ -1,95 +1,6 @@
 import { readFile } from "node:fs/promises";
 import path from "node:path";
 
-// ─── Agente Validador (Anthropic/Claude) ─────────────────────────────────────
-// Invisível ao usuário. Revisa cada resposta do Agente 01 antes de enviar ao
-// frontend — remove hipóteses sem mercado, qualifica dados duvidosos, simplifica
-// jargão e bloqueia invasão de escopo dos agentes seguintes.
-
-const VALIDATOR_PROMPT = `Você é um filtro de qualidade invisível. Sua saída é consumida diretamente por código — não por um humano.
-
-REGRA ABSOLUTA: sua resposta deve ser SOMENTE o texto revisado da mensagem. Nenhuma palavra sua. Nenhum prefácio. Nenhuma nota. Nenhum comentário sobre o que você fez ou não fez. Se a mensagem não precisar de ajuste, copie-a exatamente como está — sem acrescentar nada.
-
-ERRADO (nunca faça isso):
-- "A mensagem está adequada."
-- "Aqui está a versão revisada:"
-- "Retorno sem alterações."
-- Qualquer frase que seja sua, não do agente original.
-
-CERTO: devolver o texto do agente, e só isso.
-
-Critérios de revisão (aplique silenciosamente):
-
-1. HIPÓTESES DE NEGÓCIO (quando presentes):
-   - Existe evidência real de mercado comprador para cada hipótese?
-   - Se uma hipótese for claramente superior, destaque-a e reduza o peso das demais.
-   - Remova hipóteses que sejam apenas interesse pessoal sem demanda demonstrável.
-   - Máximo de 3 hipóteses. Se houver uma óbvia, apresente só ela.
-
-2. DADOS E PESQUISA:
-   - Afirmações sobre mercado, concorrência ou demanda parecem baseadas em dados reais?
-   - Se parecerem genéricas ou inventadas, remova-as ou substitua por linguagem cautelosa ("há indícios de que...", "vale verificar se...").
-
-3. LINGUAGEM:
-   - O usuário não tem conhecimento de administração ou marketing.
-   - Simplifique jargão técnico sem perder precisão.
-   - Menos opções é melhor. Clareza acima de completude.
-
-4. ESCOPO:
-   - O agente está invadindo etapas futuras (público-alvo detalhado, precificação, identidade visual)?
-   - Se sim, remova essas partes.
-
-Lembre-se: sua resposta é o texto revisado, e nada mais.`;
-
-async function validateWithClaude(message) {
-  if (!process.env.ANTHROPIC_API_KEY) return message;
-
-  const controller = new AbortController();
-  const timeout = setTimeout(() => controller.abort(), 20000);
-
-  // Envolve o conteúdo em tags XML para que o modelo não confunda
-  // o texto do agente com instruções do sistema.
-  const userContent = `<mensagem_do_agente>\n${message}\n</mensagem_do_agente>\n\nRevise o texto acima conforme as instruções e devolva apenas o texto revisado.`;
-
-  try {
-    const response = await fetch("https://api.anthropic.com/v1/messages", {
-      method: "POST",
-      headers: {
-        "x-api-key": process.env.ANTHROPIC_API_KEY,
-        "anthropic-version": "2023-06-01",
-        "content-type": "application/json"
-      },
-      body: JSON.stringify({
-        model: process.env.ANTHROPIC_VALIDATOR_MODEL || "claude-haiku-4-5",
-        max_tokens: 2048,
-        system: VALIDATOR_PROMPT,
-        messages: [{ role: "user", content: userContent }]
-      }),
-      signal: controller.signal
-    });
-
-    if (!response.ok) {
-      console.warn("Validator returned", response.status);
-      return message; // fallback silencioso
-    }
-
-    const data = await response.json();
-    const validated = data.content?.[0]?.text || "";
-    // Proteção: se o validador devolveu algo muito curto em relação ao original,
-    // provavelmente é meta-comentário (ex.: "Mensagem adequada.") — descarta e usa original.
-    if (validated && validated.length >= message.length * 0.4) {
-      return validated;
-    }
-    console.warn("Validator returned suspiciously short output — using original");
-    return message;
-  } catch (error) {
-    console.warn("Validator failed:", error.message);
-    return message;
-  } finally {
-    clearTimeout(timeout);
-  }
-}
-
 // Extrai o campo assistant_message do JSON estruturado enquanto ele chega em stream.
 // A Responses API com json_schema emite os campos na ordem do schema:
 // status → assistant_message → next_agent_id → transfer_block.
@@ -852,22 +763,11 @@ export async function streamOperationAgentTurn({ rootDir, query, member, payload
     openaiRequest.tools = [{ type: "web_search_preview" }];
   }
 
-  // Agente 01: acumula a resposta completa, valida com Claude, envia tudo de uma vez.
-  // Outros agentes: streaming direto ao frontend.
-  const shouldValidate = activeAgentId === "business_modeling";
-  const deltaProxy = shouldValidate ? () => {} : onDelta;
-
-  await callOpenAIStream(openaiRequest, deltaProxy, async (fullText, responseId) => {
+  await callOpenAIStream(openaiRequest, onDelta, async (fullText, responseId) => {
     const parsed = parseAgentOutput({ output_text: fullText }, agent);
     const status = normalizeStatus(parsed.status);
     const nextAgentId = status === "result" ? nextAgentIdFor(activeAgentId) : "";
-    const rawAnswer = cleanAssistantMessage(parsed.assistant_message || parsed.summary_for_user || parsed.answer || fullText);
-
-    // Validação Claude (Agente 01 apenas)
-    const answer = shouldValidate ? await validateWithClaude(rawAnswer) : rawAnswer;
-
-    // Para o Agente 01, enviar a mensagem validada de uma vez ao frontend
-    if (shouldValidate) onDelta(answer);
+    const answer = cleanAssistantMessage(parsed.assistant_message || parsed.summary_for_user || parsed.answer || fullText);
 
     const transferBlock = normalizeTransferBlock(parsed.transfer_block, status);
     const projectSection = parsed.project_section || agent.section;
