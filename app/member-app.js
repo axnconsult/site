@@ -922,7 +922,7 @@ function applyAssistantProgress(result) {
   }
 
   // Fim do Módulo 2 — visual_identity (último agente) concluiu
-  if (!nextStageKey && completedAgentId === "visual_identity") {
+  if (completedAgentId === "visual_identity") {
     markCurrentStageComplete();
     persistMemberState();
     showModuleCompletionOverlay();
