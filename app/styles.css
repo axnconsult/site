@@ -1537,6 +1537,18 @@ button:focus {
   background: rgba(204, 255, 0, 0.06);
 }
 
+.module-card--done {
+  opacity: 0.7;
+}
+
+.module-card__done-btn {
+  color: var(--muted) !important;
+  border-color: transparent !important;
+  background: transparent !important;
+  cursor: default;
+  pointer-events: none;
+}
+
 .module-card span,
 .module-card small {
   color: #d6ff83;
@@ -1675,6 +1687,94 @@ button:focus {
 .technical-command {
   display: grid;
   gap: 12px;
+}
+
+/* Tutorial passo a passo */
+.tutorial-block {
+  border-left: 2px solid rgba(204, 255, 0, 0.25);
+  padding: 0 0 20px 16px;
+  margin-bottom: 4px;
+}
+
+.tutorial-block:last-of-type {
+  padding-bottom: 8px;
+}
+
+.tutorial-heading {
+  font-size: 0.9rem;
+  font-weight: 700;
+  color: var(--fg);
+  margin: 0 0 8px;
+}
+
+.tutorial-body {
+  font-size: 0.9rem;
+  color: var(--muted);
+  line-height: 1.65;
+}
+
+.tutorial-body p,
+.tutorial-body ul,
+.tutorial-body ol,
+.tutorial-body table {
+  margin: 0 0 10px;
+}
+
+.tutorial-body li {
+  margin-bottom: 4px;
+}
+
+.tutorial-body a {
+  color: #ccff00;
+  text-underline-offset: 3px;
+}
+
+.tutorial-body code {
+  background: rgba(255,255,255,0.07);
+  border-radius: 4px;
+  padding: 1px 5px;
+  font-size: 0.82rem;
+}
+
+.tutorial-body th,
+.tutorial-body td {
+  padding: 5px 10px;
+  border-bottom: 1px solid rgba(255,255,255,0.08);
+}
+
+/* Comando inline com botão de cópia */
+.inline-command {
+  position: relative;
+  margin: 8px 0 10px;
+}
+
+.inline-command .command-box {
+  padding-right: 44px;
+}
+
+.btn-copy-inline {
+  position: absolute;
+  top: 8px;
+  right: 8px;
+  background: rgba(255,255,255,0.08);
+  border: none;
+  border-radius: 6px;
+  padding: 5px;
+  cursor: pointer;
+  color: var(--muted);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: background 0.15s, color 0.15s;
+}
+
+.btn-copy-inline:hover {
+  background: rgba(204, 255, 0, 0.15);
+  color: #ccff00;
+}
+
+.btn-copy-inline.copied {
+  color: #ccff00;
 }
 
 .profile-photo-preview {

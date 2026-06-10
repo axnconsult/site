@@ -86,8 +86,46 @@ const WIZARD_STEPS = [
     id: "domain",
     title: "Preparar dominio",
     objective: "Comprar o dominio, adicionar na Cloudflare e validar que a Cloudflare assumiu o DNS.",
-    actions: ["Compre ou selecione o dominio.", "Adicione o dominio na Cloudflare.", "Troque os nameservers no registrador.", "Aguarde o status ativo."],
-    command: "nslookup -type=ns {{domain}}",
+    tutorial: [
+      {
+        heading: "1. Compre o dominio",
+        body: `<p>Escolha a extensão do seu domínio:</p>
+<ul>
+  <li><strong>.com.br</strong> — compre no <a href="https://registro.br" target="_blank" rel="noopener">Registro.br</a>. Crie uma conta, busque o domínio desejado e finalize a compra. O processo leva menos de 10 minutos.</li>
+  <li><strong>.com</strong> — compre direto na <a href="https://www.cloudflare.com/products/registrar/" target="_blank" rel="noopener">Cloudflare Registrar</a>. Vantagem: o domínio já nasce dentro da Cloudflare, sem precisar trocar nameservers.</li>
+</ul>
+<p>Se comprou na Cloudflare, pule para o passo 3.</p>`
+      },
+      {
+        heading: "2. Adicione o domínio na Cloudflare",
+        body: `<p>Acesse <a href="https://dash.cloudflare.com" target="_blank" rel="noopener">dash.cloudflare.com</a> e crie uma conta gratuita se ainda não tiver.</p>
+<ol>
+  <li>Na tela inicial, clique em <strong>Add a domain</strong>.</li>
+  <li>Digite seu domínio (ex: <code>seudominio.com.br</code>) e clique em <strong>Continue</strong>.</li>
+  <li>Selecione o plano <strong>Free</strong> e clique em <strong>Continue</strong>.</li>
+  <li>A Cloudflare vai escanear os registros existentes — clique em <strong>Continue</strong> para aceitar.</li>
+  <li>Anote os dois <strong>nameservers</strong> que a Cloudflare exibir (ex: <code>aria.ns.cloudflare.com</code> e <code>bob.ns.cloudflare.com</code>).</li>
+</ol>`
+      },
+      {
+        heading: "3. Troque os nameservers no registrador",
+        body: `<p><strong>Se comprou no Registro.br:</strong></p>
+<ol>
+  <li>Acesse <a href="https://registro.br" target="_blank" rel="noopener">registro.br</a> → Painel → seu domínio.</li>
+  <li>Clique em <strong>Editar</strong> na seção de servidores DNS.</li>
+  <li>Substitua os nameservers atuais pelos dois da Cloudflare.</li>
+  <li>Salve. A propagação leva entre 30 minutos e 24 horas — normalmente menos de 1 hora.</li>
+</ol>
+<p><strong>Se comprou na Cloudflare:</strong> os nameservers já estão corretos. Nada a fazer.</p>`
+      },
+      {
+        heading: "4. Confirme que a Cloudflare assumiu o DNS",
+        body: `<p>Você pode verificar de duas formas:</p>
+<p><strong>Pela Cloudflare:</strong> em <em>dash.cloudflare.com</em>, o domínio vai aparecer com status <strong>Active</strong> (faixa verde).</p>
+<p><strong>Pelo terminal:</strong> copie e rode o comando abaixo. O resultado deve mostrar nameservers da Cloudflare.</p>`,
+        command: "nslookup -type=ns {{domain}}"
+      }
+    ],
     validation: "O comando deve mostrar nameservers da Cloudflare.",
     done: "A Cloudflare mostrar o dominio como ativo.",
     checklist: ["Dominio comprado", "Dominio adicionado na Cloudflare", "Nameservers trocados", "Cloudflare ativa"]
@@ -96,8 +134,50 @@ const WIZARD_STEPS = [
     id: "dns",
     title: "Configurar DNS",
     objective: "Criar os registros que levam site, painel, workflows e webhooks para a VPS.",
-    actions: ["Crie o registro A do dominio raiz.", "Crie o A de manager01.", "Crie CNAMEs para painel, workflows e webhooks.", "Mantenha tudo como DNS only."],
-    command: "nslookup {{domain}}\nnslookup painel.{{domain}}\nnslookup workflows.{{domain}}\nnslookup webhooks.{{domain}}",
+    tutorial: [
+      {
+        heading: "1. Acesse o painel de DNS da Cloudflare",
+        body: `<p>Em <a href="https://dash.cloudflare.com" target="_blank" rel="noopener">dash.cloudflare.com</a>, clique no seu domínio e depois em <strong>DNS → Records</strong> no menu lateral.</p>`
+      },
+      {
+        heading: "2. Crie o registro A do domínio raiz",
+        body: `<p>Clique em <strong>Add record</strong> e preencha:</p>
+<ul>
+  <li><strong>Type:</strong> A</li>
+  <li><strong>Name:</strong> <code>@</code></li>
+  <li><strong>IPv4 address:</strong> o IP da sua VPS</li>
+  <li><strong>Proxy status:</strong> DNS only (nuvem cinza)</li>
+</ul>
+<p>Clique em <strong>Save</strong>.</p>`
+      },
+      {
+        heading: "3. Crie o registro A do manager",
+        body: `<p>Clique em <strong>Add record</strong> e preencha:</p>
+<ul>
+  <li><strong>Type:</strong> A</li>
+  <li><strong>Name:</strong> <code>manager01</code></li>
+  <li><strong>IPv4 address:</strong> o IP da sua VPS</li>
+  <li><strong>Proxy status:</strong> DNS only (nuvem cinza)</li>
+</ul>
+<p>Clique em <strong>Save</strong>.</p>`
+      },
+      {
+        heading: "4. Crie os CNAMEs dos serviços",
+        body: `<p>Repita <strong>Add record</strong> para cada linha abaixo:</p>
+<table style="width:100%;border-collapse:collapse;font-size:0.85rem">
+  <tr style="text-align:left"><th>Type</th><th>Name</th><th>Target</th><th>Proxy</th></tr>
+  <tr><td>CNAME</td><td><code>painel</code></td><td><code>{{domain}}</code></td><td>DNS only</td></tr>
+  <tr><td>CNAME</td><td><code>workflows</code></td><td><code>{{domain}}</code></td><td>DNS only</td></tr>
+  <tr><td>CNAME</td><td><code>webhooks</code></td><td><code>{{domain}}</code></td><td>DNS only</td></tr>
+</table>
+<p style="margin-top:10px">Mantenha todos como <strong>DNS only</strong> (nuvem cinza). O Traefik cuida do HTTPS — não deixe a Cloudflare proxiar.</p>`
+      },
+      {
+        heading: "5. Confirme que tudo resolve",
+        body: `<p>Rode os comandos abaixo. Cada um deve retornar o IP da sua VPS.</p>`,
+        command: "nslookup {{domain}}\nnslookup painel.{{domain}}\nnslookup workflows.{{domain}}\nnslookup webhooks.{{domain}}"
+      }
+    ],
     validation: "Os nomes devem resolver para o IP da VPS.",
     done: "Todos os subdominios resolverem corretamente.",
     checklist: ["A raiz criado", "A manager01 criado", "CNAME painel criado", "CNAME workflows criado", "CNAME webhooks criado"]
@@ -106,8 +186,48 @@ const WIZARD_STEPS = [
     id: "email",
     title: "E-mail profissional",
     objective: "Validar o dominio para envio profissional com MailerSend.",
-    actions: ["Adicione o dominio no MailerSend.", "Copie SPF, DKIM e DMARC.", "Cole os registros na Cloudflare.", "Aguarde a verificacao."],
-    command: "nslookup -type=txt {{domain}}\nnslookup -type=txt _dmarc.{{domain}}",
+    tutorial: [
+      {
+        heading: "1. Crie uma conta no MailerSend",
+        body: `<p>Acesse <a href="https://www.mailersend.com" target="_blank" rel="noopener">mailersend.com</a> e crie uma conta gratuita. O plano free permite até 3.000 e-mails/mês — suficiente para começar.</p>`
+      },
+      {
+        heading: "2. Adicione seu domínio",
+        body: `<ol>
+  <li>No painel do MailerSend, vá em <strong>Email → Domains</strong>.</li>
+  <li>Clique em <strong>Add domain</strong>.</li>
+  <li>Digite seu domínio (ex: <code>seudominio.com.br</code>) e clique em <strong>Continue</strong>.</li>
+</ol>`
+      },
+      {
+        heading: "3. Copie os registros DNS",
+        body: `<p>O MailerSend vai exibir três registros para adicionar na Cloudflare:</p>
+<ul>
+  <li><strong>SPF</strong> — um registro TXT na raiz do domínio</li>
+  <li><strong>DKIM</strong> — um registro TXT com nome longo (algo como <code>mailersend._domainkey</code>)</li>
+  <li><strong>DMARC</strong> — um registro TXT em <code>_dmarc</code></li>
+</ul>
+<p>Deixe essa tela aberta — você vai copiar cada valor nos próximos passos.</p>`
+      },
+      {
+        heading: "4. Adicione os registros na Cloudflare",
+        body: `<p>Acesse <a href="https://dash.cloudflare.com" target="_blank" rel="noopener">dash.cloudflare.com</a> → seu domínio → <strong>DNS → Records</strong>.</p>
+<p>Para cada um dos três registros do MailerSend, clique em <strong>Add record</strong>:</p>
+<ul>
+  <li><strong>Type:</strong> TXT</li>
+  <li><strong>Name:</strong> exatamente o nome que o MailerSend indicar</li>
+  <li><strong>Content:</strong> o valor copiado do MailerSend</li>
+  <li><strong>Proxy status:</strong> DNS only</li>
+</ul>
+<p>Salve cada registro. A verificação pode levar alguns minutos.</p>`
+      },
+      {
+        heading: "5. Verifique no MailerSend",
+        body: `<p>Volte ao MailerSend → <strong>Domains</strong> → clique no seu domínio → <strong>Verify</strong>. Quando SPF, DKIM e DMARC aparecerem com ✓ verde, está pronto.</p>
+<p>Se quiser confirmar via terminal, rode os comandos abaixo:</p>`,
+        command: "nslookup -type=txt {{domain}}\nnslookup -type=txt _dmarc.{{domain}}"
+      }
+    ],
     validation: "MailerSend deve mostrar o dominio como verificado.",
     done: "SPF, DKIM e DMARC estiverem aprovados.",
     checklist: ["Dominio no MailerSend", "SPF configurado", "DKIM configurado", "DMARC configurado", "Envio testado"]
@@ -884,15 +1004,29 @@ function wireModuleActions() {
       a.remove();
       URL.revokeObjectURL(url);
 
-      if (status) {
-        status.textContent = "Download iniciado!";
+      if (status) status.classList.add("hidden");
+
+      // Transforma o botão em "Dashboard"
+      if (button) {
+        button.disabled = false;
+        button.textContent = "Dashboard";
+        button.onclick = () => {
+          document.querySelector("#module-completion-overlay")?.classList.add("hidden");
+          showMemberView("dashboard");
+        };
       }
     } catch (error) {
       if (status) {
         status.textContent = `Erro ao gerar o arquivo: ${error.message}`;
       }
-    } finally {
       if (button) button.disabled = false;
+    }
+  });
+
+  // Clique fora do card fecha o overlay
+  document.querySelector("#module-completion-overlay")?.addEventListener("click", (e) => {
+    if (e.target === e.currentTarget) {
+      e.currentTarget.classList.add("hidden");
     }
   });
 }
@@ -1111,19 +1245,30 @@ function renderDashboard() {
   if (settingsNameInput) settingsNameInput.value = projectName;
 }
 
+function isModuleComplete(module) {
+  return module.stages.every((_, index) =>
+    memberApp.state.completedSteps.includes(`${module.id}.${index}`)
+  );
+}
+
 function renderModules() {
   const root = document.querySelector("#module-grid");
   if (!root) return;
 
-  root.innerHTML = COURSE_MODULES.map((module) => `
-    <article class="module-card">
+  root.innerHTML = COURSE_MODULES.map((module) => {
+    const done = isModuleComplete(module);
+    return `
+    <article class="module-card${done ? " module-card--done" : ""}">
       <span>Modulo ${module.number}</span>
       <h3>${escapeHtml(module.title)}</h3>
       <p>${escapeHtml(module.summary)}</p>
       <small>${module.stages.length} etapas</small>
-      <button class="button button-secondary" type="button" data-module-id="${module.id}">Abrir modulo</button>
-    </article>
-  `).join("");
+      ${done
+        ? `<button class="button button-secondary module-card__done-btn" type="button" data-module-id="${module.id}">✓ Concluido</button>`
+        : `<button class="button button-secondary" type="button" data-module-id="${module.id}">Abrir modulo</button>`
+      }
+    </article>`;
+  }).join("");
 
   root.querySelectorAll("[data-module-id]").forEach((button) => {
     button.addEventListener("click", () => openModule(button.dataset.moduleId));
@@ -1404,6 +1549,17 @@ function renderLessonStage(lesson, steps) {
     });
   });
 
+  document.querySelectorAll(".btn-copy-inline").forEach((button) => {
+    button.addEventListener("click", async () => {
+      const text = button.closest(".inline-command")?.querySelector("code")?.textContent || "";
+      try {
+        await navigator.clipboard?.writeText(text);
+        button.classList.add("copied");
+        setTimeout(() => button.classList.remove("copied"), 1800);
+      } catch { /* silencioso */ }
+    });
+  });
+
   document.querySelectorAll("[data-stage-check]").forEach((input) => {
     input.addEventListener("change", () => {
       memberApp.state.checklist[input.dataset.stageCheck] = input.checked;
@@ -1423,7 +1579,16 @@ function buildLessonStepContent(step, lesson) {
     `;
   }).join("");
 
-  const technical = lesson[2] === "technical" && step.command
+  // Tutorial passo a passo (etapas com campo tutorial[])
+  const tutorialHtml = (step.tutorial || []).map((block) => {
+    const cmdHtml = block.command
+      ? `<div class="inline-command"><pre class="command-box"><code>${escapeHtml(fillTemplate(block.command))}</code></pre><button class="btn-copy-inline" type="button" data-copy-command title="Copiar"><svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="9" y="9" width="13" height="13" rx="2"/><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/></svg></button></div>`
+      : "";
+    return `<div class="tutorial-block"><h4 class="tutorial-heading">${escapeHtml(block.heading)}</h4><div class="tutorial-body">${block.body}${cmdHtml}</div></div>`;
+  }).join("");
+
+  // Bloco de comando isolado (etapas sem tutorial, ex: VPS, Swarm)
+  const technical = !step.tutorial && lesson[2] === "technical" && step.command
     ? `
       <div class="technical-command">
         <div class="wizard-block-title">
@@ -1459,8 +1624,11 @@ function buildLessonStepContent(step, lesson) {
         `).join("")
     : "";
 
+  const intro = step.content ? `<p>${escapeHtml(step.content)}</p>` : "";
+
   return `
-    <p>${escapeHtml(step.content)}</p>
+    ${intro}
+    ${tutorialHtml}
     ${technical}
     ${yamlBlocks}
     <div class="wizard-checklist">${checklist}</div>
@@ -1472,6 +1640,14 @@ function buildStageContent(stage, module) {
     const project = memberApp.state.project;
     const filled = Boolean(project.domain && project.serverIp);
     return `
+      <div class="wizard-layout">
+        <nav class="wizard-steps" id="lesson-steps"></nav>
+        <div class="wizard-panel">
+          <p class="eyebrow" id="lesson-step-kicker"></p>
+          <h3 id="lesson-step-title"></h3>
+          <div id="lesson-step-content"></div>
+        </div>
+      </div>
       <details class="wizard-project-fields"${filled ? "" : " open"}>
         <summary>Dados do projeto tecnico</summary>
         <div class="wizard-project-form">
@@ -1483,14 +1659,6 @@ function buildStageContent(stage, module) {
           <button class="button button-secondary" type="button" id="save-wizard-fields">Salvar dados</button>
         </div>
       </details>
-      <div class="wizard-layout">
-        <nav class="wizard-steps" id="lesson-steps"></nav>
-        <div class="wizard-panel">
-          <p class="eyebrow" id="lesson-step-kicker"></p>
-          <h3 id="lesson-step-title"></h3>
-          <div id="lesson-step-content"></div>
-        </div>
-      </div>
     `;
   }
   const result = module.result ? `<p><strong>Resultado do modulo:</strong> ${escapeHtml(module.result)}.</p>` : "";
