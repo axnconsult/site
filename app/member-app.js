@@ -1666,7 +1666,9 @@ function getLessonSteps(lesson) {
       command: step.command,
       checklist: step.checklist,
       validation: step.validation,
-      done: step.done
+      done: step.done,
+      tutorial: step.tutorial,
+      yaml: step.yaml
     }));
   }
 
