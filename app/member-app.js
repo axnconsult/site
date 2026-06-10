@@ -128,7 +128,7 @@ const WIZARD_STEPS = [
     ],
     validation: "O comando deve mostrar nameservers da Cloudflare.",
     done: "A Cloudflare mostrar o dominio como ativo.",
-    checklist: ["Dominio comprado", "Dominio adicionado na Cloudflare", "Nameservers trocados", "Cloudflare ativa"]
+    checklist: ["Finalizei a compra do domínio", "Adicionei o domínio na Cloudflare (plano Free)", "Atualizei os nameservers no registrador para os da Cloudflare", "Confirmei status 'Active' na Cloudflare"]
   },
   {
     id: "dns",
@@ -180,7 +180,7 @@ const WIZARD_STEPS = [
     ],
     validation: "Os nomes devem resolver para o IP da VPS.",
     done: "Todos os subdominios resolverem corretamente.",
-    checklist: ["A raiz criado", "A manager01 criado", "CNAME painel criado", "CNAME workflows criado", "CNAME webhooks criado"]
+    checklist: ["Criei registro A para raiz (@) com o IP do VPS", "Criei registro A para manager01 com o IP do VPS", "Criei CNAME painel → manager01.{{domain}}", "Criei CNAME workflows → manager01.{{domain}}", "Criei CNAME webhooks → manager01.{{domain}}", "Confirmei todos os registros com nslookup"]
   },
   {
     id: "email",
@@ -230,37 +230,103 @@ const WIZARD_STEPS = [
     ],
     validation: "MailerSend deve mostrar o dominio como verificado.",
     done: "SPF, DKIM e DMARC estiverem aprovados.",
-    checklist: ["Dominio no MailerSend", "SPF configurado", "DKIM configurado", "DMARC configurado", "Envio testado"]
+    checklist: ["Criei conta e adicionei o domínio no MailerSend", "Adicionei o registro SPF no Cloudflare", "Adicionei os registros DKIM no Cloudflare", "Adicionei o registro DMARC no Cloudflare", "Todos os registros estão verdes no MailerSend"]
   },
   {
     id: "vps",
     title: "Acessar VPS",
     objective: "Entrar no servidor e preparar a base do sistema.",
-    actions: ["Copie o IP publico da VPS.", "Acesse via SSH.", "Atualize pacotes do servidor."],
-    command: "ssh root@{{serverIp}}\napt update && apt upgrade -y",
-    validation: "Voce deve conseguir operar o terminal da VPS.",
-    done: "O acesso SSH funcionar sem erro.",
-    checklist: ["VPS criada", "IP confirmado", "SSH funcionando", "Servidor atualizado"]
+    tutorial: [
+      {
+        heading: "1. Crie a VPS",
+        body: `<p>Recomendamos a <a href="https://hostinger.com.br/vps-hosting" target="_blank" rel="noopener">Hostinger VPS</a> pelo custo-benefício e suporte em português. O plano <strong>KVM 2</strong> (2 vCPU, 8 GB RAM) é suficiente para toda a infraestrutura.</p>
+<ol>
+  <li>Acesse <a href="https://hostinger.com.br/vps-hosting" target="_blank" rel="noopener">hostinger.com.br/vps-hosting</a> e escolha o plano <strong>KVM 2</strong>.</li>
+  <li>Na configuração, selecione sistema operacional <strong>Ubuntu 24.04</strong>.</li>
+  <li>Escolha a região <strong>São Paulo</strong> — menor latência para o Brasil.</li>
+  <li>Conclua a compra. O painel de controle da VPS aparece em alguns minutos.</li>
+  <li>No painel da Hostinger, acesse <strong>VPS → Gerenciar</strong> e copie o <strong>IP público</strong> — você vai precisar dele agora.</li>
+  <li>A senha root chega por e-mail ou é definida no próprio painel.</li>
+</ol>`
+      },
+      {
+        heading: "2. Acesse via SSH",
+        body: `<p>No seu terminal local (PowerShell, CMD, Terminal, etc.), conecte no servidor:</p>`,
+        command: "ssh root@{{serverIp}}"
+      },
+      {
+        heading: "3. Atualize os pacotes do servidor",
+        body: `<p>Na primeira vez que entrar no servidor, atualize tudo antes de instalar qualquer coisa:</p>`,
+        command: "apt update && apt upgrade -y"
+      },
+      {
+        heading: "4. Configure o firewall básico",
+        body: `<p>Libere as portas necessárias e bloqueie o resto:</p>`,
+        command: "ufw allow 22/tcp\nufw allow 80/tcp\nufw allow 443/tcp\nufw --force enable\nufw status"
+      }
+    ],
+    checklist: ["Criei a VPS e anotei o IP público", "Conectei via SSH com sucesso", "Atualizei os pacotes do servidor", "Firewall configurado com portas 22, 80 e 443 abertas"]
   },
   {
     id: "swarm",
     title: "Docker Swarm",
     objective: "Instalar Docker, iniciar Swarm e criar a rede publica da infra.",
-    actions: ["Instale Docker.", "Inicialize o Swarm.", "Crie a rede publica.", "Crie volumes base."],
-    command: "curl -fsSL https://get.docker.com | sh\ndocker swarm init --advertise-addr {{serverIp}}\ndocker network create --driver=overlay --attachable network_swarm_public\ndocker volume create volume_swarm_certificates\ndocker volume create portainer_data\ndocker volume create postgres_data\ndocker volume create redis_n8n_data",
-    validation: "`docker node ls` deve mostrar o node como Ready.",
-    done: "A rede network_swarm_public existir.",
-    checklist: ["Docker instalado", "Swarm iniciado", "Rede publica criada", "Volumes criados"]
+    tutorial: [
+      {
+        heading: "1. Instale o Docker",
+        body: `<p>Execute o instalador oficial do Docker no servidor:</p>`,
+        command: "curl -fsSL https://get.docker.com | sh"
+      },
+      {
+        heading: "2. Inicialize o Swarm",
+        body: `<p>Transforme o servidor em um nó manager do Docker Swarm. Use o IP público da sua VPS:</p>`,
+        command: "docker swarm init --advertise-addr {{serverIp}}"
+      },
+      {
+        heading: "3. Crie a rede pública",
+        body: `<p>Todos os serviços que precisam se comunicar com o Traefik (o proxy reverso) precisam estar nessa rede:</p>`,
+        command: "docker network create --driver=overlay --attachable network_swarm_public"
+      },
+      {
+        heading: "4. Crie os volumes de dados",
+        body: `<p>Volumes são onde os dados persistem mesmo que os containers sejam reiniciados:</p>`,
+        command: "docker volume create volume_swarm_certificates\ndocker volume create portainer_data\ndocker volume create postgres_data\ndocker volume create redis_n8n_data"
+      },
+      {
+        heading: "5. Confirme que tudo ficou certo",
+        body: `<p>O nó deve aparecer como <strong>Leader</strong> com status <strong>Ready</strong>:</p>`,
+        command: "docker node ls"
+      }
+    ],
+    checklist: ["Docker instalado com sucesso", "Swarm iniciado — node aparece como Leader", "Rede network_swarm_public criada", "Volumes de dados criados (certificates, portainer, postgres, redis)"]
   },
   {
     id: "traefik",
     title: "Subir Traefik",
     objective: "Publicar o proxy publico unico com HTTP, HTTPS e Let's Encrypt.",
-    actions: ["No Portainer, va em Stacks > Add stack.", "Cole o YAML abaixo no editor.", "Suba a stack.", "Confira os logs."],
-    command: "docker service ls\ndocker service logs traefik_traefik --tail 100",
-    validation: "O servico Traefik deve aparecer com replica 1/1.",
-    done: "Traefik rodar e portas 80/443 estarem abertas.",
-    checklist: ["Stack criada no Portainer", "E-mail Let's Encrypt configurado", "Portas 80/443 abertas", "Servico 1/1"],
+    tutorial: [
+      {
+        heading: "1. Crie o arquivo da stack no servidor",
+        body: `<p>O Portainer ainda não existe — então o Traefik precisa ser deployado diretamente via SSH. No terminal conectado ao servidor, crie o arquivo YAML:</p>`,
+        command: "mkdir -p /opt/stacks/traefik\nnano /opt/stacks/traefik/stack.yml"
+      },
+      {
+        heading: "2. Cole o YAML no editor",
+        body: `<p>Copie o conteúdo do bloco <strong>traefik — stack.yml</strong> abaixo e cole no nano. Antes de salvar, localize a linha com <code>acme.email</code> e substitua pelo seu e-mail real — o Let's Encrypt vai usar esse endereço para notificações de certificado.</p>
+<p>Salve com <kbd>Ctrl+O</kbd> → <kbd>Enter</kbd> e feche com <kbd>Ctrl+X</kbd>.</p>`
+      },
+      {
+        heading: "3. Faça o deploy da stack",
+        body: `<p>Ainda no terminal SSH, execute:</p>`,
+        command: "docker stack deploy -c /opt/stacks/traefik/stack.yml traefik"
+      },
+      {
+        heading: "4. Confirme que o Traefik subiu",
+        body: `<p>Aguarde ~20 segundos e verifique:</p>`,
+        command: "docker service ls\ndocker service logs traefik_traefik --tail 50"
+      }
+    ],
+    checklist: ["Arquivo stack.yml criado no servidor com e-mail correto", "Stack deployada via docker stack deploy", "Traefik rodando com réplica 1/1", "Portas 80 e 443 abertas no firewall"],
     yaml: [{ name: "traefik — stack.yml", content: `version: "3.7"
 
 services:
@@ -322,11 +388,29 @@ networks:
     id: "portainer",
     title: "Subir Portainer",
     objective: "Abrir o painel operacional em HTTPS.",
-    actions: ["No Portainer via SSH ou terminal, cole o YAML abaixo como nova stack.", "Acesse pelo navegador.", "Crie o usuario administrador."],
-    command: "https://painel.{{domain}}",
-    validation: "A tela do Portainer deve abrir com HTTPS valido.",
-    done: "O Portainer mostrar o ambiente Swarm.",
-    checklist: ["Stack criada", "DNS painel validado", "HTTPS abriu", "Swarm conectado"],
+    tutorial: [
+      {
+        heading: "1. Crie e faça deploy da stack via SSH",
+        body: `<p>Assim como no Traefik, esse deploy também é feito via SSH porque o Portainer ainda não está no ar:</p>`,
+        command: "mkdir -p /opt/stacks/portainer\nnano /opt/stacks/portainer/stack.yml"
+      },
+      {
+        heading: "2. Cole o YAML e faça o deploy",
+        body: `<p>Copie o conteúdo do bloco <strong>portainer — stack.yml</strong> abaixo, cole no nano e salve. Depois execute:</p>`,
+        command: "docker stack deploy -c /opt/stacks/portainer/stack.yml portainer"
+      },
+      {
+        heading: "3. Aguarde o DNS propagar e acesse o painel",
+        body: `<p>O DNS do subdomínio <code>painel.{{domain}}</code> precisa estar propagado (etapa anterior). Aguarde 1-2 minutos após o deploy e acesse pelo navegador:</p>`,
+        command: "https://painel.{{domain}}"
+      },
+      {
+        heading: "4. Crie o usuário administrador",
+        body: `<p>Na primeira vez que abrir o Portainer, ele vai pedir para criar o usuário admin. Defina um nome de usuário e uma senha forte. Depois clique em <strong>Get Started</strong> e depois em <strong>local</strong> para conectar ao Swarm local.</p>
+<p>A partir de agora, todos os deploys podem ser feitos pelo painel do Portainer via <strong>Stacks → Add stack</strong>.</p>`
+      }
+    ],
+    checklist: ["Stack do Portainer deployada via SSH", "Painel abre em https://painel.{{domain}} com HTTPS válido", "Usuário administrador criado", "Ambiente local (Swarm) visível no Portainer"],
     yaml: [{ name: "portainer — stack.yml", content: `version: "3.7"
 
 services:
@@ -380,11 +464,27 @@ volumes:
     id: "site",
     title: "Publicar site",
     objective: "Publicar uma imagem Docker como site em dominio proprio.",
-    actions: ["Cole o YAML abaixo no Portainer como nova stack.", "Substitua SENHA_FORTE_AQUI pela senha do Postgres.", "Valide /health apos subir."],
-    command: "curl -I https://{{domain}}\ncurl https://{{domain}}/health",
-    validation: "O /health deve responder ok.",
-    done: "O site abrir em HTTPS e o container nao reiniciar.",
-    checklist: ["Imagem configurada", "Labels Traefik configuradas", "DATABASE_URL preenchida", "/health ok"],
+    tutorial: [
+      {
+        heading: "1. Crie a stack no Portainer",
+        body: `<p>No Portainer, acesse <strong>Stacks → Add stack</strong>. Dê o nome <code>site</code> e cole o conteúdo do YAML abaixo no editor.</p>
+<p>Antes de criar, localize a variável <code>DATABASE_URL</code> no YAML e substitua <code>SENHA_FORTE_AQUI</code> pela senha real que você definiu no Postgres.</p>`
+      },
+      {
+        heading: "2. Configure a imagem Docker",
+        body: `<p>A variável <code>{{siteImage}}</code> no YAML deve ser substituída pelo endereço real da sua imagem Docker (ex: <code>registry.hub.docker.com/seunome/seusite:latest</code>). Se ainda não tem uma imagem, use a imagem de placeholder da Axon para testar o deploy.</p>`
+      },
+      {
+        heading: "3. Faça o deploy e aguarde",
+        body: `<p>Clique em <strong>Deploy the stack</strong>. Aguarde ~30 segundos e verifique se o container está rodando sem reiniciar (status <strong>Running</strong>, não <strong>Starting</strong> em loop).</p>`
+      },
+      {
+        heading: "4. Valide o site e o health check",
+        body: `<p>Confirme que o site abre com HTTPS e que o health check responde:</p>`,
+        command: "curl -I https://{{domain}}\ncurl https://{{domain}}/health"
+      }
+    ],
+    checklist: ["Stack criada no Portainer com DATABASE_URL correta", "Container rodando sem reiniciar em loop", "https://{{domain}} abre o site com HTTPS", "/health responde 'ok'"],
     yaml: [{ name: "site — stack.yml", content: `version: "3.7"
 
 services:
@@ -394,7 +494,7 @@ services:
     environment:
       NODE_ENV: production
       PORT: "80"
-      DATABASE_URL: "postgres://axon_app:SENHA_FORTE_AQUI@axon_postgres:5432/axon_ops"
+      DATABASE_URL: "postgres://axon_app:SENHA_FORTE_AQUI@postgres:5432/axon_ops"
     networks:
       - network_swarm_public
     healthcheck:
@@ -440,15 +540,33 @@ networks:
     id: "postgres",
     title: "Subir Postgres",
     objective: "Criar banco operacional para o site e automacoes.",
-    actions: ["Cole o YAML abaixo no Portainer como nova stack.", "Substitua SENHA_FORTE_AQUI por uma senha forte.", "Apos subir, crie o banco e o usuario via terminal."],
-    command: "docker run --rm -it --network network_swarm_public postgres:16 psql \"postgres://axon_app:SENHA_FORTE_AQUI@axon_postgres:5432/axon_ops\"",
-    validation: "O prompt do psql deve abrir sem erro.",
-    done: "O host interno axon_postgres funcionar.",
-    checklist: ["Stack Postgres rodando", "Banco axon_ops criado", "Usuario axon_app criado", "Conexao interna validada"],
+    tutorial: [
+      {
+        heading: "1. Crie a stack no Portainer",
+        body: `<p>No Portainer, acesse <strong>Stacks → Add stack</strong>. Dê o nome <code>postgres</code> e cole o YAML abaixo. Antes de criar, substitua <code>SENHA_FORTE_AQUI</code> por uma senha que você vai guardar — ela será usada em todas as conexões ao banco.</p>
+<p>Clique em <strong>Deploy the stack</strong> e aguarde o container subir.</p>`
+      },
+      {
+        heading: "2. Crie o banco e o usuário",
+        body: `<p>Com o Postgres rodando, conecte no container via SSH para criar o banco e o usuário da aplicação. Substitua <code>SUA_SENHA_POSTGRES</code> pela senha que você usou no YAML:</p>`,
+        command: "docker exec -it $(docker ps -qf name=postgres) psql -U postgres"
+      },
+      {
+        heading: "3. Execute os comandos SQL",
+        body: `<p>Dentro do prompt <code>postgres=#</code>, execute os três comandos abaixo (um de cada vez). Substitua <code>SENHA_FORTE_AQUI</code> pela senha da aplicação:</p>`,
+        command: "CREATE DATABASE axon_ops;\nCREATE USER axon_app WITH ENCRYPTED PASSWORD 'SENHA_FORTE_AQUI';\nGRANT ALL PRIVILEGES ON DATABASE axon_ops TO axon_app;\n\\q"
+      },
+      {
+        heading: "4. Valide a conexão interna",
+        body: `<p>Teste se a conexão funciona de dentro da rede Swarm:</p>`,
+        command: "docker run --rm -it --network network_swarm_public postgres:16 psql \"postgres://axon_app:SENHA_FORTE_AQUI@postgres:5432/axon_ops\""
+      }
+    ],
+    checklist: ["Stack do Postgres rodando no Portainer", "Banco axon_ops criado", "Usuário axon_app criado com senha forte", "Conexão interna validada com psql"],
     yaml: [{ name: "postgres — stack.yml", content: `version: "3.7"
 
 services:
-  axon_postgres:
+  postgres:
     image: pgvector/pgvector:pg16
     hostname: "{{.Service.Name}}.{{.Task.Slot}}"
     networks:
@@ -487,11 +605,43 @@ networks:
     id: "n8n",
     title: "n8n em fila",
     objective: "Subir editor, webhooks, worker, runners e Redis. Suba uma stack por vez, na ordem abaixo.",
-    actions: ["Suba Redis (1a stack).", "Suba o editor (2a stack).", "Suba os webhooks (3a stack).", "Suba o worker (4a stack).", "Suba os runners (5a stack).", "Execute um workflow simples."],
-    command: "docker service ls | grep n8n\ndocker service logs n8n_worker --tail 100",
-    validation: "Editor abre em workflows e jobs executam no worker.",
-    done: "Um workflow manual executar sem erro.",
-    checklist: ["Redis rodando", "Editor publicado", "Webhooks publicados", "Worker rodando", "Runners conectados"],
+    tutorial: [
+      {
+        heading: "1. Gere as credenciais necessárias",
+        body: `<p>Antes de criar as stacks, você precisa de dois tokens aleatórios. Execute no terminal SSH do servidor para gerar cada um:</p>`,
+        command: "openssl rand -hex 32"
+      },
+      {
+        heading: "2. Anote os valores",
+        body: `<p>Execute o comando acima <strong>duas vezes</strong> e anote os resultados:</p>
+<ul>
+  <li><strong>N8N_ENCRYPTION_KEY</strong> — chave de criptografia das credenciais salvas no n8n</li>
+  <li><strong>N8N_RUNNERS_AUTH_TOKEN</strong> — token de autenticação entre worker e runners</li>
+</ul>
+<p>Você vai substituir <code>N8N_ENCRYPTION_KEY_AQUI</code> e <code>N8N_RUNNERS_AUTH_TOKEN_AQUI</code> por esses valores em todas as stacks abaixo.</p>`
+      },
+      {
+        heading: "3. Suba as stacks em ordem",
+        body: `<p>No Portainer (<strong>Stacks → Add stack</strong>), suba as 5 stacks na sequência exata abaixo. Aguarde o status <strong>Running</strong> antes de passar para a próxima:</p>
+<ol>
+  <li><strong>redis-n8n</strong> — banco de filas em memória</li>
+  <li><strong>n8n-editor</strong> — interface visual (preencha todos os placeholders antes de criar)</li>
+  <li><strong>n8n-webhook</strong> — recebe webhooks externos</li>
+  <li><strong>n8n-worker</strong> — executa os jobs da fila</li>
+  <li><strong>n8n-runners</strong> — executa código JavaScript e Python</li>
+</ol>`
+      },
+      {
+        heading: "4. Confirme que todos os serviços subiram",
+        body: `<p>Via SSH, verifique os serviços e os logs do worker:</p>`,
+        command: "docker service ls | grep n8n\ndocker service logs n8n_worker --tail 50"
+      },
+      {
+        heading: "5. Teste com um workflow manual",
+        body: `<p>Acesse o editor em <a href="https://workflows.{{domain}}" target="_blank" rel="noopener">workflows.{{domain}}</a>. Crie um workflow com um nó <strong>Manual Trigger</strong> e um nó <strong>Set</strong>. Execute e confirme que a execução aparece no histórico sem erros.</p>`
+      }
+    ],
+    checklist: ["Redis rodando com réplica 1/1", "Editor do n8n abre em https://workflows.{{domain}}", "Serviço de webhooks rodando (3 réplicas)", "Worker processando jobs da fila", "Runners conectados — workflows executam sem erro"],
     yaml: [
       { name: "1 — redis-n8n (stack.yml)", content: `version: "3.7"
 
@@ -533,34 +683,62 @@ services:
     networks:
       - network_swarm_public
     environment:
-      N8N_ENCRYPTION_KEY: N8N_ENCRYPTION_KEY_AQUI
-      NODE_ENV: production
-      GENERIC_TIMEZONE: America/Sao_Paulo
-      N8N_RUNNERS_MODE: external
-      N8N_RUNNERS_AUTH_TOKEN: N8N_RUNNERS_AUTH_TOKEN_AQUI
-      DB_TYPE: postgresdb
-      DB_POSTGRESDB_DATABASE: n8n
-      DB_POSTGRESDB_HOST: axon_postgres
-      DB_POSTGRESDB_PORT: "5432"
-      DB_POSTGRESDB_USER: postgres
-      DB_POSTGRESDB_PASSWORD: SENHA_FORTE_AQUI
-      N8N_PORT: "5678"
-      N8N_HOST: workflows.{{domain}}
-      N8N_EDITOR_BASE_URL: https://workflows.{{domain}}/
-      N8N_PROTOCOL: https
-      WEBHOOK_URL: https://webhooks.{{domain}}/
-      EXECUTIONS_MODE: queue
-      QUEUE_BULL_REDIS_HOST: redis_n8n
-      QUEUE_BULL_REDIS_PORT: "6379"
-      QUEUE_BULL_REDIS_DB: "2"
-      N8N_EMAIL_MODE: smtp
-      N8N_SMTP_HOST: smtp.mailersend.net
-      N8N_SMTP_PORT: "587"
-      N8N_SMTP_USER: MAILERSEND_SMTP_USER_AQUI
-      N8N_SMTP_PASS: MAILERSEND_SMTP_PASS_AQUI
-      N8N_SMTP_SENDER: contato@{{domain}}
-      N8N_SMTP_SSL: "false"
-      N8N_SECURE_COOKIE: "true"
+      - N8N_ENCRYPTION_KEY=N8N_ENCRYPTION_KEY_AQUI
+      - NODE_ENV=production
+      - N8N_METRICS=true
+      - N8N_DIAGNOSTICS_ENABLED=false
+      - N8N_PAYLOAD_SIZE_MAX=16
+      - N8N_LOG_LEVEL=info
+      - GENERIC_TIMEZONE=America/Sao_Paulo
+      - N8N_ENFORCE_SETTINGS_FILE_PERMISSIONS=true
+      - N8N_RUNNERS_MODE=external
+      - N8N_RUNNERS_BROKER_LISTEN_ADDRESS=0.0.0.0
+      - N8N_RUNNERS_AUTH_TOKEN=N8N_RUNNERS_AUTH_TOKEN_AQUI
+      - N8N_NATIVE_PYTHON_RUNNER=true
+      - OFFLOAD_MANUAL_EXECUTIONS_TO_WORKERS=true
+      - DB_TYPE=postgresdb
+      - DB_POSTGRESDB_DATABASE=n8n
+      - DB_POSTGRESDB_HOST=postgres
+      - DB_POSTGRESDB_PORT=5432
+      - DB_POSTGRESDB_USER=postgres
+      - DB_POSTGRESDB_PASSWORD=SENHA_FORTE_AQUI
+      - N8N_PORT=5678
+      - N8N_HOST=workflows.{{domain}}
+      - N8N_EDITOR_BASE_URL=https://workflows.{{domain}}/
+      - N8N_PROTOCOL=https
+      - WEBHOOK_URL=https://webhooks.{{domain}}/
+      - N8N_ENDPOINT_WEBHOOK=webhook
+      - EXECUTIONS_MODE=queue
+      - QUEUE_BULL_REDIS_HOST=redis_n8n
+      - QUEUE_BULL_REDIS_PORT=6379
+      - QUEUE_BULL_REDIS_DB=2
+      - EXECUTIONS_TIMEOUT=3600
+      - EXECUTIONS_TIMEOUT_MAX=7200
+      - EXECUTIONS_DATA_PRUNE=true
+      - EXECUTIONS_DATA_MAX_AGE=336
+      - EXECUTIONS_DATA_PRUNE_MAX_COUNT=10000
+      - EXECUTIONS_DATA_SAVE_ON_ERROR=all
+      - EXECUTIONS_DATA_SAVE_ON_SUCCESS=all
+      - EXECUTIONS_DATA_SAVE_ON_PROGRESS=true
+      - EXECUTIONS_DATA_SAVE_MANUAL_EXECUTIONS=true
+      - NODE_FUNCTION_ALLOW_BUILTIN=*
+      - NODE_FUNCTION_ALLOW_EXTERNAL=lodash
+      - N8N_COMMUNITY_PACKAGES_ENABLED=true
+      - N8N_REINSTALL_MISSING_PACKAGES=true
+      - N8N_NODE_PATH=/home/node/.n8n/nodes
+      - N8N_AI_ENABLED=false
+      - N8N_ONBOARDING_FLOW_DISABLED=true
+      - N8N_EMAIL_MODE=smtp
+      - N8N_SMTP_HOST=smtp.mailersend.net
+      - N8N_SMTP_PORT=587
+      - N8N_SMTP_USER=MAILERSEND_SMTP_USER_AQUI
+      - N8N_SMTP_PASS=MAILERSEND_SMTP_PASS_AQUI
+      - N8N_SMTP_SENDER=contato@{{domain}}
+      - N8N_SMTP_SSL=false
+      - N8N_SECURE_COOKIE=false
+      - N8N_BLOCK_ENV_ACCESS_IN_NODE=false
+      - N8N_RESTRICT_FILE_ACCESS_TO=~/.n8n-files
+      - N8N_DEFAULT_BINARY_DATA_MODE=default
     deploy:
       mode: replicated
       replicas: 1
@@ -572,13 +750,13 @@ services:
           cpus: "1"
           memory: 1024M
       labels:
-        - "traefik.enable=true"
-        - "traefik.http.routers.n8n_editor.rule=Host(\`workflows.{{domain}}\`)"
-        - "traefik.http.routers.n8n_editor.entrypoints=websecure"
-        - "traefik.http.routers.n8n_editor.tls.certresolver=letsencryptresolver"
-        - "traefik.http.routers.n8n_editor.service=n8n_editor"
-        - "traefik.http.services.n8n_editor.loadbalancer.server.port=5678"
-        - "traefik.http.services.n8n_editor.loadbalancer.passHostHeader=true"
+        - traefik.enable=true
+        - traefik.http.routers.n8n_editor.rule=Host(\`workflows.{{domain}}\`)
+        - traefik.http.routers.n8n_editor.entrypoints=websecure
+        - traefik.http.routers.n8n_editor.tls.certresolver=letsencryptresolver
+        - traefik.http.routers.n8n_editor.service=n8n_editor
+        - traefik.http.services.n8n_editor.loadbalancer.server.port=5678
+        - traefik.http.services.n8n_editor.loadbalancer.passHostHeader=true
       update_config:
         parallelism: 1
         delay: 30s
@@ -587,8 +765,8 @@ services:
 
 networks:
   network_swarm_public:
-    external: true
-    name: network_swarm_public` },
+    name: network_swarm_public
+    external: true` },
       { name: "3 — n8n-webhook (stack.yml)", content: `version: "3.7"
 
 services:
@@ -599,26 +777,47 @@ services:
     networks:
       - network_swarm_public
     environment:
-      N8N_ENCRYPTION_KEY: N8N_ENCRYPTION_KEY_AQUI
-      NODE_ENV: production
-      GENERIC_TIMEZONE: America/Sao_Paulo
-      N8N_RUNNERS_MODE: external
-      N8N_RUNNERS_AUTH_TOKEN: N8N_RUNNERS_AUTH_TOKEN_AQUI
-      DB_TYPE: postgresdb
-      DB_POSTGRESDB_DATABASE: n8n
-      DB_POSTGRESDB_HOST: axon_postgres
-      DB_POSTGRESDB_PORT: "5432"
-      DB_POSTGRESDB_USER: postgres
-      DB_POSTGRESDB_PASSWORD: SENHA_FORTE_AQUI
-      N8N_PORT: "5678"
-      N8N_HOST: workflows.{{domain}}
-      N8N_EDITOR_BASE_URL: https://workflows.{{domain}}/
-      N8N_PROTOCOL: https
-      WEBHOOK_URL: https://webhooks.{{domain}}/
-      EXECUTIONS_MODE: queue
-      QUEUE_BULL_REDIS_HOST: redis_n8n
-      QUEUE_BULL_REDIS_PORT: "6379"
-      QUEUE_BULL_REDIS_DB: "2"
+      - N8N_ENCRYPTION_KEY=N8N_ENCRYPTION_KEY_AQUI
+      - NODE_ENV=production
+      - N8N_METRICS=true
+      - N8N_DIAGNOSTICS_ENABLED=false
+      - N8N_PAYLOAD_SIZE_MAX=16
+      - N8N_LOG_LEVEL=info
+      - GENERIC_TIMEZONE=America/Sao_Paulo
+      - N8N_ENFORCE_SETTINGS_FILE_PERMISSIONS=true
+      - N8N_RUNNERS_MODE=external
+      - N8N_RUNNERS_AUTH_TOKEN=N8N_RUNNERS_AUTH_TOKEN_AQUI
+      - N8N_NATIVE_PYTHON_RUNNER=true
+      - OFFLOAD_MANUAL_EXECUTIONS_TO_WORKERS=true
+      - DB_TYPE=postgresdb
+      - DB_POSTGRESDB_DATABASE=n8n
+      - DB_POSTGRESDB_HOST=postgres
+      - DB_POSTGRESDB_PORT=5432
+      - DB_POSTGRESDB_USER=postgres
+      - DB_POSTGRESDB_PASSWORD=SENHA_FORTE_AQUI
+      - N8N_PORT=5678
+      - N8N_HOST=workflows.{{domain}}
+      - N8N_EDITOR_BASE_URL=https://workflows.{{domain}}/
+      - N8N_PROTOCOL=https
+      - WEBHOOK_URL=https://webhooks.{{domain}}/
+      - N8N_ENDPOINT_WEBHOOK=webhook
+      - EXECUTIONS_MODE=queue
+      - QUEUE_BULL_REDIS_HOST=redis_n8n
+      - QUEUE_BULL_REDIS_PORT=6379
+      - QUEUE_BULL_REDIS_DB=2
+      - EXECUTIONS_TIMEOUT=3600
+      - EXECUTIONS_TIMEOUT_MAX=7200
+      - EXECUTIONS_DATA_PRUNE=true
+      - EXECUTIONS_DATA_MAX_AGE=336
+      - EXECUTIONS_DATA_PRUNE_MAX_COUNT=10000
+      - EXECUTIONS_DATA_SAVE_ON_ERROR=all
+      - EXECUTIONS_DATA_SAVE_ON_SUCCESS=all
+      - EXECUTIONS_DATA_SAVE_ON_PROGRESS=true
+      - EXECUTIONS_DATA_SAVE_MANUAL_EXECUTIONS=true
+      - NODE_FUNCTION_ALLOW_BUILTIN=*
+      - N8N_BLOCK_ENV_ACCESS_IN_NODE=false
+      - N8N_RESTRICT_FILE_ACCESS_TO=~/.n8n-files
+      - N8N_DEFAULT_BINARY_DATA_MODE=default
     deploy:
       mode: replicated
       replicas: 3
@@ -630,13 +829,13 @@ services:
           cpus: "1"
           memory: 1024M
       labels:
-        - "traefik.enable=true"
-        - "traefik.http.routers.n8n_webhook.rule=Host(\`webhooks.{{domain}}\`)"
-        - "traefik.http.routers.n8n_webhook.entrypoints=websecure"
-        - "traefik.http.routers.n8n_webhook.tls.certresolver=letsencryptresolver"
-        - "traefik.http.routers.n8n_webhook.service=n8n_webhook"
-        - "traefik.http.services.n8n_webhook.loadbalancer.server.port=5678"
-        - "traefik.http.services.n8n_webhook.loadbalancer.passHostHeader=true"
+        - traefik.enable=true
+        - traefik.http.routers.n8n_webhook.rule=Host(\`webhooks.{{domain}}\`)
+        - traefik.http.routers.n8n_webhook.entrypoints=websecure
+        - traefik.http.routers.n8n_webhook.tls.certresolver=letsencryptresolver
+        - traefik.http.routers.n8n_webhook.service=n8n_webhook
+        - traefik.http.services.n8n_webhook.loadbalancer.server.port=5678
+        - traefik.http.services.n8n_webhook.loadbalancer.passHostHeader=true
       update_config:
         parallelism: 1
         delay: 30s
@@ -645,8 +844,8 @@ services:
 
 networks:
   network_swarm_public:
-    external: true
-    name: network_swarm_public` },
+    name: network_swarm_public
+    external: true` },
       { name: "4 — n8n-worker (stack.yml)", content: `version: "3.7"
 
 services:
@@ -657,23 +856,47 @@ services:
     networks:
       - network_swarm_public
     environment:
-      N8N_ENCRYPTION_KEY: N8N_ENCRYPTION_KEY_AQUI
-      NODE_ENV: production
-      GENERIC_TIMEZONE: America/Sao_Paulo
-      N8N_RUNNERS_MODE: external
-      N8N_RUNNERS_BROKER_LISTEN_ADDRESS: 0.0.0.0
-      N8N_RUNNERS_AUTH_TOKEN: N8N_RUNNERS_AUTH_TOKEN_AQUI
-      DB_TYPE: postgresdb
-      DB_POSTGRESDB_DATABASE: n8n
-      DB_POSTGRESDB_HOST: axon_postgres
-      DB_POSTGRESDB_PORT: "5432"
-      DB_POSTGRESDB_USER: postgres
-      DB_POSTGRESDB_PASSWORD: SENHA_FORTE_AQUI
-      N8N_PORT: "5678"
-      EXECUTIONS_MODE: queue
-      QUEUE_BULL_REDIS_HOST: redis_n8n
-      QUEUE_BULL_REDIS_PORT: "6379"
-      QUEUE_BULL_REDIS_DB: "2"
+      - N8N_ENCRYPTION_KEY=N8N_ENCRYPTION_KEY_AQUI
+      - NODE_ENV=production
+      - N8N_METRICS=true
+      - N8N_DIAGNOSTICS_ENABLED=false
+      - N8N_PAYLOAD_SIZE_MAX=16
+      - N8N_LOG_LEVEL=info
+      - GENERIC_TIMEZONE=America/Sao_Paulo
+      - N8N_ENFORCE_SETTINGS_FILE_PERMISSIONS=true
+      - N8N_RUNNERS_MODE=external
+      - N8N_RUNNERS_BROKER_LISTEN_ADDRESS=0.0.0.0
+      - N8N_RUNNERS_AUTH_TOKEN=N8N_RUNNERS_AUTH_TOKEN_AQUI
+      - N8N_NATIVE_PYTHON_RUNNER=true
+      - OFFLOAD_MANUAL_EXECUTIONS_TO_WORKERS=true
+      - DB_TYPE=postgresdb
+      - DB_POSTGRESDB_DATABASE=n8n
+      - DB_POSTGRESDB_HOST=postgres
+      - DB_POSTGRESDB_PORT=5432
+      - DB_POSTGRESDB_USER=postgres
+      - DB_POSTGRESDB_PASSWORD=SENHA_FORTE_AQUI
+      - N8N_PORT=5678
+      - N8N_HOST=workflows.{{domain}}
+      - N8N_EDITOR_BASE_URL=https://workflows.{{domain}}/
+      - N8N_PROTOCOL=https
+      - WEBHOOK_URL=https://webhooks.{{domain}}/
+      - EXECUTIONS_MODE=queue
+      - QUEUE_BULL_REDIS_HOST=redis_n8n
+      - QUEUE_BULL_REDIS_PORT=6379
+      - QUEUE_BULL_REDIS_DB=2
+      - EXECUTIONS_TIMEOUT=3600
+      - EXECUTIONS_TIMEOUT_MAX=7200
+      - EXECUTIONS_DATA_PRUNE=true
+      - EXECUTIONS_DATA_MAX_AGE=336
+      - EXECUTIONS_DATA_PRUNE_MAX_COUNT=10000
+      - EXECUTIONS_DATA_SAVE_ON_ERROR=all
+      - EXECUTIONS_DATA_SAVE_ON_SUCCESS=all
+      - EXECUTIONS_DATA_SAVE_ON_PROGRESS=true
+      - EXECUTIONS_DATA_SAVE_MANUAL_EXECUTIONS=true
+      - NODE_FUNCTION_ALLOW_BUILTIN=*
+      - N8N_BLOCK_ENV_ACCESS_IN_NODE=false
+      - N8N_RESTRICT_FILE_ACCESS_TO=~/.n8n-files
+      - N8N_DEFAULT_BINARY_DATA_MODE=default
     deploy:
       mode: replicated
       replicas: 1
@@ -692,8 +915,8 @@ services:
 
 networks:
   network_swarm_public:
-    external: true
-    name: network_swarm_public` },
+    name: network_swarm_public
+    external: true` },
       { name: "5 — n8n-runners (stack.yml)", content: `version: "3.7"
 
 services:
@@ -732,11 +955,36 @@ networks:
     id: "ops",
     title: "Operacao minima",
     objective: "Aprender a ver saude, logs, atualizacao e rollback.",
-    actions: ["Liste servicos.", "Veja logs.", "Confira tasks da stack.", "Aprenda onde fazer rollback no Portainer."],
-    command: "docker service ls\ndocker stack ps NOME_DA_STACK\ndocker service logs NOME_DO_SERVICO --tail 100",
-    validation: "Voce deve conseguir identificar se o problema e DNS, proxy, container ou banco.",
-    done: "Voce souber diagnosticar uma falha simples.",
-    checklist: ["Sei ver servicos", "Sei ver logs", "Sei ver stack ps", "Sei localizar rollback"]
+    tutorial: [
+      {
+        heading: "1. Liste todos os serviços",
+        body: `<p>Esse comando mostra o estado de todos os serviços rodando no Swarm. A coluna <strong>REPLICAS</strong> mostra <code>1/1</code> quando está saudável — se mostrar <code>0/1</code>, algo está errado:</p>`,
+        command: "docker service ls"
+      },
+      {
+        heading: "2. Veja os logs de um serviço",
+        body: `<p>Substitua <code>NOME_DO_SERVICO</code> pelo nome real (ex: <code>traefik_traefik</code>, <code>n8n_worker</code>). A flag <code>-f</code> mostra os logs em tempo real:</p>`,
+        command: "docker service logs NOME_DO_SERVICO --tail 100 -f"
+      },
+      {
+        heading: "3. Veja o estado das tasks de uma stack",
+        body: `<p>Mostra o histórico de containers iniciados e parados em uma stack — útil para ver se há crash loop:</p>`,
+        command: "docker stack ps NOME_DA_STACK --no-trunc"
+      },
+      {
+        heading: "4. Faça rollback pelo Portainer",
+        body: `<p>Se um deploy quebrou algum serviço, você pode reverter pelo Portainer sem precisar do terminal:</p>
+<ol>
+  <li>Acesse <strong>Stacks</strong> no Portainer.</li>
+  <li>Clique na stack com problema.</li>
+  <li>No topo, clique em <strong>Editor</strong> para ver o YAML atual.</li>
+  <li>Edite o YAML (ex: reverta a tag da imagem) e clique em <strong>Update the stack</strong>.</li>
+</ol>
+<p>Para rollback direto via comando:</p>`,
+        command: "docker service rollback NOME_DO_SERVICO"
+      }
+    ],
+    checklist: ["Sei listar todos os serviços com docker service ls", "Sei ver logs em tempo real de um serviço", "Sei ver o estado das tasks de uma stack", "Sei localizar o rollback de serviço no Portainer e via comando"]
   }
 ];
 
@@ -1574,7 +1822,7 @@ function buildLessonStepContent(step, lesson) {
     return `
       <label class="inline-check">
         <input type="checkbox" data-stage-check="${id}" ${memberApp.state.checklist[id] ? "checked" : ""} />
-        ${escapeHtml(item)}
+        ${escapeHtml(fillTemplate(item))}
       </label>
     `;
   }).join("");
