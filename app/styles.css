@@ -1545,8 +1545,6 @@ button:focus {
   color: var(--muted) !important;
   border-color: transparent !important;
   background: transparent !important;
-  cursor: default;
-  pointer-events: none;
 }
 
 .module-card span,
