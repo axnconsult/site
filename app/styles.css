@@ -1841,47 +1841,57 @@ button:focus {
   font-weight: 800;
 }
 
-.wizard-project-fields {
-  padding: 16px;
-  border: 1px solid rgba(255, 255, 255, 0.08);
-  border-radius: 16px;
-  background: rgba(255, 255, 255, 0.025);
-  margin-bottom: 18px;
-}
-
-.wizard-project-fields summary {
-  cursor: pointer;
-  font-weight: 700;
-  margin-bottom: 4px;
-  list-style: none;
-  display: flex;
-  align-items: center;
-  gap: 8px;
-}
-
-.wizard-project-fields summary::before {
-  content: "▶";
-  font-size: 0.65rem;
-  color: var(--muted);
-  transition: transform 0.15s;
-}
-
-.wizard-project-fields[open] summary::before {
-  transform: rotate(90deg);
-}
-
-.wizard-project-fields[open] summary {
-  margin-bottom: 14px;
-}
-
-.wizard-project-form {
+.wizard-data-fields {
   display: grid;
-  grid-template-columns: repeat(2, minmax(0, 1fr));
+  grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
   gap: 14px;
   padding: 16px;
   border: 1px solid rgba(255, 255, 255, 0.08);
   border-radius: 16px;
   background: rgba(255, 255, 255, 0.025);
+}
+
+.wizard-data-input {
+  position: relative;
+  display: block;
+}
+
+.wizard-data-input input {
+  padding-right: 44px;
+}
+
+.wizard-data-field .field-check {
+  position: absolute;
+  right: 14px;
+  top: 50%;
+  width: 18px;
+  height: 18px;
+  opacity: 0;
+  transform: translateY(-50%) scale(0.4);
+  color: var(--accent);
+  pointer-events: none;
+  transition:
+    opacity 0.25s ease,
+    transform 0.3s cubic-bezier(0.34, 1.56, 0.64, 1);
+}
+
+.wizard-data-field.is-filled .field-check {
+  opacity: 1;
+  transform: translateY(-50%) scale(1);
+}
+
+.wizard-data-field.is-filled .field-check path {
+  stroke-dasharray: 24;
+  animation: wizard-check-draw 0.35s ease-out both;
+}
+
+@keyframes wizard-check-draw {
+  from {
+    stroke-dashoffset: 24;
+  }
+  to {
+    stroke-dashoffset: 0;
+  }
 }
 
 .wizard-block {
@@ -1907,11 +1917,6 @@ button:focus {
   white-space: pre-wrap;
 }
 
-.wizard-checklist {
-  display: grid;
-  grid-template-columns: repeat(2, minmax(0, 1fr));
-  gap: 10px;
-}
 
 .inline-check {
   display: flex;
@@ -2055,8 +2060,7 @@ button:focus {
   .form-grid,
   .members-metrics,
   .project-name-editor,
-  .wizard-project-form,
-  .wizard-checklist {
+  .wizard-data-fields {
     grid-template-columns: 1fr;
   }
 

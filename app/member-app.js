@@ -30,10 +30,10 @@ const COURSE_MODULES = [
     summary: "Coloque a infraestrutura no ar com dominio, VPS, Docker, Swarm e servicos base.",
     result: "Infraestrutura digital operacional",
     stages: [
-      ["Dominio e Cloudflare", "Compre o dominio, conecte na Cloudflare e prepare os registros DNS.", "technical", null, ["domain", "dns", "email"]],
+      ["Dominio, VPS e DNS", "Compre o dominio e a VPS, conecte na Cloudflare e aponte os registros DNS.", "technical", null, ["domain", "vps-compra", "dns", "email"]],
       ["VPS, Docker e Swarm", "Acesse a VPS, instale Docker e inicialize o Swarm.", "technical", null, ["vps", "swarm"]],
       ["Portainer e Traefik", "Suba o painel operacional e o proxy publico da infraestrutura.", "technical", null, ["traefik", "portainer"]],
-      ["PostgreSQL e Redis", "Suba os bancos e servicos de apoio para site, n8n e automacoes.", "technical", null, ["site", "postgres", "n8n"]],
+      ["PostgreSQL e n8n", "Suba o banco de dados e o n8n em fila para as automacoes.", "technical", null, ["postgres", "n8n"]],
       ["Validacao da infra", "Revise DNS, servicos, logs e saude da estrutura.", "technical", null, ["ops"]]
     ]
   },
@@ -120,15 +120,38 @@ const WIZARD_STEPS = [
       },
       {
         heading: "4. Confirme que a Cloudflare assumiu o DNS",
-        body: `<p>Você pode verificar de duas formas:</p>
-<p><strong>Pela Cloudflare:</strong> em <em>dash.cloudflare.com</em>, o domínio vai aparecer com status <strong>Active</strong> (faixa verde).</p>
-<p><strong>Pelo terminal:</strong> copie e rode o comando abaixo. O resultado deve mostrar nameservers da Cloudflare.</p>`,
-        command: "nslookup -type=ns {{domain}}"
+        body: `<p>Em <a href="https://dash.cloudflare.com" target="_blank" rel="noopener">dash.cloudflare.com</a>, o domínio deve aparecer com status <strong>Active</strong> (faixa verde). A propagação leva de 30 minutos a 24 horas — normalmente menos de 1 hora.</p>
+<p>Registre seu domínio no campo abaixo — os próximos passos usam esse dado.</p>`
       }
     ],
-    validation: "O comando deve mostrar nameservers da Cloudflare.",
+    validation: "A Cloudflare mostrar o dominio como ativo.",
     done: "A Cloudflare mostrar o dominio como ativo.",
-    checklist: ["Finalizei a compra do domínio", "Adicionei o domínio na Cloudflare (plano Free)", "Atualizei os nameservers no registrador para os da Cloudflare", "Confirmei status 'Active' na Cloudflare"]
+    fields: [{ key: "domain", label: "Seu dominio", placeholder: "seudominio.com.br" }]
+  },
+  {
+    id: "vps-compra",
+    title: "Contratar a VPS",
+    objective: "Contratar o servidor e anotar o IP publico — o DNS do proximo passo aponta para ele.",
+    tutorial: [
+      {
+        heading: "1. Contrate a VPS",
+        body: `<p>Recomendamos a <a href="https://hostinger.com.br/vps-hosting" target="_blank" rel="noopener">Hostinger VPS</a> pelo custo-benefício e suporte em português. O plano <strong>KVM 2</strong> (2 vCPU, 8 GB RAM) é suficiente para toda a infraestrutura.</p>
+<ol>
+  <li>Acesse <a href="https://hostinger.com.br/vps-hosting" target="_blank" rel="noopener">hostinger.com.br/vps-hosting</a> e escolha o plano <strong>KVM 2</strong>.</li>
+  <li>Na configuração, selecione sistema operacional <strong>Ubuntu 24.04</strong>.</li>
+  <li>Escolha a região <strong>São Paulo</strong> — menor latência para o Brasil.</li>
+  <li>Conclua a compra. O painel de controle da VPS aparece em alguns minutos.</li>
+</ol>
+<p>A senha root chega por e-mail ou é definida no próprio painel — guarde-a, você vai usá-la para acessar o servidor.</p>`
+      },
+      {
+        heading: "2. Anote o IP público",
+        body: `<p>No painel da Hostinger, acesse <strong>VPS → Gerenciar</strong> e copie o <strong>IP público</strong>. Registre no campo abaixo — a configuração de DNS usa esse IP.</p>`
+      }
+    ],
+    validation: "O painel da VPS mostrar o servidor ativo com IP publico.",
+    done: "Tiver o IP publico e a senha root em maos.",
+    fields: [{ key: "serverIp", label: "IP da VPS", placeholder: "123.123.123.123" }]
   },
   {
     id: "dns",
@@ -145,7 +168,7 @@ const WIZARD_STEPS = [
 <ul>
   <li><strong>Type:</strong> A</li>
   <li><strong>Name:</strong> <code>@</code></li>
-  <li><strong>IPv4 address:</strong> o IP da sua VPS</li>
+  <li><strong>IPv4 address:</strong> <code>{{serverIp}}</code></li>
   <li><strong>Proxy status:</strong> DNS only (nuvem cinza)</li>
 </ul>
 <p>Clique em <strong>Save</strong>.</p>`
@@ -156,7 +179,7 @@ const WIZARD_STEPS = [
 <ul>
   <li><strong>Type:</strong> A</li>
   <li><strong>Name:</strong> <code>manager01</code></li>
-  <li><strong>IPv4 address:</strong> o IP da sua VPS</li>
+  <li><strong>IPv4 address:</strong> <code>{{serverIp}}</code></li>
   <li><strong>Proxy status:</strong> DNS only (nuvem cinza)</li>
 </ul>
 <p>Clique em <strong>Save</strong>.</p>`
@@ -171,16 +194,10 @@ const WIZARD_STEPS = [
   <tr><td>CNAME</td><td><code>webhooks</code></td><td><code>{{domain}}</code></td><td>DNS only</td></tr>
 </table>
 <p style="margin-top:10px">Mantenha todos como <strong>DNS only</strong> (nuvem cinza). O Traefik cuida do HTTPS — não deixe a Cloudflare proxiar.</p>`
-      },
-      {
-        heading: "5. Confirme que tudo resolve",
-        body: `<p>Rode os comandos abaixo. Cada um deve retornar o IP da sua VPS.</p>`,
-        command: "nslookup {{domain}}\nnslookup painel.{{domain}}\nnslookup workflows.{{domain}}\nnslookup webhooks.{{domain}}"
       }
     ],
-    validation: "Os nomes devem resolver para o IP da VPS.",
-    done: "Todos os subdominios resolverem corretamente.",
-    checklist: ["Criei registro A para raiz (@) com o IP do VPS", "Criei registro A para manager01 com o IP do VPS", "Criei CNAME painel → manager01.{{domain}}", "Criei CNAME workflows → manager01.{{domain}}", "Criei CNAME webhooks → manager01.{{domain}}", "Confirmei todos os registros com nslookup"]
+    validation: "Os 5 registros aparecerem na lista de DNS da Cloudflare.",
+    done: "Registros A (raiz e manager01) e os 3 CNAMEs criados."
   },
   {
     id: "email",
@@ -224,13 +241,12 @@ const WIZARD_STEPS = [
       {
         heading: "5. Verifique no MailerSend",
         body: `<p>Volte ao MailerSend → <strong>Domains</strong> → clique no seu domínio → <strong>Verify</strong>. Quando SPF, DKIM e DMARC aparecerem com ✓ verde, está pronto.</p>
-<p>Se quiser confirmar via terminal, rode os comandos abaixo:</p>`,
-        command: "nslookup -type=txt {{domain}}\nnslookup -type=txt _dmarc.{{domain}}"
+<p>Registre abaixo seu e-mail de contato técnico (um e-mail real que você acessa) — ele entra na configuração do HTTPS mais adiante.</p>`
       }
     ],
     validation: "MailerSend deve mostrar o dominio como verificado.",
     done: "SPF, DKIM e DMARC estiverem aprovados.",
-    checklist: ["Criei conta e adicionei o domínio no MailerSend", "Adicionei o registro SPF no Cloudflare", "Adicionei os registros DKIM no Cloudflare", "Adicionei o registro DMARC no Cloudflare", "Todos os registros estão verdes no MailerSend"]
+    fields: [{ key: "technicalEmail", label: "E-mail tecnico", placeholder: "voce@seudominio.com.br" }]
   },
   {
     id: "vps",
@@ -238,34 +254,23 @@ const WIZARD_STEPS = [
     objective: "Entrar no servidor e preparar a base do sistema.",
     tutorial: [
       {
-        heading: "1. Crie a VPS",
-        body: `<p>Recomendamos a <a href="https://hostinger.com.br/vps-hosting" target="_blank" rel="noopener">Hostinger VPS</a> pelo custo-benefício e suporte em português. O plano <strong>KVM 2</strong> (2 vCPU, 8 GB RAM) é suficiente para toda a infraestrutura.</p>
-<ol>
-  <li>Acesse <a href="https://hostinger.com.br/vps-hosting" target="_blank" rel="noopener">hostinger.com.br/vps-hosting</a> e escolha o plano <strong>KVM 2</strong>.</li>
-  <li>Na configuração, selecione sistema operacional <strong>Ubuntu 24.04</strong>.</li>
-  <li>Escolha a região <strong>São Paulo</strong> — menor latência para o Brasil.</li>
-  <li>Conclua a compra. O painel de controle da VPS aparece em alguns minutos.</li>
-  <li>No painel da Hostinger, acesse <strong>VPS → Gerenciar</strong> e copie o <strong>IP público</strong> — você vai precisar dele agora.</li>
-  <li>A senha root chega por e-mail ou é definida no próprio painel.</li>
-</ol>`
-      },
-      {
-        heading: "2. Acesse via SSH",
-        body: `<p>No seu terminal local (PowerShell, CMD, Terminal, etc.), conecte no servidor:</p>`,
+        heading: "1. Acesse via SSH",
+        body: `<p>No seu terminal local (PowerShell, CMD, Terminal, etc.), conecte no servidor. A senha é a senha root definida na contratação da VPS:</p>`,
         command: "ssh root@{{serverIp}}"
       },
       {
-        heading: "3. Atualize os pacotes do servidor",
+        heading: "2. Atualize os pacotes do servidor",
         body: `<p>Na primeira vez que entrar no servidor, atualize tudo antes de instalar qualquer coisa:</p>`,
         command: "apt update && apt upgrade -y"
       },
       {
-        heading: "4. Configure o firewall básico",
+        heading: "3. Configure o firewall básico",
         body: `<p>Libere as portas necessárias e bloqueie o resto:</p>`,
-        command: "ufw allow 22/tcp\nufw allow 80/tcp\nufw allow 443/tcp\nufw --force enable\nufw status"
+        command: "ufw allow 22/tcp\nufw allow 80/tcp\nufw allow 443/tcp\nufw --force enable"
       }
     ],
-    checklist: ["Criei a VPS e anotei o IP público", "Conectei via SSH com sucesso", "Atualizei os pacotes do servidor", "Firewall configurado com portas 22, 80 e 443 abertas"]
+    validation: "O ufw responder com as portas 22, 80 e 443 liberadas.",
+    done: "Conectado via SSH com pacotes atualizados e firewall ativo."
   },
   {
     id: "swarm",
@@ -289,16 +294,12 @@ const WIZARD_STEPS = [
       },
       {
         heading: "4. Crie os volumes de dados",
-        body: `<p>Volumes são onde os dados persistem mesmo que os containers sejam reiniciados:</p>`,
+        body: `<p>Volumes são onde os dados persistem mesmo que os containers sejam reiniciados. Cada comando responde com o nome do volume criado:</p>`,
         command: "docker volume create volume_swarm_certificates\ndocker volume create portainer_data\ndocker volume create postgres_data\ndocker volume create redis_n8n_data"
-      },
-      {
-        heading: "5. Confirme que tudo ficou certo",
-        body: `<p>O nó deve aparecer como <strong>Leader</strong> com status <strong>Ready</strong>:</p>`,
-        command: "docker node ls"
       }
     ],
-    checklist: ["Docker instalado com sucesso", "Swarm iniciado — node aparece como Leader", "Rede network_swarm_public criada", "Volumes de dados criados (certificates, portainer, postgres, redis)"]
+    validation: "O swarm init responder 'This node is now a manager' e os volumes serem criados sem erro.",
+    done: "Docker instalado, Swarm ativo, rede e volumes criados."
   },
   {
     id: "traefik",
@@ -312,7 +313,7 @@ const WIZARD_STEPS = [
       },
       {
         heading: "2. Cole o YAML no editor",
-        body: `<p>Copie o conteúdo do bloco <strong>traefik — stack.yml</strong> abaixo e cole no nano. Antes de salvar, localize a linha com <code>acme.email</code> e substitua pelo seu e-mail real — o Let's Encrypt vai usar esse endereço para notificações de certificado.</p>
+        body: `<p>Copie o conteúdo do bloco <strong>traefik — stack.yml</strong> abaixo e cole no nano. Confira que a linha <code>acme.email</code> mostra seu e-mail real — o Let's Encrypt usa esse endereço para avisos de certificado.</p>
 <p>Salve com <kbd>Ctrl+O</kbd> → <kbd>Enter</kbd> e feche com <kbd>Ctrl+X</kbd>.</p>`
       },
       {
@@ -322,11 +323,12 @@ const WIZARD_STEPS = [
       },
       {
         heading: "4. Confirme que o Traefik subiu",
-        body: `<p>Aguarde ~20 segundos e verifique:</p>`,
-        command: "docker service ls\ndocker service logs traefik_traefik --tail 50"
+        body: `<p>Aguarde ~20 segundos e verifique. O serviço deve mostrar <strong>1/1</strong> na coluna REPLICAS:</p>`,
+        command: "docker service ls"
       }
     ],
-    checklist: ["Arquivo stack.yml criado no servidor com e-mail correto", "Stack deployada via docker stack deploy", "Traefik rodando com réplica 1/1", "Portas 80 e 443 abertas no firewall"],
+    validation: "docker service ls mostrar o traefik com replica 1/1.",
+    done: "Traefik rodando com replica 1/1.",
     yaml: [{ name: "traefik — stack.yml", content: `version: "3.7"
 
 services:
@@ -410,7 +412,8 @@ networks:
 <p>A partir de agora, todos os deploys podem ser feitos pelo painel do Portainer via <strong>Stacks → Add stack</strong>.</p>`
       }
     ],
-    checklist: ["Stack do Portainer deployada via SSH", "Painel abre em https://painel.{{domain}} com HTTPS válido", "Usuário administrador criado", "Ambiente local (Swarm) visível no Portainer"],
+    validation: "O painel abrir em https://painel.{{domain}} com cadeado HTTPS valido.",
+    done: "Usuario admin criado e ambiente Swarm visivel no Portainer.",
     yaml: [{ name: "portainer — stack.yml", content: `version: "3.7"
 
 services:
@@ -547,22 +550,18 @@ networks:
 <p>Clique em <strong>Deploy the stack</strong> e aguarde o container subir.</p>`
       },
       {
-        heading: "2. Crie o banco e o usuário",
-        body: `<p>Com o Postgres rodando, conecte no container via SSH para criar o banco e o usuário da aplicação. Substitua <code>SUA_SENHA_POSTGRES</code> pela senha que você usou no YAML:</p>`,
+        heading: "2. Conecte no banco",
+        body: `<p>Com o Postgres rodando, conecte no banco a partir do terminal SSH do servidor:</p>`,
         command: "docker exec -it $(docker ps -qf name=postgres) psql -U postgres"
       },
       {
-        heading: "3. Execute os comandos SQL",
-        body: `<p>Dentro do prompt <code>postgres=#</code>, execute os três comandos abaixo (um de cada vez). Substitua <code>SENHA_FORTE_AQUI</code> pela senha da aplicação:</p>`,
+        heading: "3. Crie o banco e o usuário da aplicação",
+        body: `<p>Dentro do prompt <code>postgres=#</code>, execute os comandos abaixo (um de cada vez). Substitua <code>SENHA_FORTE_AQUI</code> pela senha da aplicação:</p>`,
         command: "CREATE DATABASE axon_ops;\nCREATE USER axon_app WITH ENCRYPTED PASSWORD 'SENHA_FORTE_AQUI';\nGRANT ALL PRIVILEGES ON DATABASE axon_ops TO axon_app;\n\\q"
-      },
-      {
-        heading: "4. Valide a conexão interna",
-        body: `<p>Teste se a conexão funciona de dentro da rede Swarm:</p>`,
-        command: "docker run --rm -it --network network_swarm_public postgres:16 psql \"postgres://axon_app:SENHA_FORTE_AQUI@postgres:5432/axon_ops\""
       }
     ],
-    checklist: ["Stack do Postgres rodando no Portainer", "Banco axon_ops criado", "Usuário axon_app criado com senha forte", "Conexão interna validada com psql"],
+    validation: "Os comandos SQL responderem CREATE DATABASE, CREATE ROLE e GRANT sem erro.",
+    done: "Banco axon_ops e usuario axon_app criados.",
     yaml: [{ name: "postgres — stack.yml", content: `version: "3.7"
 
 services:
@@ -632,16 +631,12 @@ networks:
 </ol>`
       },
       {
-        heading: "4. Confirme que todos os serviços subiram",
-        body: `<p>Via SSH, verifique os serviços e os logs do worker:</p>`,
-        command: "docker service ls | grep n8n\ndocker service logs n8n_worker --tail 50"
-      },
-      {
-        heading: "5. Teste com um workflow manual",
+        heading: "4. Teste com um workflow manual",
         body: `<p>Acesse o editor em <a href="https://workflows.{{domain}}" target="_blank" rel="noopener">workflows.{{domain}}</a>. Crie um workflow com um nó <strong>Manual Trigger</strong> e um nó <strong>Set</strong>. Execute e confirme que a execução aparece no histórico sem erros.</p>`
       }
     ],
-    checklist: ["Redis rodando com réplica 1/1", "Editor do n8n abre em https://workflows.{{domain}}", "Serviço de webhooks rodando (3 réplicas)", "Worker processando jobs da fila", "Runners conectados — workflows executam sem erro"],
+    validation: "O workflow manual executar e aparecer no historico sem erros.",
+    done: "Editor no ar e workflow de teste executado com sucesso.",
     yaml: [
       { name: "1 — redis-n8n (stack.yml)", content: `version: "3.7"
 
@@ -984,7 +979,8 @@ networks:
         command: "docker service rollback NOME_DO_SERVICO"
       }
     ],
-    checklist: ["Sei listar todos os serviços com docker service ls", "Sei ver logs em tempo real de um serviço", "Sei ver o estado das tasks de uma stack", "Sei localizar o rollback de serviço no Portainer e via comando"]
+    validation: "Conseguir ver servicos, logs e tasks da sua infra.",
+    done: "Souber checar saude e fazer rollback quando precisar."
   }
 ];
 
@@ -1172,20 +1168,6 @@ function wireModuleActions() {
     if (event.key === "Enter" && (event.ctrlKey || event.metaKey)) {
       event.preventDefault();
       document.querySelector("#assistant-submit")?.click();
-    }
-  });
-
-  document.querySelector("#stuck-button")?.addEventListener("click", () => {
-    const module = currentModule();
-    if (module.id !== "module-3") return;
-    const stage = currentLesson();
-    const steps = getLessonSteps(stage);
-    const step = steps.find((s) => s.id === memberApp.state.currentLessonStep) || steps[0];
-    const input = document.querySelector("#assistant-input");
-    if (input && step) {
-      input.value = `Estou travado na etapa "${step.title}". Objetivo: ${step.content}. O que devo fazer?`;
-      input.focus();
-      document.querySelector(".assistant-panel")?.scrollIntoView({ behavior: "smooth" });
     }
   });
 
@@ -1568,14 +1550,12 @@ function renderLessonDetail(module, index) {
 
   const isModule3 = module.id === "module-3";
   document.querySelector("#stage-video-placeholder")?.classList.toggle("hidden", isModule3);
-  document.querySelector("#stuck-button")?.classList.toggle("hidden", !isModule3);
 
   if (isModule3) {
     const steps = getLessonSteps(stage);
     ensureValidLessonStep(steps);
     renderLessonSteps(steps);
     renderLessonStage(stage, steps);
-    wireWizardFields();
   }
 
   ensureAssistantThread(module, stage);
@@ -1664,11 +1644,11 @@ function getLessonSteps(lesson) {
       title: step.title,
       content: step.objective,
       command: step.command,
-      checklist: step.checklist,
       validation: step.validation,
       done: step.done,
       tutorial: step.tutorial,
-      yaml: step.yaml
+      yaml: step.yaml,
+      fields: step.fields
     }));
   }
 
@@ -1810,31 +1790,38 @@ function renderLessonStage(lesson, steps) {
     });
   });
 
-  document.querySelectorAll("[data-stage-check]").forEach((input) => {
+  document.querySelectorAll("[data-project-field]").forEach((input) => {
     input.addEventListener("change", () => {
-      memberApp.state.checklist[input.dataset.stageCheck] = input.checked;
+      const value = input.value.trim();
+      memberApp.state.project[input.dataset.projectField] = value;
       persistMemberState();
+      input.closest(".wizard-data-field")?.classList.toggle("is-filled", Boolean(value));
     });
   });
 }
 
 function buildLessonStepContent(step, lesson) {
-  const checklist = (step.checklist || []).map((item, index) => {
-    const id = `${currentLessonKey()}.${step.id}.${index}`;
+  // Campos de dados do projeto — substituem o checklist nas etapas que geram dados
+  const fields = (step.fields || []).map((field) => {
+    const value = memberApp.state.project[field.key] || "";
     return `
-      <label class="inline-check">
-        <input type="checkbox" data-stage-check="${id}" ${memberApp.state.checklist[id] ? "checked" : ""} />
-        ${escapeHtml(fillTemplate(item))}
+      <label class="wizard-data-field${value ? " is-filled" : ""}">
+        <span>${escapeHtml(field.label)}</span>
+        <span class="wizard-data-input">
+          <input data-project-field="${field.key}" placeholder="${escapeHtml(field.placeholder || "")}" value="${escapeHtml(value)}" />
+          <svg class="field-check" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M20 6 9 17l-5-5"/></svg>
+        </span>
       </label>
     `;
   }).join("");
+  const fieldsHtml = fields ? `<div class="wizard-data-fields">${fields}</div>` : "";
 
   // Tutorial passo a passo (etapas com campo tutorial[])
   const tutorialHtml = (step.tutorial || []).map((block) => {
     const cmdHtml = block.command
       ? `<div class="inline-command"><pre class="command-box"><code>${escapeHtml(fillTemplate(block.command))}</code></pre><button class="btn-copy-inline" type="button" data-copy-command title="Copiar"><svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="9" y="9" width="13" height="13" rx="2"/><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/></svg></button></div>`
       : "";
-    return `<div class="tutorial-block"><h4 class="tutorial-heading">${escapeHtml(block.heading)}</h4><div class="tutorial-body">${block.body}${cmdHtml}</div></div>`;
+    return `<div class="tutorial-block"><h4 class="tutorial-heading">${escapeHtml(block.heading)}</h4><div class="tutorial-body">${fillTemplate(block.body)}${cmdHtml}</div></div>`;
   }).join("");
 
   // Bloco de comando isolado (etapas sem tutorial, ex: VPS, Swarm)
@@ -1881,14 +1868,12 @@ function buildLessonStepContent(step, lesson) {
     ${tutorialHtml}
     ${technical}
     ${yamlBlocks}
-    <div class="wizard-checklist">${checklist}</div>
+    ${fieldsHtml}
   `;
 }
 
 function buildStageContent(stage, module) {
   if (module.id === "module-3") {
-    const project = memberApp.state.project;
-    const filled = Boolean(project.domain && project.serverIp);
     return `
       <div class="wizard-layout">
         <nav class="wizard-steps" id="lesson-steps"></nav>
@@ -1898,17 +1883,6 @@ function buildStageContent(stage, module) {
           <div id="lesson-step-content"></div>
         </div>
       </div>
-      <details class="wizard-project-fields"${filled ? "" : " open"}>
-        <summary>Dados do projeto tecnico</summary>
-        <div class="wizard-project-form">
-          <label>Dominio<input id="wizard-field-domain" placeholder="seudominio.com" value="${escapeHtml(project.domain || "")}" /></label>
-          <label>IP da VPS<input id="wizard-field-server-ip" placeholder="123.123.123.123" value="${escapeHtml(project.serverIp || "")}" /></label>
-          <label>E-mail tecnico<input id="wizard-field-technical-email" type="email" placeholder="contato@seudominio.com" value="${escapeHtml(project.technicalEmail || "")}" /></label>
-          <label>Nome do host<input id="wizard-field-host-name" placeholder="manager01" value="${escapeHtml(project.hostName || "manager01")}" /></label>
-          <label>Imagem do site<input id="wizard-field-site-image" placeholder="ghcr.io/org/site:main" value="${escapeHtml(project.siteImage || "")}" /></label>
-          <button class="button button-secondary" type="button" id="save-wizard-fields">Salvar dados</button>
-        </div>
-      </details>
     `;
   }
   const result = module.result ? `<p><strong>Resultado do modulo:</strong> ${escapeHtml(module.result)}.</p>` : "";
@@ -1916,23 +1890,6 @@ function buildStageContent(stage, module) {
     <p>${escapeHtml(stage[2] || stage[1])}</p>
     ${result}
   `;
-}
-
-function wireWizardFields() {
-  const saveBtn = document.querySelector("#save-wizard-fields");
-  if (!saveBtn) return;
-  saveBtn.addEventListener("click", () => {
-    memberApp.state.project = {
-      ...memberApp.state.project,
-      domain: document.querySelector("#wizard-field-domain")?.value.trim() || memberApp.state.project.domain,
-      serverIp: document.querySelector("#wizard-field-server-ip")?.value.trim() || memberApp.state.project.serverIp,
-      technicalEmail: document.querySelector("#wizard-field-technical-email")?.value.trim() || memberApp.state.project.technicalEmail,
-      hostName: document.querySelector("#wizard-field-host-name")?.value.trim() || memberApp.state.project.hostName,
-      siteImage: document.querySelector("#wizard-field-site-image")?.value.trim() || memberApp.state.project.siteImage
-    };
-    persistMemberState();
-    renderModuleDetail();
-  });
 }
 
 function getLessonIndex() {
@@ -2098,8 +2055,8 @@ function ensureAssistantThread(module, lesson) {
     const steps = getLessonSteps(lesson);
     const first = steps[0];
     opening = first
-      ? `Agora vamos configurar: ${lesson[0]}. Quando voce travar em qualquer passo, clique em "Estou travado" e me diga o que esta vendo na tela — eu ajudo a resolver.`
-      : `Vamos configurar esta parte da infraestrutura. Se travar, clique em "Estou travado" e me descreva o que esta vendo.`;
+      ? `Agora vamos configurar: ${lesson[0]}. Se travar em qualquer passo, me diga aqui o que esta vendo na tela — eu ajudo a resolver.`
+      : `Vamos configurar esta parte da infraestrutura. Se travar, me descreva aqui o que esta vendo.`;
   } else {
     opening = `Vamos trabalhar a etapa "${lesson[0]}". Me conte o contexto do seu negocio para eu transformar isso em um proximo passo claro.`;
   }
