@@ -1622,6 +1622,19 @@ button:focus {
   gap: 14px;
 }
 
+/* Módulo 3: navegação entre as etapas e o assistente */
+.stage-layout.is-wizard .stage-panel {
+  order: 1;
+}
+
+.stage-layout.is-wizard .stage-navigation {
+  order: 2;
+}
+
+.stage-layout.is-wizard .assistant-panel {
+  order: 3;
+}
+
 .stage-navigation span {
   color: var(--muted);
   font-weight: 700;

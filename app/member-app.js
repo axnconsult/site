@@ -1574,6 +1574,8 @@ function renderLessonDetail(module, index) {
 
   const isModule3 = module.id === "module-3";
   document.querySelector("#stage-video-placeholder")?.classList.toggle("hidden", isModule3);
+  // No Módulo 3 a navegação fica entre as etapas e o assistente (via CSS order)
+  document.querySelector(".stage-layout")?.classList.toggle("is-wizard", isModule3);
 
   if (isModule3) {
     const steps = getLessonSteps(stage);
