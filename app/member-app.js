@@ -202,50 +202,80 @@ const WIZARD_STEPS = [
   {
     id: "email",
     title: "E-mail profissional",
-    objective: "Validar o dominio para envio profissional com MailerSend.",
+    objective: "Configurar recebimento (ImprovMX) e envio (MailerSend) de e-mail no dominio.",
     tutorial: [
       {
-        heading: "1. Crie uma conta no MailerSend",
-        body: `<p>Acesse <a href="https://www.mailersend.com" target="_blank" rel="noopener">mailersend.com</a> e crie uma conta gratuita. O plano free permite até 3.000 e-mails/mês — suficiente para começar.</p>`
-      },
-      {
-        heading: "2. Adicione seu domínio",
-        body: `<ol>
-  <li>No painel do MailerSend, vá em <strong>Email → Domains</strong>.</li>
-  <li>Clique em <strong>Add domain</strong>.</li>
-  <li>Digite seu domínio (ex: <code>seudominio.com.br</code>) e clique em <strong>Continue</strong>.</li>
-</ol>`
-      },
-      {
-        heading: "3. Copie os registros DNS",
-        body: `<p>O MailerSend vai exibir três registros para adicionar na Cloudflare:</p>
+        heading: "Como funciona",
+        body: `<p>Você vai usar dois serviços gratuitos, cada um cuidando de uma ponta:</p>
 <ul>
-  <li><strong>SPF</strong> — um registro TXT na raiz do domínio</li>
-  <li><strong>DKIM</strong> — um registro TXT com nome longo (algo como <code>mailersend._domainkey</code>)</li>
-  <li><strong>DMARC</strong> — um registro TXT em <code>_dmarc</code></li>
+  <li><strong>ImprovMX</strong> — <em>recebe</em> os e-mails do seu domínio (ex: <code>contato@{{domain}}</code>) e <strong>encaminha para o seu Gmail</strong>.</li>
+  <li><strong>MailerSend</strong> — <em>envia</em> os e-mails do site e das automações com o seu domínio como remetente.</li>
 </ul>
-<p>Deixe essa tela aberta — você vai copiar cada valor nos próximos passos.</p>`
+<p>Os dois pedem um registro SPF. Como o domínio só pode ter <strong>um</strong> registro SPF, no passo 4 você vai juntar os dois num único registro.</p>`
       },
       {
-        heading: "4. Adicione os registros na Cloudflare",
+        heading: "1. Configure o recebimento no ImprovMX",
+        body: `<p>Acesse <a href="https://improvmx.com" target="_blank" rel="noopener">improvmx.com</a> e crie uma conta gratuita.</p>
+<ol>
+  <li>Em <strong>Add domain</strong>, digite seu domínio (<code>{{domain}}</code>).</li>
+  <li>Crie um alias de encaminhamento: por exemplo, <code>contato@{{domain}}</code> → seu endereço do <strong>Gmail</strong>.</li>
+</ol>
+<p>O ImprovMX vai mostrar os registros que você precisa adicionar: <strong>2 registros MX</strong> e o include de SPF <code>spf.improvmx.com</code>. Deixe essa tela aberta.</p>`
+      },
+      {
+        heading: "2. Configure o envio no MailerSend",
+        body: `<p>Acesse <a href="https://www.mailersend.com" target="_blank" rel="noopener">mailersend.com</a> e crie uma conta gratuita (plano free: 3.000 e-mails/mês).</p>
+<ol>
+  <li>Vá em <strong>Email → Domains → Add domain</strong> e digite seu domínio.</li>
+  <li>O MailerSend vai exibir um registro <strong>DKIM</strong> (CNAME) e o include de SPF <code>_spf.mailersend.net</code>.</li>
+</ol>
+<p>Deixe essa tela aberta também.</p>`
+      },
+      {
+        heading: "3. Adicione MX e DKIM no Cloudflare",
         body: `<p>Acesse <a href="https://dash.cloudflare.com" target="_blank" rel="noopener">dash.cloudflare.com</a> → seu domínio → <strong>DNS → Records</strong>.</p>
-<p>Para cada um dos três registros do MailerSend, clique em <strong>Add record</strong>:</p>
+<p><strong>Os 2 registros MX do ImprovMX</strong> (clique em <strong>Add record</strong> para cada um):</p>
+<table style="width:100%;border-collapse:collapse;font-size:0.85rem">
+  <tr style="text-align:left"><th>Type</th><th>Name</th><th>Mail server</th><th>Priority</th></tr>
+  <tr><td>MX</td><td><code>@</code></td><td><code>mx1.improvmx.com</code></td><td>10</td></tr>
+  <tr><td>MX</td><td><code>@</code></td><td><code>mx2.improvmx.com</code></td><td>20</td></tr>
+</table>
+<p style="margin-top:10px"><strong>O registro DKIM do MailerSend:</strong> adicione um <strong>CNAME</strong> com o nome e o destino exatamente como o MailerSend indicar (algo como <code>mlsend2._domainkey</code>). Mantenha <strong>DNS only</strong>.</p>`
+      },
+      {
+        heading: "4. Crie UM único registro SPF (ImprovMX + MailerSend)",
+        body: `<p>Atenção: o domínio só pode ter <strong>um</strong> registro SPF. Não crie um para cada serviço — junte os dois includes num só. Em <strong>Add record</strong>:</p>
 <ul>
   <li><strong>Type:</strong> TXT</li>
-  <li><strong>Name:</strong> exatamente o nome que o MailerSend indicar</li>
-  <li><strong>Content:</strong> o valor copiado do MailerSend</li>
+  <li><strong>Name:</strong> <code>@</code></li>
+  <li><strong>Content:</strong> <code>v=spf1 include:spf.improvmx.com include:_spf.mailersend.net ~all</code></li>
   <li><strong>Proxy status:</strong> DNS only</li>
 </ul>
-<p>Salve cada registro. A verificação pode levar alguns minutos.</p>`
+<p>Se já existir um registro SPF (começando com <code>v=spf1</code>), <strong>edite</strong> ele em vez de criar outro.</p>`
       },
       {
-        heading: "5. Verifique no MailerSend",
-        body: `<p>Volte ao MailerSend → <strong>Domains</strong> → clique no seu domínio → <strong>Verify</strong>. Quando SPF, DKIM e DMARC aparecerem com ✓ verde, está pronto.</p>
+        heading: "5. Adicione o DMARC",
+        body: `<p>Crie mais um registro TXT para a política de autenticação:</p>
+<ul>
+  <li><strong>Type:</strong> TXT</li>
+  <li><strong>Name:</strong> <code>_dmarc</code></li>
+  <li><strong>Content:</strong> <code>v=DMARC1; p=none; rua=mailto:SEU_EMAIL@gmail.com</code></li>
+  <li><strong>Proxy status:</strong> DNS only</li>
+</ul>
+<p>Troque <code>SEU_EMAIL@gmail.com</code> pelo e-mail onde quer receber os relatórios.</p>`
+      },
+      {
+        heading: "6. Verifique nos dois serviços",
+        body: `<p>Volte em cada painel e confirme a verificação (pode levar alguns minutos):</p>
+<ul>
+  <li><strong>ImprovMX:</strong> os registros MX e SPF ficam verdes. Faça um teste enviando um e-mail para <code>contato@{{domain}}</code> e veja se chega no seu Gmail.</li>
+  <li><strong>MailerSend:</strong> em <strong>Domains → Verify</strong>, SPF e DKIM ficam verdes.</li>
+</ul>
 <p>Registre abaixo seu e-mail de contato técnico (um e-mail real que você acessa) — ele entra na configuração do HTTPS mais adiante.</p>`
       }
     ],
-    validation: "MailerSend deve mostrar o dominio como verificado.",
-    done: "SPF, DKIM e DMARC estiverem aprovados.",
+    validation: "ImprovMX e MailerSend mostrarem os registros verdes e um e-mail de teste chegar no Gmail.",
+    done: "Recebimento (ImprovMX) e envio (MailerSend) verificados.",
     fields: [{ key: "technicalEmail", label: "E-mail tecnico", placeholder: "voce@seudominio.com.br" }]
   },
   {
