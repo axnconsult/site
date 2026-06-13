@@ -34,7 +34,7 @@ const COURSE_MODULES = [
       ["VPS, Docker e Swarm", "Acesse a VPS, instale Docker e inicialize o Swarm.", "technical", null, ["vps", "swarm"]],
       ["Portainer e Traefik", "Suba o painel operacional e o proxy publico da infraestrutura.", "technical", null, ["traefik", "portainer"]],
       ["PostgreSQL e n8n", "Suba o banco de dados e o n8n em fila para as automacoes.", "technical", null, ["postgres", "n8n"]],
-      ["Validacao da infra", "Revise DNS, servicos, logs e saude da estrutura.", "technical", null, ["ops"]]
+      ["Validacao da infra", "Revise a saude da estrutura e guarde os dados da sua infra.", "technical", null, ["ops", "infra-dados"]]
     ]
   },
   {
@@ -329,7 +329,7 @@ const WIZARD_STEPS = [
     ],
     validation: "docker service ls mostrar o traefik com replica 1/1.",
     done: "Traefik rodando com replica 1/1.",
-    yaml: [{ name: "traefik — stack.yml", content: `version: "3.7"
+    yaml: [{ name: "traefik — stack.yml", note: "Copie e cole no nano aberto no passo 1. Salve com Ctrl+O e feche com Ctrl+X.", content: `version: "3.7"
 
 services:
   traefik:
@@ -414,7 +414,7 @@ networks:
     ],
     validation: "O painel abrir em https://painel.{{domain}} com cadeado HTTPS valido.",
     done: "Usuario admin criado e ambiente Swarm visivel no Portainer.",
-    yaml: [{ name: "portainer — stack.yml", content: `version: "3.7"
+    yaml: [{ name: "portainer — stack.yml", note: "Copie e cole no nano aberto no passo 1. Salve com Ctrl+O e feche com Ctrl+X.", content: `version: "3.7"
 
 services:
   agent:
@@ -981,6 +981,30 @@ networks:
     ],
     validation: "Conseguir ver servicos, logs e tasks da sua infra.",
     done: "Souber checar saude e fazer rollback quando precisar."
+  },
+  {
+    id: "infra-dados",
+    title: "Dados tecnicos",
+    objective: "Conferir e guardar os dados da infraestrutura criada neste modulo.",
+    tutorial: [
+      {
+        heading: "1. Confira os dados registrados",
+        body: `<p>Os campos abaixo mostram o que você registrou ao longo do módulo. Confira e corrija o que precisar — os próximos módulos usam esses dados.</p>`
+      },
+      {
+        heading: "2. Baixe o documento da infraestrutura",
+        body: `<p>Gere um documento com os dados e endereços da sua infra e guarde junto do seu planejamento estratégico.</p>
+<p>As senhas <strong>não</strong> ficam salvas no app — confira se você anotou a senha root da VPS, a do Portainer, a do Postgres e as chaves do n8n no seu gerenciador de senhas.</p>
+<p><button class="button button-primary" type="button" id="download-infra-doc">Baixar documento da infra (.md)</button></p>`
+      }
+    ],
+    validation: "Os tres campos conferidos e o documento baixado.",
+    done: "Dados conferidos e documento guardado com o planejamento.",
+    fields: [
+      { key: "domain", label: "Dominio", placeholder: "seudominio.com.br" },
+      { key: "serverIp", label: "IP da VPS", placeholder: "123.123.123.123" },
+      { key: "technicalEmail", label: "E-mail tecnico", placeholder: "voce@seudominio.com.br" }
+    ]
   }
 ];
 
@@ -1798,6 +1822,60 @@ function renderLessonStage(lesson, steps) {
       input.closest(".wizard-data-field")?.classList.toggle("is-filled", Boolean(value));
     });
   });
+
+  document.querySelector("#download-infra-doc")?.addEventListener("click", () => {
+    const domain = memberApp.state.project.domain || "axon";
+    const blob = new Blob([buildInfraDocument()], { type: "text/markdown;charset=utf-8" });
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement("a");
+    link.href = url;
+    link.download = `infraestrutura-${domain.replace(/[^a-z0-9.-]/gi, "")}.md`;
+    document.body.appendChild(link);
+    link.click();
+    link.remove();
+    URL.revokeObjectURL(url);
+  });
+}
+
+function buildInfraDocument() {
+  const project = memberApp.state.project;
+  const domain = project.domain || "(nao registrado)";
+  return [
+    `# Infraestrutura Digital — ${domain}`,
+    ``,
+    `Gerado em ${new Date().toLocaleDateString("pt-BR")} pela area de membros Axon.`,
+    ``,
+    `## Dados principais`,
+    ``,
+    `- Dominio: ${domain}`,
+    `- IP da VPS: ${project.serverIp || "(nao registrado)"}`,
+    `- E-mail tecnico: ${project.technicalEmail || "(nao registrado)"}`,
+    ``,
+    `## Enderecos dos servicos`,
+    ``,
+    `- Painel (Portainer): https://painel.${project.domain || "SEU_DOMINIO"}`,
+    `- Workflows (n8n): https://workflows.${project.domain || "SEU_DOMINIO"}`,
+    `- Webhooks: https://webhooks.${project.domain || "SEU_DOMINIO"}`,
+    `- Site: https://${project.domain || "SEU_DOMINIO"} (publicacao no Modulo 5)`,
+    ``,
+    `## Stack instalada`,
+    ``,
+    `- VPS Ubuntu 24.04 (Hostinger KVM 2, regiao Sao Paulo)`,
+    `- Docker Swarm (no manager: manager01)`,
+    `- Traefik (proxy publico com HTTPS Let's Encrypt)`,
+    `- Portainer (painel de operacao)`,
+    `- PostgreSQL 16 + pgvector (banco axon_ops, usuario axon_app)`,
+    `- n8n em fila (editor, webhook, worker, runners) + Redis`,
+    ``,
+    `## Acessos que voce deve guardar por conta propria`,
+    ``,
+    `As senhas nao ficam salvas na area de membros. Garanta que voce anotou:`,
+    ``,
+    `- Senha root da VPS`,
+    `- Usuario e senha do Portainer`,
+    `- Senha do Postgres (superusuario e axon_app)`,
+    `- N8N_ENCRYPTION_KEY e N8N_RUNNERS_AUTH_TOKEN`
+  ].join("\n");
 }
 
 function buildLessonStepContent(step, lesson) {
@@ -1847,16 +1925,17 @@ function buildLessonStepContent(step, lesson) {
     `
     : "";
 
+  // YAML fica oculto na tela — o usuario so precisa do botao de copiar
   const yamlBlocks = lesson[2] === "technical" && step.yaml
     ? (Array.isArray(step.yaml) ? step.yaml : [{ name: "stack.yml", content: step.yaml }])
-        .map(({ name, content }) => `
+        .map(({ name, content, note }) => `
           <div class="technical-command">
             <div class="wizard-block-title">
               <h4>${escapeHtml(name)}</h4>
               <button class="button button-secondary" type="button" data-copy-yaml>Copiar YAML</button>
             </div>
-            <pre class="command-box"><code>${escapeHtml(fillTemplate(content))}</code></pre>
-            <p class="wizard-yaml-note">Cole este conteudo no editor do Portainer em Stacks > Add stack > Web editor.</p>
+            <pre class="command-box hidden"><code>${escapeHtml(fillTemplate(content))}</code></pre>
+            <p class="wizard-yaml-note">${escapeHtml(note || "Copie e cole no editor do Portainer em Stacks > Add stack > Web editor.")}</p>
           </div>
         `).join("")
     : "";
