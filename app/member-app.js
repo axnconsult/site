@@ -220,7 +220,7 @@ const WIZARD_STEPS = [
   <li>Em <strong>Add domain</strong>, digite seu domínio (<code>{{domain}}</code>).</li>
   <li>Crie um alias de encaminhamento: por exemplo, <code>contato@{{domain}}</code> → seu endereço do <strong>Gmail</strong>.</li>
 </ol>
-<p>O ImprovMX vai mostrar os registros que você precisa adicionar: <strong>2 registros MX</strong> e o include de SPF <code>spf.improvmx.com</code>. Deixe essa tela aberta.</p>`
+<p>O ImprovMX vai mostrar os registros que você precisa adicionar: <strong>2 registros MX</strong> e o include de SPF <code>improvmx.com</code>. Deixe essa tela aberta.</p>`
       },
       {
         heading: "2. Configure o envio no MailerSend",
@@ -248,7 +248,7 @@ const WIZARD_STEPS = [
 <ul>
   <li><strong>Type:</strong> TXT</li>
   <li><strong>Name:</strong> <code>@</code></li>
-  <li><strong>Content:</strong> <code>v=spf1 include:spf.improvmx.com include:_spf.mailersend.net ~all</code></li>
+  <li><strong>Content:</strong> <code>v=spf1 include:improvmx.com include:_spf.mailersend.net include:mailersend.net ~all</code></li>
   <li><strong>Proxy status:</strong> DNS only</li>
 </ul>
 <p>Se já existir um registro SPF (começando com <code>v=spf1</code>), <strong>edite</strong> ele em vez de criar outro.</p>`
