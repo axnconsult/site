@@ -46,7 +46,6 @@ const COURSE_MODULES = [
     stages: [
       ["Chaves e credenciais", "Conecte OpenAI e Anthropic ao n8n e prepare as variaveis de ambiente.", "technical", null, ["api-keys"]],
       ["Atendimento automatico", "Suba Evolution API e Chatwoot, conecte WhatsApp e Instagram.", "technical", null, ["atendimento"]],
-      ["Producao de conteudo", "Crie avatar no HeyGen, produza artes no Canva e edite no CapCut.", "technical", null, ["conteudo"]],
       ["Pixels e midia paga", "Crie contas no Google Ads e Meta Ads e copie os pixels de rastreamento.", "technical", null, ["midia-paga"]],
       ["CRM e leads", "Configure Chatwoot como CRM leve e conecte o registro automatico de leads via n8n.", "technical", null, ["crm"]]
     ]
@@ -1149,14 +1148,22 @@ networks:
       },
       {
         heading: "10. Crie o agente de atendimento no n8n",
-        body: `<p>No n8n, crie um workflow com esses nós em sequência:</p>
+        body: `<p>Em vez de montar os nós do zero, baixe o fluxo já pronto e importe no n8n:</p>
+<p><button class="button button-primary" type="button" id="download-n8n-atendimento">Baixar fluxo de atendimento (.json)</button></p>
+<p>Para importar: no n8n, acesse <strong>Workflows → Add workflow</strong> → menu (⋯) no canto superior direito → <strong>Import from File</strong> → selecione o arquivo baixado.</p>
+<p>O fluxo já vem com 4 nós em sequência:</p>
 <ol>
-  <li><strong>Webhook</strong> — recebe eventos da Evolution API (método POST).</li>
-  <li><strong>If</strong> — filtra apenas mensagens recebidas (<code>event === "messages.upsert"</code>).</li>
-  <li><strong>OpenAI</strong> ou <strong>Anthropic</strong> — passa a mensagem com o prompt do agente.</li>
-  <li><strong>HTTP Request</strong> — envia a resposta via Evolution API (<code>POST https://evo.{{domain}}/message/sendText/atendimento</code>).</li>
+  <li><strong>Webhook Evolution</strong> — recebe eventos da Evolution API (método POST).</li>
+  <li><strong>Filtra mensagem recebida</strong> — passa apenas mensagens recebidas, ignorando as enviadas pelo próprio agente.</li>
+  <li><strong>Agente IA</strong> — gera a resposta com base no prompt do sistema.</li>
+  <li><strong>Responder via Evolution API</strong> — envia a resposta de volta pelo WhatsApp.</li>
 </ol>
-<p>Na Evolution API, edite a instância e configure o Webhook apontando para a URL do nó Webhook do n8n.</p>`
+<p>Antes de ativar, personalize:</p>
+<ul>
+  <li>No nó <strong>Webhook Evolution</strong>: copie a URL gerada (botão <strong>Listen for test event</strong> ou aba de produção) e cole no campo de Webhook da instância na Evolution API.</li>
+  <li>No nó <strong>Agente IA</strong>: selecione a credencial OpenAI criada na etapa anterior e ajuste o prompt do sistema com o tom e as regras do seu negócio.</li>
+  <li>No nó <strong>Responder via Evolution API</strong>: confirme que a URL já veio com o seu domínio e troque <code>CHAVE_EVOLUTION_AQUI</code> pela chave real da sua instância.</li>
+</ul>`
       },
       {
         heading: "11. Configure transferência para humano",
@@ -1281,60 +1288,6 @@ volumes:
     name: redis_chatwoot_data`
       }
     ]
-  },
-  {
-    id: "conteudo",
-    title: "Producao de conteudo",
-    objective: "Criar avatar personalizado no HeyGen, gerar clipes por roteiro, produzir pecas em escala no Canva Bulk Create e editar no CapCut.",
-    tutorial: [
-      {
-        heading: "1. Crie seu avatar no HeyGen",
-        body: `<p>Acesse <a href="https://www.heygen.com" target="_blank" rel="noopener">heygen.com</a> e crie uma conta (o plano gratuito permite testar antes de assinar).</p>
-<ol>
-  <li>No painel, clique em <strong>Avatar → Create Avatar → Instant Avatar</strong>.</li>
-  <li>Grave de 2 a 5 minutos falando de frente, com boa iluminação, sem cortar o rosto e sem ruído de fundo.</li>
-  <li>Faça o upload e aguarde o processamento (20–30 minutos).</li>
-  <li>Quando pronto, clique em <strong>Use this Avatar</strong>.</li>
-</ol>`
-      },
-      {
-        heading: "2. Gere clipes por roteiro",
-        body: `<p>Estratégia: gere um clipe para cada trecho do roteiro separadamente e monte o vídeo final no CapCut. Isso evita reprocessar o vídeo inteiro quando um trecho muda — e economiza créditos.</p>
-<ol>
-  <li>No HeyGen, clique em <strong>Create Video</strong> → selecione seu avatar.</li>
-  <li>Cole apenas um trecho do roteiro (ex: introdução, desenvolvimento, CTA).</li>
-  <li>Escolha a voz e o idioma. Clique em <strong>Generate</strong> e baixe o clipe quando ficar pronto.</li>
-  <li>Repita para cada trecho. Deixe um arquivo por clipe — você vai montar a sequência no CapCut.</li>
-</ol>`
-      },
-      {
-        heading: "3. Produza artes em escala no Canva Bulk Create",
-        body: `<p>Acesse <a href="https://www.canva.com" target="_blank" rel="noopener">canva.com</a> e abra um template de post (feed, story ou carrossel).</p>
-<ol>
-  <li>No menu lateral, acesse <strong>Apps → Bulk Create</strong>.</li>
-  <li>Escolha <strong>Enter data manually</strong> ou <strong>Upload CSV</strong> com os campos variáveis (ex: título, produto, preço).</li>
-  <li>No template, clique em cada texto variável → <strong>Connect data</strong> → selecione o campo correspondente.</li>
-  <li>Clique em <strong>Generate X designs</strong> e aguarde.</li>
-  <li>Baixe tudo de uma vez com <strong>Download all</strong>.</li>
-</ol>
-<p>Use uma linha por post no CSV — o Canva gera todas as artes em uma única operação.</p>`
-      },
-      {
-        heading: "4. Edite e exporte no CapCut",
-        body: `<p>Abra o <a href="https://www.capcut.com" target="_blank" rel="noopener">CapCut</a> (web ou desktop) e crie um novo projeto.</p>
-<ol>
-  <li><strong>Importe os clipes:</strong> clique em <strong>Import</strong> e selecione os arquivos do HeyGen.</li>
-  <li><strong>Corte:</strong> arraste os clipes para a timeline na sequência correta. Use as alças laterais para cortar início e fim.</li>
-  <li><strong>Redimensione:</strong> em <strong>Ratio</strong>, escolha o formato (9:16 para Reels/Stories, 1:1 para feed, 16:9 para YouTube).</li>
-  <li><strong>Transição:</strong> clique no ponto de corte entre dois clipes → <strong>Transition</strong> → escolha <em>Dissolve</em> ou similar.</li>
-  <li><strong>Elementos:</strong> clique em <strong>Text</strong> para legendas ou <strong>Stickers</strong> para elementos visuais. Ajuste o tempo de exibição na timeline.</li>
-  <li><strong>Keyframe:</strong> selecione um elemento → posicione o cursor no ponto inicial → <strong>Add keyframe</strong> → mova para o ponto final → ajuste posição ou opacidade. O CapCut anima automaticamente entre os dois pontos.</li>
-  <li><strong>Exporte:</strong> clique em <strong>Export → 1080p</strong> e baixe o arquivo.</li>
-</ol>`
-      }
-    ],
-    validation: "Um clipe gerado no HeyGen, uma arte criada no Canva Bulk Create e o video exportado do CapCut.",
-    done: "Avatar criado, clipes gerados por roteiro, artes em lote produzidas e video editado."
   },
   {
     id: "midia-paga",
@@ -1989,6 +1942,7 @@ function openModule(moduleId) {
 function renderModuleDetail() {
   const module = currentModule();
   if (!module) return;
+  window.scrollTo(0, 0);
   document.querySelector("#module-kicker").textContent = `Modulo ${module.number}`;
   document.querySelector("#module-title").textContent = module.title;
   document.querySelector("#module-summary").textContent = module.summary;
@@ -2280,6 +2234,127 @@ function renderLessonStage(lesson, steps) {
     link.remove();
     URL.revokeObjectURL(url);
   });
+
+  document.querySelector("#download-n8n-atendimento")?.addEventListener("click", () => {
+    const blob = new Blob([buildAtendimentoWorkflowJson()], { type: "application/json;charset=utf-8" });
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement("a");
+    link.href = url;
+    link.download = "agente-atendimento.json";
+    document.body.appendChild(link);
+    link.click();
+    link.remove();
+    URL.revokeObjectURL(url);
+  });
+}
+
+function buildAtendimentoWorkflowJson() {
+  const domain = memberApp.state.project.domain || "seudominio.com.br";
+  const workflow = {
+    name: "Agente de Atendimento",
+    nodes: [
+      {
+        parameters: {
+          httpMethod: "POST",
+          path: "atendimento",
+          responseMode: "lastNode",
+          options: {}
+        },
+        id: "webhook-evolution",
+        name: "Webhook Evolution",
+        type: "n8n-nodes-base.webhook",
+        typeVersion: 2,
+        position: [240, 300],
+        webhookId: "atendimento-webhook"
+      },
+      {
+        parameters: {
+          conditions: {
+            options: { caseSensitive: true, leftValue: "", typeValidation: "strict" },
+            conditions: [
+              {
+                id: "cond-event",
+                leftValue: "={{ $json.body.event }}",
+                rightValue: "messages.upsert",
+                operator: { type: "string", operation: "equals" }
+              },
+              {
+                id: "cond-from-me",
+                leftValue: "={{ $json.body.data.key.fromMe }}",
+                rightValue: false,
+                operator: { type: "boolean", operation: "false" }
+              }
+            ],
+            combinator: "and"
+          },
+          options: {}
+        },
+        id: "filtra-mensagem",
+        name: "Filtra mensagem recebida",
+        type: "n8n-nodes-base.if",
+        typeVersion: 2,
+        position: [460, 300]
+      },
+      {
+        parameters: {
+          resource: "chat",
+          modelId: { value: "gpt-4o-mini" },
+          messages: {
+            values: [
+              {
+                role: "system",
+                content: "Voce e o agente de atendimento do negocio. Responda de forma direta, simpatica e objetiva. Se o cliente pedir para falar com humano, confirme a transferencia."
+              },
+              {
+                role: "user",
+                content: "={{ $json.body.data.message.conversation }}"
+              }
+            ]
+          },
+          options: {}
+        },
+        id: "agente-ia",
+        name: "Agente IA",
+        type: "n8n-nodes-base.openAi",
+        typeVersion: 1.8,
+        position: [680, 220],
+        credentials: {
+          openAiApi: { id: "SUBSTITUA_PELO_ID_DA_CREDENCIAL", name: "OpenAi account" }
+        }
+      },
+      {
+        parameters: {
+          method: "POST",
+          url: `https://evo.${domain}/message/sendText/atendimento`,
+          sendHeaders: true,
+          headerParameters: {
+            parameters: [{ name: "apikey", value: "CHAVE_EVOLUTION_AQUI" }]
+          },
+          sendBody: true,
+          bodyParameters: {
+            parameters: [
+              { name: "number", value: "={{ $('Webhook Evolution').item.json.body.data.key.remoteJid }}" },
+              { name: "text", value: "={{ $json.message.content }}" }
+            ]
+          },
+          options: {}
+        },
+        id: "responder-evolution",
+        name: "Responder via Evolution API",
+        type: "n8n-nodes-base.httpRequest",
+        typeVersion: 4.2,
+        position: [900, 220]
+      }
+    ],
+    connections: {
+      "Webhook Evolution": { main: [[{ node: "Filtra mensagem recebida", type: "main", index: 0 }]] },
+      "Filtra mensagem recebida": { main: [[{ node: "Agente IA", type: "main", index: 0 }]] },
+      "Agente IA": { main: [[{ node: "Responder via Evolution API", type: "main", index: 0 }]] }
+    },
+    pinData: {},
+    settings: { executionOrder: "v1" }
+  };
+  return JSON.stringify(workflow, null, 2);
 }
 
 function buildInfraDocument() {
