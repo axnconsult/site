@@ -41,14 +41,14 @@ const COURSE_MODULES = [
     id: "module-4",
     number: 4,
     title: "Sistema Operacional da Empresa",
-    summary: "Instale o nucleo operacional com n8n, OpenAI API, memoria e workflows.",
-    result: "Nucleo operacional instalado",
+    summary: "Configure as ferramentas que automatizam atendimento, producao de conteudo e acompanhamento de leads.",
+    result: "Stack operacional ativa e pronta para produzir e vender.",
     stages: [
-      ["n8n e OpenAI API", "Conecte o ambiente de automacao com a plataforma de IA.", "Prepare credenciais, variaveis e conexoes sem colocar automacao critica no caminho errado."],
-      ["Workflows base", "Crie os primeiros fluxos operacionais do negocio.", "Monte fluxos simples para receber dados, registrar eventos e disparar proximas acoes."],
-      ["Memoria operacional", "Organize onde o sistema guarda contexto, decisoes e entregas.", "Defina o que precisa virar memoria do projeto para que os agentes trabalhem com continuidade."],
-      ["Automacoes basicas", "Ative automacoes praticas para tarefas recorrentes.", "Conecte pequenas rotinas que reduzem trabalho manual sem complicar a operacao."],
-      ["Organizacao operacional", "Feche a base de operacao e documente como manter o sistema.", "Revise painel, logs, credenciais e responsabilidades para operar com seguranca."]
+      ["Chaves e credenciais", "Conecte OpenAI e Anthropic ao n8n e prepare as variaveis de ambiente.", "technical", null, ["api-keys"]],
+      ["Atendimento automatico", "Suba Evolution API e Chatwoot, conecte WhatsApp e Instagram.", "technical", null, ["atendimento"]],
+      ["Producao de conteudo", "Crie avatar no HeyGen, produza artes no Canva e edite no CapCut.", "technical", null, ["conteudo"]],
+      ["Pixels e midia paga", "Crie contas no Google Ads e Meta Ads e copie os pixels de rastreamento.", "technical", null, ["midia-paga"]],
+      ["CRM e leads", "Configure Chatwoot como CRM leve e conecte o registro automatico de leads via n8n.", "technical", null, ["crm"]]
     ]
   },
   {
@@ -1035,6 +1035,419 @@ networks:
       { key: "serverIp", label: "IP da VPS", placeholder: "123.123.123.123" },
       { key: "technicalEmail", label: "E-mail tecnico", placeholder: "voce@seudominio.com.br" }
     ]
+  },
+  {
+    id: "api-keys",
+    title: "Chaves e credenciais",
+    objective: "Configurar chaves de API da OpenAI e Anthropic no n8n e preparar as variaveis de ambiente para as automacoes.",
+    tutorial: [
+      {
+        heading: "1. Gere a chave da OpenAI",
+        body: `<p>Acesse <a href="https://platform.openai.com/api-keys" target="_blank" rel="noopener">platform.openai.com/api-keys</a>. Clique em <strong>Create new secret key</strong>, dê um nome descritivo (ex: <code>automacoes-{{domain}}</code>) e copie a chave — ela aparece uma única vez.</p>
+<p>Se ainda não tem conta, crie em <a href="https://platform.openai.com" target="_blank" rel="noopener">platform.openai.com</a> e adicione crédito em <strong>Billing → Add payment method</strong>.</p>`
+      },
+      {
+        heading: "2. Gere a chave da Anthropic",
+        body: `<p>Acesse <a href="https://console.anthropic.com/settings/keys" target="_blank" rel="noopener">console.anthropic.com/settings/keys</a>. Clique em <strong>Create Key</strong>, dê um nome (ex: <code>automacoes-{{domain}}</code>) e copie a chave.</p>
+<p>Se não tem conta, crie em <a href="https://console.anthropic.com" target="_blank" rel="noopener">console.anthropic.com</a> e adicione crédito em <strong>Plans &amp; Billing</strong>.</p>`
+      },
+      {
+        heading: "3. Adicione as credenciais no n8n",
+        body: `<p>No editor do n8n (<a href="https://workflows.{{domain}}" target="_blank" rel="noopener">workflows.{{domain}}</a>), acesse <strong>Credentials</strong> no menu lateral.</p>
+<ol>
+  <li>Clique em <strong>Add credential</strong> → busque <strong>OpenAI</strong> → cole a chave no campo <strong>API Key</strong> → salve.</li>
+  <li>Repita o processo para <strong>Anthropic</strong>.</li>
+</ol>
+<p>As credenciais ficam salvas com a criptografia da <code>N8N_ENCRYPTION_KEY</code> configurada no módulo anterior — não ficam visíveis nos YAMLs das stacks.</p>`
+      },
+      {
+        heading: "4. Teste com um nó simples",
+        body: `<p>No n8n, crie um workflow de teste:</p>
+<ol>
+  <li>Adicione um nó <strong>Manual Trigger</strong>.</li>
+  <li>Conecte um nó <strong>OpenAI</strong>, modo <strong>Message a Model</strong>, com o prompt <em>"Responda apenas com 'ok'."</em></li>
+  <li>Execute e confirme que a resposta volta sem erro de autenticação.</li>
+</ol>`
+      }
+    ],
+    validation: "O no de OpenAI ou Anthropic no n8n responder sem erro de autenticacao.",
+    done: "Credenciais de OpenAI e Anthropic ativas no n8n."
+  },
+  {
+    id: "atendimento",
+    title: "Atendimento automatico",
+    objective: "Subir Evolution API e Chatwoot, conectar WhatsApp e Instagram, criar agente de atendimento no n8n com transferencia para humano.",
+    tutorial: [
+      {
+        heading: "1. Adicione subdomínios no Cloudflare",
+        body: `<p>Acesse <a href="https://dash.cloudflare.com" target="_blank" rel="noopener">dash.cloudflare.com</a> → seu domínio → <strong>DNS → Records</strong>. Adicione dois registros A:</p>
+<table style="width:100%;border-collapse:collapse;font-size:0.85rem">
+  <tr style="text-align:left"><th>Type</th><th>Name</th><th>IPv4 address</th><th>Proxy status</th></tr>
+  <tr><td>A</td><td><code>evo</code></td><td><code>{{serverIp}}</code></td><td>DNS only</td></tr>
+  <tr><td>A</td><td><code>chat</code></td><td><code>{{serverIp}}</code></td><td>DNS only</td></tr>
+</table>
+<p style="margin-top:8px">Mantenha <strong>DNS only</strong> — o Traefik precisa resolver o certificado HTTPS diretamente.</p>`
+      },
+      {
+        heading: "2. Suba a Evolution API",
+        body: `<p>No Portainer, crie o volume antes do deploy: <strong>Volumes → Add volume</strong>, nomeie <code>evolution_instances</code>.</p>
+<p>Depois vá em <strong>Stacks → Add stack</strong>, nomeie <code>evolution</code> e cole o YAML <strong>evolution — stack.yml</strong> abaixo. Antes de criar, substitua <code>CHAVE_EVOLUTION_AQUI</code> por uma senha forte — ela protege o acesso à API.</p>`
+      },
+      {
+        heading: "3. Crie o banco do Chatwoot",
+        body: `<p>Conecte no Postgres pelo terminal SSH e crie o banco:</p>`,
+        command: `docker exec -it $(docker ps -qf name=postgres) psql -U postgres\nCREATE DATABASE chatwoot;\nGRANT ALL PRIVILEGES ON DATABASE chatwoot TO axon_app;\n\\q`
+      },
+      {
+        heading: "4. Suba o Chatwoot",
+        body: `<p>No Portainer, crie o volume <code>redis_chatwoot_data</code> em <strong>Volumes → Add volume</strong>.</p>
+<p>Crie a stack com nome <code>chatwoot</code> e cole o YAML <strong>chatwoot — stack.yml</strong> abaixo. Antes de criar, preencha:</p>
+<ul>
+  <li><code>CHAVE_SECRETA_64_CHARS_AQUI</code> — gere com <code>openssl rand -hex 64</code> no terminal SSH. Use o <strong>mesmo valor</strong> nas duas ocorrências (web e worker).</li>
+  <li><code>SENHA_POSTGRES_AQUI</code> — a senha do usuário <code>axon_app</code> definida no módulo anterior.</li>
+</ul>`
+      },
+      {
+        heading: "5. Execute as migrações",
+        body: `<p>Após o deploy do Chatwoot, rode as migrações para criar as tabelas no banco:</p>`,
+        command: `docker exec -it $(docker ps -qf name=chatwoot-web) bundle exec rails db:chatwoot_prepare`
+      },
+      {
+        heading: "6. Configure a conta inicial",
+        body: `<p>Acesse <a href="https://chat.{{domain}}" target="_blank" rel="noopener">chat.{{domain}}</a>. O Chatwoot exibe a tela de criação da primeira conta. Crie o usuário administrador e confirme o e-mail se solicitado.</p>`
+      },
+      {
+        heading: "7. Conecte o WhatsApp",
+        body: `<p>Acesse a Evolution API em <a href="https://evo.{{domain}}/manager" target="_blank" rel="noopener">evo.{{domain}}/manager</a> com a <code>CHAVE_EVOLUTION_AQUI</code> definida na stack.</p>
+<ol>
+  <li>Clique em <strong>Create instance</strong>, dê o nome <code>atendimento</code> e confirme.</li>
+  <li>Clique em <strong>Connect</strong> para gerar o QR Code.</li>
+  <li>No celular com o chip que vai usar: <strong>WhatsApp → Aparelhos conectados → Conectar → escaneie o QR Code</strong>.</li>
+</ol>
+<p style="background:#fff3cd;border-left:3px solid #e6a817;padding:8px 12px;margin-top:8px;border-radius:3px"><strong>Aviso:</strong> A Evolution API usa a versão web não oficial do WhatsApp. O Meta pode banir o número se detectar automação em volume. É a opção mais rápida para começar — se o atendimento crescer, migre para a <strong>API oficial via Meta Business</strong> (requer aprovação e tem custo por conversa).</p>`
+      },
+      {
+        heading: "8. Conecte o Instagram",
+        body: `<p>No Chatwoot, acesse <strong>Configurações → Caixas de entrada → Adicionar caixa de entrada → Instagram</strong>.</p>
+<ol>
+  <li>Clique em <strong>Conectar com Facebook</strong> e autorize o acesso à conta Business.</li>
+  <li>Selecione a página do Facebook vinculada ao Instagram.</li>
+  <li>Clique em <strong>Criar caixa de entrada</strong>.</li>
+</ol>
+<p>As mensagens diretas do Instagram passarão a aparecer no Chatwoot.</p>`
+      },
+      {
+        heading: "9. Conecte a Evolution API ao Chatwoot",
+        body: `<p>Na Evolution API, edite a instância <code>atendimento</code> e configure o Chatwoot:</p>
+<ol>
+  <li>Acesse <strong>Chatwoot → Configurar</strong> na instância.</li>
+  <li>URL do Chatwoot: <code>https://chat.{{domain}}</code>.</li>
+  <li>No Chatwoot, gere um token em <strong>Perfil → Token de acesso</strong> e cole na Evolution API.</li>
+  <li>Selecione a caixa de entrada do WhatsApp e salve.</li>
+</ol>
+<p>Envie uma mensagem de teste para o número — ela deve aparecer no Chatwoot.</p>`
+      },
+      {
+        heading: "10. Crie o agente de atendimento no n8n",
+        body: `<p>No n8n, crie um workflow com esses nós em sequência:</p>
+<ol>
+  <li><strong>Webhook</strong> — recebe eventos da Evolution API (método POST).</li>
+  <li><strong>If</strong> — filtra apenas mensagens recebidas (<code>event === "messages.upsert"</code>).</li>
+  <li><strong>OpenAI</strong> ou <strong>Anthropic</strong> — passa a mensagem com o prompt do agente.</li>
+  <li><strong>HTTP Request</strong> — envia a resposta via Evolution API (<code>POST https://evo.{{domain}}/message/sendText/atendimento</code>).</li>
+</ol>
+<p>Na Evolution API, edite a instância e configure o Webhook apontando para a URL do nó Webhook do n8n.</p>`
+      },
+      {
+        heading: "11. Configure transferência para humano",
+        body: `<p>No Chatwoot, acesse <strong>Configurações → Agentes</strong> e adicione sua conta como agente disponível.</p>
+<p>No workflow do n8n, adicione uma condição: se a mensagem contiver palavras como <em>"atendente"</em> ou <em>"humano"</em>, chame a API do Chatwoot para atribuir a conversa a um agente real em vez de responder com IA:</p>`,
+        command: `POST https://chat.{{domain}}/api/v1/accounts/1/conversations/ID_CONVERSA/assignments`
+      }
+    ],
+    validation: "Uma mensagem enviada para o WhatsApp aparecer no Chatwoot e receber resposta automatica da IA.",
+    done: "WhatsApp e Instagram conectados, agente respondendo e transferencia para humano configurada.",
+    yaml: [
+      {
+        name: "evolution — stack.yml",
+        note: "Copie e cole no editor do Portainer em Stacks > Add stack > Web editor.",
+        content: `version: "3.7"
+
+services:
+  evolution:
+    image: atendai/evolution-api:v2
+    environment:
+      - SERVER_URL=https://evo.{{domain}}
+      - AUTHENTICATION_API_KEY=CHAVE_EVOLUTION_AQUI
+      - DATABASE_ENABLED=false
+      - LOG_LEVEL=ERROR
+      - DEL_INSTANCE=false
+    volumes:
+      - evolution_instances:/evolution/instances
+    networks:
+      - network_swarm_public
+    deploy:
+      mode: replicated
+      replicas: 1
+      labels:
+        - "traefik.enable=true"
+        - "traefik.docker.network=network_swarm_public"
+        - "traefik.http.routers.evolution.rule=Host(\`evo.{{domain}}\`)"
+        - "traefik.http.routers.evolution.entrypoints=websecure"
+        - "traefik.http.routers.evolution.tls.certresolver=letsencryptresolver"
+        - "traefik.http.services.evolution.loadbalancer.server.port=8080"
+
+networks:
+  network_swarm_public:
+    external: true
+    name: network_swarm_public
+
+volumes:
+  evolution_instances:
+    external: true
+    name: evolution_instances`
+      },
+      {
+        name: "chatwoot — stack.yml",
+        note: "Substitua CHAVE_SECRETA_64_CHARS_AQUI (mesmo valor nas duas ocorrencias) e SENHA_POSTGRES_AQUI antes de criar a stack.",
+        content: `version: "3.7"
+
+services:
+  redis-chatwoot:
+    image: redis:7-alpine
+    volumes:
+      - redis_chatwoot_data:/data
+    networks:
+      - network_swarm_public
+    deploy:
+      mode: replicated
+      replicas: 1
+
+  chatwoot-web:
+    image: chatwoot/chatwoot:v3.11.0
+    environment:
+      - SECRET_KEY_BASE=CHAVE_SECRETA_64_CHARS_AQUI
+      - FRONTEND_URL=https://chat.{{domain}}
+      - DEFAULT_LOCALE=pt_BR
+      - RAILS_ENV=production
+      - RAILS_LOG_TO_STDOUT=true
+      - REDIS_URL=redis://redis-chatwoot:6379
+      - POSTGRES_HOST=postgres
+      - POSTGRES_PORT=5432
+      - POSTGRES_DATABASE=chatwoot
+      - POSTGRES_USERNAME=axon_app
+      - POSTGRES_PASSWORD=SENHA_POSTGRES_AQUI
+    command: bundle exec rails s -p 3000 -b 0.0.0.0
+    networks:
+      - network_swarm_public
+    deploy:
+      mode: replicated
+      replicas: 1
+      labels:
+        - "traefik.enable=true"
+        - "traefik.docker.network=network_swarm_public"
+        - "traefik.http.routers.chatwoot.rule=Host(\`chat.{{domain}}\`)"
+        - "traefik.http.routers.chatwoot.entrypoints=websecure"
+        - "traefik.http.routers.chatwoot.tls.certresolver=letsencryptresolver"
+        - "traefik.http.services.chatwoot.loadbalancer.server.port=3000"
+
+  chatwoot-worker:
+    image: chatwoot/chatwoot:v3.11.0
+    environment:
+      - SECRET_KEY_BASE=CHAVE_SECRETA_64_CHARS_AQUI
+      - FRONTEND_URL=https://chat.{{domain}}
+      - RAILS_ENV=production
+      - REDIS_URL=redis://redis-chatwoot:6379
+      - POSTGRES_HOST=postgres
+      - POSTGRES_PORT=5432
+      - POSTGRES_DATABASE=chatwoot
+      - POSTGRES_USERNAME=axon_app
+      - POSTGRES_PASSWORD=SENHA_POSTGRES_AQUI
+    command: bundle exec sidekiq -C config/sidekiq.yml
+    networks:
+      - network_swarm_public
+    deploy:
+      mode: replicated
+      replicas: 1
+
+networks:
+  network_swarm_public:
+    external: true
+    name: network_swarm_public
+
+volumes:
+  redis_chatwoot_data:
+    external: true
+    name: redis_chatwoot_data`
+      }
+    ]
+  },
+  {
+    id: "conteudo",
+    title: "Producao de conteudo",
+    objective: "Criar avatar personalizado no HeyGen, gerar clipes por roteiro, produzir pecas em escala no Canva Bulk Create e editar no CapCut.",
+    tutorial: [
+      {
+        heading: "1. Crie seu avatar no HeyGen",
+        body: `<p>Acesse <a href="https://www.heygen.com" target="_blank" rel="noopener">heygen.com</a> e crie uma conta (o plano gratuito permite testar antes de assinar).</p>
+<ol>
+  <li>No painel, clique em <strong>Avatar → Create Avatar → Instant Avatar</strong>.</li>
+  <li>Grave de 2 a 5 minutos falando de frente, com boa iluminação, sem cortar o rosto e sem ruído de fundo.</li>
+  <li>Faça o upload e aguarde o processamento (20–30 minutos).</li>
+  <li>Quando pronto, clique em <strong>Use this Avatar</strong>.</li>
+</ol>`
+      },
+      {
+        heading: "2. Gere clipes por roteiro",
+        body: `<p>Estratégia: gere um clipe para cada trecho do roteiro separadamente e monte o vídeo final no CapCut. Isso evita reprocessar o vídeo inteiro quando um trecho muda — e economiza créditos.</p>
+<ol>
+  <li>No HeyGen, clique em <strong>Create Video</strong> → selecione seu avatar.</li>
+  <li>Cole apenas um trecho do roteiro (ex: introdução, desenvolvimento, CTA).</li>
+  <li>Escolha a voz e o idioma. Clique em <strong>Generate</strong> e baixe o clipe quando ficar pronto.</li>
+  <li>Repita para cada trecho. Deixe um arquivo por clipe — você vai montar a sequência no CapCut.</li>
+</ol>`
+      },
+      {
+        heading: "3. Produza artes em escala no Canva Bulk Create",
+        body: `<p>Acesse <a href="https://www.canva.com" target="_blank" rel="noopener">canva.com</a> e abra um template de post (feed, story ou carrossel).</p>
+<ol>
+  <li>No menu lateral, acesse <strong>Apps → Bulk Create</strong>.</li>
+  <li>Escolha <strong>Enter data manually</strong> ou <strong>Upload CSV</strong> com os campos variáveis (ex: título, produto, preço).</li>
+  <li>No template, clique em cada texto variável → <strong>Connect data</strong> → selecione o campo correspondente.</li>
+  <li>Clique em <strong>Generate X designs</strong> e aguarde.</li>
+  <li>Baixe tudo de uma vez com <strong>Download all</strong>.</li>
+</ol>
+<p>Use uma linha por post no CSV — o Canva gera todas as artes em uma única operação.</p>`
+      },
+      {
+        heading: "4. Edite e exporte no CapCut",
+        body: `<p>Abra o <a href="https://www.capcut.com" target="_blank" rel="noopener">CapCut</a> (web ou desktop) e crie um novo projeto.</p>
+<ol>
+  <li><strong>Importe os clipes:</strong> clique em <strong>Import</strong> e selecione os arquivos do HeyGen.</li>
+  <li><strong>Corte:</strong> arraste os clipes para a timeline na sequência correta. Use as alças laterais para cortar início e fim.</li>
+  <li><strong>Redimensione:</strong> em <strong>Ratio</strong>, escolha o formato (9:16 para Reels/Stories, 1:1 para feed, 16:9 para YouTube).</li>
+  <li><strong>Transição:</strong> clique no ponto de corte entre dois clipes → <strong>Transition</strong> → escolha <em>Dissolve</em> ou similar.</li>
+  <li><strong>Elementos:</strong> clique em <strong>Text</strong> para legendas ou <strong>Stickers</strong> para elementos visuais. Ajuste o tempo de exibição na timeline.</li>
+  <li><strong>Keyframe:</strong> selecione um elemento → posicione o cursor no ponto inicial → <strong>Add keyframe</strong> → mova para o ponto final → ajuste posição ou opacidade. O CapCut anima automaticamente entre os dois pontos.</li>
+  <li><strong>Exporte:</strong> clique em <strong>Export → 1080p</strong> e baixe o arquivo.</li>
+</ol>`
+      }
+    ],
+    validation: "Um clipe gerado no HeyGen, uma arte criada no Canva Bulk Create e o video exportado do CapCut.",
+    done: "Avatar criado, clipes gerados por roteiro, artes em lote produzidas e video editado."
+  },
+  {
+    id: "midia-paga",
+    title: "Pixels e midia paga",
+    objective: "Criar contas no Google Ads e Meta Ads e copiar os pixels de rastreamento para instalar no site.",
+    tutorial: [
+      {
+        heading: "1. Crie a conta no Google Ads",
+        body: `<p>Acesse <a href="https://ads.google.com" target="_blank" rel="noopener">ads.google.com</a> e crie uma conta com o e-mail do negócio.</p>
+<ol>
+  <li>Selecione o modo <strong>Expert</strong> na configuração inicial — evita o modo Inteligente que oculta controles avançados.</li>
+  <li>Pule a criação de campanha: clique em <strong>Explorar a conta</strong> quando a opção aparecer.</li>
+  <li>Anote o <strong>ID do cliente</strong> (formato XXX-XXX-XXXX) exibido no canto superior direito.</li>
+</ol>`
+      },
+      {
+        heading: "2. Copie o pixel do Google (Google Tag)",
+        body: `<p>No Google Ads, acesse <strong>Metas → Conversões → Criar conversão → Site</strong>.</p>
+<ol>
+  <li>Siga o assistente até o passo de instalação da tag.</li>
+  <li>Copie o bloco de código da <strong>Google Tag</strong> (começa com <code>&lt;script async src="https://www.googletagmanager.com/...</code>).</li>
+  <li>Guarde esse código — ele será colado no <code>&lt;head&gt;</code> do site no módulo seguinte.</li>
+</ol>`
+      },
+      {
+        heading: "3. Crie a conta no Meta Ads",
+        body: `<p>Acesse <a href="https://business.facebook.com" target="_blank" rel="noopener">business.facebook.com</a> e crie uma conta de negócios.</p>
+<ol>
+  <li>Clique em <strong>Criar conta</strong> e preencha nome da empresa, nome e e-mail.</li>
+  <li>Dentro do Business Manager, acesse <strong>Configurações do negócio → Contas de anúncio → Adicionar</strong> e crie a conta.</li>
+  <li>Adicione um método de pagamento em <strong>Faturamento → Formas de pagamento</strong>.</li>
+</ol>`
+      },
+      {
+        heading: "4. Copie o pixel do Meta",
+        body: `<p>No Business Manager, acesse <strong>Gerenciador de Eventos</strong> (Events Manager).</p>
+<ol>
+  <li>Clique em <strong>Conectar fontes de dados → Web → Pixel do Meta → Conectar</strong>.</li>
+  <li>Dê um nome ao pixel (ex: <code>Site {{domain}}</code>) e clique em <strong>Criar pixel</strong>.</li>
+  <li>Escolha <strong>Instalar o código manualmente</strong> e copie o bloco de código base.</li>
+  <li>Anote o <strong>ID do Pixel</strong> exibido no painel.</li>
+</ol>`
+      },
+      {
+        heading: "5. Guarde os pixels para instalação",
+        body: `<p>Você agora tem dois blocos de código para instalar no site no módulo seguinte:</p>
+<ul>
+  <li><strong>Google Tag:</strong> vai no <code>&lt;head&gt;</code> do HTML do site.</li>
+  <li><strong>Meta Pixel:</strong> vai logo após a abertura do <code>&lt;head&gt;</code>.</li>
+</ul>
+<p>Guarde os dois blocos num arquivo de texto seguro junto com o ID do Pixel do Meta.</p>`
+      }
+    ],
+    validation: "Google Tag e Meta Pixel copiados e guardados para instalacao no site.",
+    done: "Contas de Google Ads e Meta Ads criadas e pixels prontos para instalacao."
+  },
+  {
+    id: "crm",
+    title: "CRM e leads",
+    objective: "Configurar Chatwoot como CRM leve, criar pipeline de contatos e conectar o n8n para registrar automaticamente novos leads do atendimento.",
+    tutorial: [
+      {
+        heading: "1. Configure o pipeline no Chatwoot",
+        body: `<p>No Chatwoot, acesse <strong>Configurações → Labels</strong> e crie etiquetas para as fases do funil:</p>
+<ul>
+  <li><code>novo-lead</code></li>
+  <li><code>em-contato</code></li>
+  <li><code>proposta-enviada</code></li>
+  <li><code>fechado</code></li>
+  <li><code>perdido</code></li>
+</ul>
+<p>Cada conversa pode receber uma etiqueta que representa o estágio do lead. Avance manualmente conforme o lead progride no funil.</p>`
+      },
+      {
+        heading: "2. Configure campos de contato",
+        body: `<p>No Chatwoot, acesse <strong>Configurações → Atributos personalizados → Contato</strong>. Crie os atributos que o agente vai coletar:</p>
+<ul>
+  <li><strong>Empresa</strong> (tipo: texto)</li>
+  <li><strong>Interesse</strong> (tipo: texto)</li>
+  <li><strong>Canal de origem</strong> (tipo: texto)</li>
+</ul>
+<p>Esses campos aparecem no perfil do contato e podem ser preenchidos via API pelo n8n automaticamente.</p>`
+      },
+      {
+        heading: "3. Configure o webhook do Chatwoot no n8n",
+        body: `<p>No Chatwoot, acesse <strong>Configurações → Integrações → Webhooks → Adicionar</strong>. Crie um webhook com:</p>
+<ul>
+  <li><strong>URL:</strong> a URL do nó Webhook do n8n que você vai criar.</li>
+  <li><strong>Evento:</strong> marque <code>conversation_created</code>.</li>
+</ul>
+<p>No n8n, crie um workflow com um nó <strong>Webhook</strong> (método POST) e copie a URL gerada de volta para o campo no Chatwoot.</p>`
+      },
+      {
+        heading: "4. Registre o lead e aplique a etiqueta via n8n",
+        body: `<p>No workflow do n8n, após o Webhook, adicione dois nós <strong>HTTP Request</strong> em sequência:</p>
+<ol>
+  <li><strong>Atualiza atributos do contato</strong> — preenche empresa, interesse e canal de origem com os dados coletados pelo agente.</li>
+  <li><strong>Aplica etiqueta novo-lead</strong> — marca a conversa no funil:</li>
+</ol>`,
+        command: `POST https://chat.{{domain}}/api/v1/accounts/1/conversations/ID_CONVERSA/labels\n{ "labels": ["novo-lead"] }`
+      },
+      {
+        heading: "5. Valide o fluxo",
+        body: `<p>Envie uma mensagem de teste para o WhatsApp conectado. Verifique:</p>
+<ul>
+  <li>A conversa aparece no Chatwoot com a etiqueta <code>novo-lead</code>.</li>
+  <li>O contato tem os atributos preenchidos.</li>
+  <li>O agente respondeu automaticamente.</li>
+</ul>`
+      }
+    ],
+    validation: "Um lead de teste aparecer no Chatwoot com etiqueta novo-lead e atributos preenchidos.",
+    done: "Pipeline de leads ativo e registro automatico funcionando via n8n."
   }
 ];
 
@@ -1602,7 +2015,7 @@ function renderLessonDetail(module, index) {
   document.querySelector("#previous-stage").disabled = index === 0;
   document.querySelector("#next-stage").textContent = index === module.stages.length - 1 ? "Concluir modulo" : "Avancar";
 
-  const isModule3 = module.id === "module-3";
+  const isModule3 = module.id === "module-3" || module.id === "module-4";
   document.querySelector("#stage-video-placeholder")?.classList.toggle("hidden", isModule3);
   // No Módulo 3 a navegação fica entre as etapas e o assistente (via CSS order)
   document.querySelector(".stage-layout")?.classList.toggle("is-wizard", isModule3);
@@ -1984,7 +2397,7 @@ function buildLessonStepContent(step, lesson) {
 }
 
 function buildStageContent(stage, module) {
-  if (module.id === "module-3") {
+  if (module.id === "module-3" || module.id === "module-4") {
     return `
       <div class="wizard-layout">
         <nav class="wizard-steps" id="lesson-steps"></nav>
@@ -2162,7 +2575,7 @@ function ensureAssistantThread(module, lesson) {
     const agentId = lesson[3] || agentIdForStageKey(key);
     opening = MODULE1_AGENT_OPENINGS[agentId]
       || `Vamos trabalhar a etapa "${lesson[0]}". Pode começar.`;
-  } else if (module.id === "module-3") {
+  } else if (module.id === "module-3" || module.id === "module-4") {
     const steps = getLessonSteps(lesson);
     const first = steps[0];
     opening = first
@@ -2215,7 +2628,7 @@ async function requestLessonAgentAnswer(module, stage, input, thread = null) {
     thread: thread || memberApp.state.assistantThreads[key] || []
   };
 
-  if (module.id === "module-3") {
+  if (module.id === "module-3" || module.id === "module-4") {
     const steps = getLessonSteps(stage);
     const activeStep = steps.find((s) => s.id === memberApp.state.currentLessonStep) || steps[0];
     if (activeStep) {
