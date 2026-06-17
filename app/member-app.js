@@ -1090,20 +1090,38 @@ networks:
       {
         heading: "2. Suba a Evolution API",
         body: `<p>No Portainer, crie o volume antes do deploy: <strong>Volumes → Add volume</strong>, nomeie <code>evolution_instances</code>.</p>
-<p>Depois vá em <strong>Stacks → Add stack</strong>, nomeie <code>evolution</code> e cole o YAML <strong>evolution — stack.yml</strong> abaixo. Antes de criar, substitua <code>CHAVE_EVOLUTION_AQUI</code> por uma senha forte — ela protege o acesso à API.</p>`
+<p>Depois vá em <strong>Stacks → Add stack</strong>, nomeie <code>evolution</code> e cole o YAML <strong>evolution — stack.yml</strong> abaixo.</p>
+<p><button class="button button-outline" type="button" id="copy-evolution-yaml">Copiar YAML da Evolution API</button></p>
+<p>Antes de criar a stack, substitua no YAML:</p>
+<ul>
+  <li><code>CHAVE_EVOLUTION_AQUI</code> — uma senha forte que protege o acesso à API.</li>
+  <li><code>SENHA_POSTGRES_AQUI</code> — a senha do usuário <code>axon_app</code> definida no módulo anterior.</li>
+  <li>No campo <code>SERVER_URL</code>, confirme que o valor após <code>https://evo.</code> corresponde ao seu domínio real. Se aparecer <code>SEU_DOMINIO.com</code>, substitua manualmente por <code>evo.seudominio.com.br</code>.</li>
+</ul>`
       },
       {
         heading: "3. Crie o banco do Chatwoot",
-        body: `<p>Conecte no Postgres pelo terminal SSH e crie o banco:</p>`,
-        command: `docker exec -it $(docker ps -qf name=postgres) psql -U postgres\nCREATE DATABASE chatwoot;\nGRANT ALL PRIVILEGES ON DATABASE chatwoot TO axon_app;\n\\q`
+        body: `<p>Abra o terminal SSH da sua VPS — se estiver usando a Hostinger, clique em <strong>VPS Web Terminal</strong> no painel.</p>
+<p>Cole esse comando para ver os containers rodando:</p>
+<div class="inline-command"><code>docker ps</code><button class="btn-copy-inline" title="Copiar">Copiar</button></div>
+<p>Na lista que aparecer, encontre a linha onde a coluna <strong>IMAGE</strong> mostra <code>postgres:16-alpine</code>. Copie os primeiros 12 caracteres da coluna <strong>CONTAINER ID</strong> dessa linha.</p>
+<p>Agora cole o comando abaixo, substituindo <code>CONTAINER_ID</code> pelo valor que você copiou:</p>
+<div class="inline-command"><code>docker exec -it CONTAINER_ID psql -U axon_app -d postgres</code><button class="btn-copy-inline" title="Copiar">Copiar</button></div>
+<p>Quando aparecer o prompt <code>postgres=#</code>, cole:</p>
+<div class="inline-command"><code>CREATE DATABASE chatwoot;</code><button class="btn-copy-inline" title="Copiar">Copiar</button></div>
+<p>Aguarde <code>CREATE DATABASE</code>, depois cole:</p>
+<div class="inline-command"><code>GRANT ALL PRIVILEGES ON DATABASE chatwoot TO axon_app;</code><button class="btn-copy-inline" title="Copiar">Copiar</button></div>
+<p>Aguarde <code>GRANT</code>, depois cole:</p>
+<div class="inline-command"><code>\\q</code><button class="btn-copy-inline" title="Copiar">Copiar</button></div>
+<p>Você voltará ao terminal normal. Banco criado com sucesso.</p>`
       },
       {
         heading: "4. Suba o Chatwoot",
         body: `<p>No Portainer, crie o volume <code>redis_chatwoot_data</code> em <strong>Volumes → Add volume</strong>.</p>
-<p>Crie a stack com nome <code>chatwoot</code> e cole o YAML <strong>chatwoot — stack.yml</strong> abaixo. Antes de criar, preencha:</p>
+<p>Crie a stack com nome <code>chatwoot</code> e cole o YAML <strong>chatwoot — stack.yml</strong> abaixo. Antes de criar, localize os dois serviços no YAML — <code>chatwoot-web</code> e <code>chatwoot-worker</code> — e preencha em ambos:</p>
 <ul>
-  <li><code>CHAVE_SECRETA_64_CHARS_AQUI</code> — gere com <code>openssl rand -hex 64</code> no terminal SSH. Use o <strong>mesmo valor</strong> nas duas ocorrências (web e worker).</li>
-  <li><code>SENHA_POSTGRES_AQUI</code> — a senha do usuário <code>axon_app</code> definida no módulo anterior.</li>
+  <li><code>CHAVE_SECRETA_64_CHARS_AQUI</code> — acesse <a href="https://randomkeygen.com" target="_blank" rel="noopener">randomkeygen.com</a> e copie qualquer chave da seção <strong>128-bit Hex</strong>. Use o <strong>mesmo valor</strong> nas duas ocorrências.</li>
+  <li><code>SENHA_POSTGRES_AQUI</code> — a senha que você definiu no campo <code>SENHA_FORTE_AQUI</code> quando criou a stack do Postgres no módulo anterior.</li>
 </ul>`
       },
       {
@@ -1182,11 +1200,13 @@ networks:
 
 services:
   evolution:
-    image: atendai/evolution-api:v2
+    image: atendai/evolution-api:latest
     environment:
       - SERVER_URL=https://evo.{{domain}}
       - AUTHENTICATION_API_KEY=CHAVE_EVOLUTION_AQUI
-      - DATABASE_ENABLED=false
+      - DATABASE_ENABLED=true
+      - DATABASE_PROVIDER=postgresql
+      - DATABASE_CONNECTION_URI=postgresql://axon_app:SENHA_POSTGRES_AQUI@axon_postgres_axon_postgres:5432/evolution
       - LOG_LEVEL=ERROR
       - DEL_INSTANCE=false
     volumes:
@@ -2233,6 +2253,17 @@ function renderLessonStage(lesson, steps) {
     link.click();
     link.remove();
     URL.revokeObjectURL(url);
+  });
+
+  document.querySelector("#copy-evolution-yaml")?.addEventListener("click", async () => {
+    const btn = document.querySelector("#copy-evolution-yaml");
+    const yamlContent = step.yaml?.[0]?.content || "";
+    try {
+      await navigator.clipboard?.writeText(fillTemplate(yamlContent));
+      const label = btn.textContent;
+      btn.textContent = "Copiado!";
+      setTimeout(() => { btn.textContent = label; }, 1800);
+    } catch { /* silencioso */ }
   });
 
   document.querySelector("#download-n8n-atendimento")?.addEventListener("click", () => {
