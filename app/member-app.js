@@ -1259,7 +1259,7 @@ services:
       - RAILS_ENV=production
       - RAILS_LOG_TO_STDOUT=true
       - REDIS_URL=redis://redis-chatwoot:6379
-      - POSTGRES_HOST=postgres
+      - POSTGRES_HOST=axon_postgres_axon_postgres
       - POSTGRES_PORT=5432
       - POSTGRES_DATABASE=chatwoot
       - POSTGRES_USERNAME=axon_app
@@ -1285,7 +1285,7 @@ services:
       - FRONTEND_URL=https://chat.{{domain}}
       - RAILS_ENV=production
       - REDIS_URL=redis://redis-chatwoot:6379
-      - POSTGRES_HOST=postgres
+      - POSTGRES_HOST=axon_postgres_axon_postgres
       - POSTGRES_PORT=5432
       - POSTGRES_DATABASE=chatwoot
       - POSTGRES_USERNAME=axon_app
