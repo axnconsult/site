@@ -1200,13 +1200,21 @@ networks:
 
 services:
   evolution:
-    image: atendai/evolution-api:latest
+    image: evoapicloud/evolution-api:v2.3.7
     environment:
       - SERVER_URL=https://evo.{{domain}}
       - AUTHENTICATION_API_KEY=CHAVE_EVOLUTION_AQUI
       - DATABASE_ENABLED=true
       - DATABASE_PROVIDER=postgresql
       - DATABASE_CONNECTION_URI=postgresql://axon_app:SENHA_POSTGRES_AQUI@axon_postgres_axon_postgres:5432/evolution
+      - DATABASE_URL=postgresql://axon_app:SENHA_POSTGRES_AQUI@axon_postgres_axon_postgres:5432/evolution
+      - REDIS_ENABLED=true
+      - REDIS_URI=redis://chatwoot_redis-chatwoot:6379
+      - CACHE_REDIS_ENABLED=true
+      - CACHE_REDIS_URI=redis://chatwoot_redis-chatwoot:6379
+      - CACHE_REDIS_PREFIX_KEY=evolution
+      - CACHE_REDIS_SAVE_INSTANCES=true
+      - CACHE_LOCAL_ENABLED=false
       - LOG_LEVEL=ERROR
       - DEL_INSTANCE=false
     volumes:
@@ -1221,8 +1229,17 @@ services:
         - "traefik.docker.network=network_swarm_public"
         - "traefik.http.routers.evolution.rule=Host(\`evo.{{domain}}\`)"
         - "traefik.http.routers.evolution.entrypoints=websecure"
+        - "traefik.http.routers.evolution.tls=true"
         - "traefik.http.routers.evolution.tls.certresolver=letsencryptresolver"
+        - "traefik.http.routers.evolution.middlewares=evolution-ws"
         - "traefik.http.services.evolution.loadbalancer.server.port=8080"
+        - "traefik.http.routers.evolution-http.rule=Host(\`evo.{{domain}}\`)"
+        - "traefik.http.routers.evolution-http.entrypoints=web"
+        - "traefik.http.routers.evolution-http.middlewares=evolution-redirect"
+        - "traefik.http.middlewares.evolution-redirect.redirectscheme.scheme=https"
+        - "traefik.http.middlewares.evolution-redirect.redirectscheme.permanent=true"
+        - "traefik.http.middlewares.evolution-ws.headers.customrequestheaders.Upgrade=websocket"
+        - "traefik.http.middlewares.evolution-ws.headers.customrequestheaders.Connection=Upgrade"
 
 networks:
   network_swarm_public:
