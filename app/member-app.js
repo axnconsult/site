@@ -286,15 +286,17 @@ const WIZARD_STEPS = [
         body: `<p>Verifique que domínio, IP da VPS e e-mail estão preenchidos nas etapas anteriores. A senha do banco é o único campo desta etapa — defina-a no campo abaixo e guarde-a, pois ela será usada em todas as stacks.</p>`
       },
       {
-        heading: "2. Baixe o script personalizado",
+        heading: "2. Baixe e envie o script para a VPS",
         body: `<p>Clique no botão abaixo para baixar o script com seus dados já preenchidos:</p>
 <p><button class="button button-primary" type="button" id="download-infra-script">Baixar script de configuração (axn-setup.sh)</button></p>
-<p>Depois envie o arquivo para a VPS. Se estiver na Hostinger, use o <strong>File Manager</strong> no painel (upload para <code>/root/</code>). Ou use SCP no terminal local:</p>`,
+<p>Agora envie o arquivo para a VPS. <strong>Escolha uma das opções abaixo:</strong></p>
+<p><strong>Opção A — Hostinger File Manager (mais fácil):</strong><br>No painel da Hostinger, acesse <strong>VPS → File Manager</strong>, navegue até <code>/root/</code> e faça upload do arquivo <code>axn-setup.sh</code>.</p>
+<p><strong>Opção B — SCP no terminal local:</strong><br>Abra um terminal <strong>no seu computador</strong> (PowerShell, CMD ou Terminal) — <strong>não o terminal SSH da VPS</strong>. Navegue até onde o arquivo foi salvo e rode:</p>`,
         command: `scp axn-setup.sh root@{{serverIp}}:/root/`
       },
       {
         heading: "3. Execute o script na VPS",
-        body: `<p>Conecte via SSH e execute o script. Ele leva ~5 minutos e mostra o progresso em cada etapa:</p>`,
+        body: `<p>No terminal SSH da VPS, execute:</p>`,
         command: `ssh root@{{serverIp}}\nbash /root/axn-setup.sh`
       },
       {
