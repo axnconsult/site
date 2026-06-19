@@ -31,8 +31,9 @@ const COURSE_MODULES = [
     result: "Infraestrutura digital operacional",
     stages: [
       ["Dominio, VPS e DNS", "Compre o dominio e a VPS, conecte na Cloudflare e aponte os registros DNS.", "technical", null, ["domain", "vps-compra", "dns", "email"]],
-      ["Configuracao automatica", "Um script instala tudo: Docker, Swarm, Traefik, Portainer, Postgres e n8n.", "technical", null, ["infra-auto"]],
-      ["Publique o site", "Suba o site com Docker e configure o deploy automatico.", "technical", null, ["site"]],
+      ["VPS, Docker e Swarm", "Acesse a VPS, instale Docker e inicialize o Swarm.", "technical", null, ["vps", "swarm"]],
+      ["Portainer e Traefik", "Suba o painel operacional e o proxy publico da infraestrutura.", "technical", null, ["traefik", "portainer"]],
+      ["PostgreSQL e n8n", "Suba o banco de dados e o n8n em fila para as automacoes.", "technical", null, ["postgres", "n8n"]],
       ["Validacao da infra", "Revise a saude da estrutura e guarde os dados da sua infra.", "technical", null, ["ops", "infra-dados"]]
     ]
   },
@@ -275,40 +276,6 @@ const WIZARD_STEPS = [
     validation: "ImprovMX e MailerSend mostrarem os registros verdes e um e-mail de teste chegar no Gmail.",
     done: "Recebimento (ImprovMX) e envio (MailerSend) verificados.",
     fields: [{ key: "technicalEmail", label: "E-mail tecnico", placeholder: "voce@seudominio.com.br" }]
-  },
-  {
-    id: "infra-auto",
-    title: "Configuracao automatica",
-    objective: "Um script baixa, instala e configura toda a infraestrutura: Docker, Swarm, Traefik, Portainer, Postgres e n8n.",
-    tutorial: [
-      {
-        heading: "1. Confirme os dados do projeto",
-        body: `<p>Verifique que domínio, IP da VPS e e-mail estão preenchidos nas etapas anteriores. A senha do banco é o único campo desta etapa — defina-a no campo abaixo e guarde-a, pois ela será usada em todas as stacks.</p>`
-      },
-      {
-        heading: "2. Baixe o script personalizado",
-        body: `<p>Clique no botão abaixo para baixar o script com seus dados já preenchidos:</p>
-<p><button class="button button-primary" type="button" id="download-infra-script">Baixar script de configuração (axn-setup.sh)</button></p>
-<p>Depois envie o arquivo para a VPS. Se estiver na Hostinger, use o <strong>File Manager</strong> no painel (upload para <code>/root/</code>). Ou use SCP no terminal local:</p>`,
-        command: `scp axn-setup.sh root@{{serverIp}}:/root/`
-      },
-      {
-        heading: "3. Execute o script na VPS",
-        body: `<p>Conecte via SSH e execute o script. Ele leva ~5 minutos e mostra o progresso em cada etapa:</p>`,
-        command: `ssh root@{{serverIp}}\nbash /root/axn-setup.sh`
-      },
-      {
-        heading: "4. Crie o usuário admin no Portainer",
-        body: `<p>Quando o script terminar e exibir a mensagem de conclusão, acesse o Portainer no navegador:</p>
-<p>Defina usuário e senha do administrador. Clique em <strong>Get Started</strong> → <strong>local</strong> para conectar ao Swarm local. A partir daí, todos os deploys futuros são feitos pelo Portainer.</p>`,
-        command: `https://painel.{{domain}}`
-      }
-    ],
-    fields: [
-      { key: "postgresPassword", label: "Senha do banco Postgres (usada em todas as stacks)", placeholder: "SuaSenhaForteAqui" }
-    ],
-    validation: "docker service ls mostrar traefik, portainer, postgres e n8n com replica 1/1.",
-    done: "Infraestrutura completa no ar. Admin criado no Portainer."
   },
   {
     id: "vps",
@@ -682,7 +649,7 @@ networks:
   <li><strong>N8N_ENCRYPTION_KEY</strong> — chave de criptografia das credenciais salvas no n8n</li>
   <li><strong>N8N_RUNNERS_AUTH_TOKEN</strong> — token de autenticação entre worker e runners</li>
 </ul>
-<p>Você vai substituir <code>{{n8nEncryptionKey}}</code> e <code>{{n8nRunnersAuthToken}}</code> por esses valores em todas as stacks abaixo.</p>`
+<p>Você vai substituir <code>N8N_ENCRYPTION_KEY_AQUI</code> e <code>N8N_RUNNERS_AUTH_TOKEN_AQUI</code> por esses valores em todas as stacks abaixo.</p>`
       },
       {
         heading: "3. Suba as stacks em ordem",
@@ -743,7 +710,7 @@ services:
     networks:
       - network_swarm_public
     environment:
-      - N8N_ENCRYPTION_KEY={{n8nEncryptionKey}}
+      - N8N_ENCRYPTION_KEY=N8N_ENCRYPTION_KEY_AQUI
       - NODE_ENV=production
       - N8N_METRICS=true
       - N8N_DIAGNOSTICS_ENABLED=false
@@ -753,7 +720,7 @@ services:
       - N8N_ENFORCE_SETTINGS_FILE_PERMISSIONS=true
       - N8N_RUNNERS_MODE=external
       - N8N_RUNNERS_BROKER_LISTEN_ADDRESS=0.0.0.0
-      - N8N_RUNNERS_AUTH_TOKEN={{n8nRunnersAuthToken}}
+      - N8N_RUNNERS_AUTH_TOKEN=N8N_RUNNERS_AUTH_TOKEN_AQUI
       - N8N_NATIVE_PYTHON_RUNNER=true
       - OFFLOAD_MANUAL_EXECUTIONS_TO_WORKERS=true
       - DB_TYPE=postgresdb
@@ -837,7 +804,7 @@ services:
     networks:
       - network_swarm_public
     environment:
-      - N8N_ENCRYPTION_KEY={{n8nEncryptionKey}}
+      - N8N_ENCRYPTION_KEY=N8N_ENCRYPTION_KEY_AQUI
       - NODE_ENV=production
       - N8N_METRICS=true
       - N8N_DIAGNOSTICS_ENABLED=false
@@ -846,7 +813,7 @@ services:
       - GENERIC_TIMEZONE=America/Sao_Paulo
       - N8N_ENFORCE_SETTINGS_FILE_PERMISSIONS=true
       - N8N_RUNNERS_MODE=external
-      - N8N_RUNNERS_AUTH_TOKEN={{n8nRunnersAuthToken}}
+      - N8N_RUNNERS_AUTH_TOKEN=N8N_RUNNERS_AUTH_TOKEN_AQUI
       - N8N_NATIVE_PYTHON_RUNNER=true
       - OFFLOAD_MANUAL_EXECUTIONS_TO_WORKERS=true
       - DB_TYPE=postgresdb
@@ -916,7 +883,7 @@ services:
     networks:
       - network_swarm_public
     environment:
-      - N8N_ENCRYPTION_KEY={{n8nEncryptionKey}}
+      - N8N_ENCRYPTION_KEY=N8N_ENCRYPTION_KEY_AQUI
       - NODE_ENV=production
       - N8N_METRICS=true
       - N8N_DIAGNOSTICS_ENABLED=false
@@ -926,7 +893,7 @@ services:
       - N8N_ENFORCE_SETTINGS_FILE_PERMISSIONS=true
       - N8N_RUNNERS_MODE=external
       - N8N_RUNNERS_BROKER_LISTEN_ADDRESS=0.0.0.0
-      - N8N_RUNNERS_AUTH_TOKEN={{n8nRunnersAuthToken}}
+      - N8N_RUNNERS_AUTH_TOKEN=N8N_RUNNERS_AUTH_TOKEN_AQUI
       - N8N_NATIVE_PYTHON_RUNNER=true
       - OFFLOAD_MANUAL_EXECUTIONS_TO_WORKERS=true
       - DB_TYPE=postgresdb
@@ -988,7 +955,7 @@ services:
       - network_swarm_public
     environment:
       N8N_RUNNERS_TASK_BROKER_URI: http://n8n_worker:5679
-      N8N_RUNNERS_AUTH_TOKEN: {{n8nRunnersAuthToken}}
+      N8N_RUNNERS_AUTH_TOKEN: N8N_RUNNERS_AUTH_TOKEN_AQUI
     deploy:
       mode: replicated
       replicas: 1
@@ -1415,9 +1382,7 @@ const DEFAULT_MEMBER_STATE = {
     siteImage: "ghcr.io/axnconsult/site:main",
     postgresPassword: "",
     evolutionApiKey: "",
-    chatwootSecretKey: "",
-    n8nEncryptionKey: "",
-    n8nRunnersAuthToken: ""
+    chatwootSecretKey: ""
   },
   currentStep: "domain",
   currentModule: "module-1",
@@ -2041,9 +2006,7 @@ function fillTemplate(template) {
     .replaceAll("{{siteImage}}", project.siteImage || "IMAGEM_DO_SITE_AQUI")
     .replaceAll("{{postgresPassword}}", project.postgresPassword || "SENHA_POSTGRES_AQUI")
     .replaceAll("{{evolutionApiKey}}", project.evolutionApiKey || "CHAVE_EVOLUTION_AQUI")
-    .replaceAll("{{chatwootSecretKey}}", project.chatwootSecretKey || "CHAVE_SECRETA_64_CHARS_AQUI")
-    .replaceAll("{{n8nEncryptionKey}}", project.n8nEncryptionKey || "{{n8nEncryptionKey}}")
-    .replaceAll("{{n8nRunnersAuthToken}}", project.n8nRunnersAuthToken || "{{n8nRunnersAuthToken}}");
+    .replaceAll("{{chatwootSecretKey}}", project.chatwootSecretKey || "CHAVE_SECRETA_64_CHARS_AQUI");
 }
 
 function currentModule() {
@@ -2245,18 +2208,6 @@ function renderLessonStage(lesson, steps) {
     URL.revokeObjectURL(url);
   });
 
-  document.querySelector("#download-infra-script")?.addEventListener("click", () => {
-    const blob = new Blob([buildInfraSetupScript()], { type: "text/x-shellscript;charset=utf-8" });
-    const url = URL.createObjectURL(blob);
-    const link = document.createElement("a");
-    link.href = url;
-    link.download = "axn-setup.sh";
-    document.body.appendChild(link);
-    link.click();
-    link.remove();
-    URL.revokeObjectURL(url);
-  });
-
   document.querySelector("#copy-evolution-yaml")?.addEventListener("click", async () => {
     const btn = document.querySelector("#copy-evolution-yaml");
     const yamlContent = step.yaml?.[0]?.content || "";
@@ -2279,484 +2230,6 @@ function renderLessonStage(lesson, steps) {
     link.remove();
     URL.revokeObjectURL(url);
   });
-}
-
-function buildInfraSetupScript() {
-  const p = memberApp.state.project;
-  const domain    = p.domain           || "SEU_DOMINIO.com";
-  const serverIp  = p.serverIp         || "SEU_IP_DA_VPS";
-  const email     = p.technicalEmail   || "SEU_EMAIL_REAL";
-  const pgPass    = p.postgresPassword || "SENHA_POSTGRES_AQUI";
-  const n8nKey    = p.n8nEncryptionKey    || "N8N_ENCRYPTION_KEY_AQUI";
-  const n8nToken  = p.n8nRunnersAuthToken || "N8N_RUNNERS_AUTH_TOKEN_AQUI";
-
-  return `#!/bin/bash
-set -e
-
-echo ""
-echo "=== AXN — Configuracao da Infraestrutura ==="
-echo ""
-
-DOMAIN="${domain}"
-SERVER_IP="${serverIp}"
-EMAIL="${email}"
-POSTGRES_PASS="${pgPass}"
-N8N_KEY="${n8nKey}"
-N8N_TOKEN="${n8nToken}"
-
-# ── 1. Sistema ────────────────────────────────────
-echo "[1/7] Atualizando sistema e configurando firewall..."
-apt-get update -y && apt-get upgrade -y
-ufw allow 22/tcp && ufw allow 80/tcp && ufw allow 443/tcp && ufw --force enable
-
-# ── 2. Docker ─────────────────────────────────────
-echo "[2/7] Instalando Docker..."
-curl -fsSL https://get.docker.com | sh
-
-# ── 3. Swarm e rede ───────────────────────────────
-echo "[3/7] Inicializando Docker Swarm..."
-docker swarm init --advertise-addr "$SERVER_IP"
-docker network create --driver=overlay --attachable network_swarm_public
-echo "[3/7] Criando volumes..."
-docker volume create volume_swarm_certificates
-docker volume create portainer_data
-docker volume create postgres_data
-docker volume create redis_n8n_data
-
-# ── 4. Traefik ────────────────────────────────────
-echo "[4/7] Subindo Traefik..."
-mkdir -p /opt/stacks/traefik
-cat > /opt/stacks/traefik/stack.yml << 'TRAEFIK_STACK'
-version: "3.7"
-services:
-  traefik:
-    image: traefik:v2.11.8
-    command:
-      - "--api.dashboard=true"
-      - "--providers.docker.swarmMode=true"
-      - "--providers.docker.endpoint=unix:///var/run/docker.sock"
-      - "--providers.docker.exposedbydefault=false"
-      - "--providers.docker.network=network_swarm_public"
-      - "--entrypoints.web.address=:80"
-      - "--entrypoints.web.http.redirections.entryPoint.to=websecure"
-      - "--entrypoints.web.http.redirections.entryPoint.scheme=https"
-      - "--entrypoints.web.http.redirections.entrypoint.permanent=true"
-      - "--entrypoints.websecure.address=:443"
-      - "--certificatesresolvers.letsencryptresolver.acme.httpchallenge=true"
-      - "--certificatesresolvers.letsencryptresolver.acme.httpchallenge.entrypoint=web"
-      - "--certificatesresolvers.letsencryptresolver.acme.email=__EMAIL__"
-      - "--certificatesresolvers.letsencryptresolver.acme.storage=/etc/traefik/letsencrypt/acme.json"
-      - "--log.level=INFO"
-      - "--accesslog=true"
-    deploy:
-      placement:
-        constraints:
-          - node.role == manager
-      labels:
-        - "traefik.enable=true"
-        - "traefik.http.middlewares.redirect-https.redirectscheme.scheme=https"
-        - "traefik.http.middlewares.redirect-https.redirectscheme.permanent=true"
-        - "traefik.http.routers.http-catchall.rule=hostregexp(\`{host:.+}\`)"
-        - "traefik.http.routers.http-catchall.entrypoints=web"
-        - "traefik.http.routers.http-catchall.middlewares=redirect-https@docker"
-        - "traefik.http.routers.http-catchall.priority=1"
-    volumes:
-      - "/var/run/docker.sock:/var/run/docker.sock:ro"
-      - "vol_certificates:/etc/traefik/letsencrypt"
-    networks:
-      - network_swarm_public
-    ports:
-      - target: 80
-        published: 80
-        mode: host
-      - target: 443
-        published: 443
-        mode: host
-volumes:
-  vol_certificates:
-    external: true
-    name: volume_swarm_certificates
-networks:
-  network_swarm_public:
-    external: true
-    name: network_swarm_public
-TRAEFIK_STACK
-sed -i "s|__EMAIL__|$EMAIL|g" /opt/stacks/traefik/stack.yml
-docker stack deploy -c /opt/stacks/traefik/stack.yml traefik
-echo -n "Aguardando Traefik"
-TRIES=0; until docker service ls --filter name=traefik_traefik --format '{{.Replicas}}' | grep -q "1/1" || [ $TRIES -ge 20 ]; do sleep 3; TRIES=$((TRIES+1)); printf "."; done; echo " OK"
-
-# ── 5. Portainer ──────────────────────────────────
-echo "[5/7] Subindo Portainer..."
-mkdir -p /opt/stacks/portainer
-cat > /opt/stacks/portainer/stack.yml << 'PORTAINER_STACK'
-version: "3.7"
-services:
-  agent:
-    image: portainer/agent:sts
-    volumes:
-      - /var/run/docker.sock:/var/run/docker.sock
-      - /var/lib/docker/volumes:/var/lib/docker/volumes
-    networks:
-      - network_swarm_public
-    deploy:
-      mode: global
-      placement:
-        constraints:
-          - node.platform.os == linux
-  portainer:
-    image: portainer/portainer-ce:sts
-    command: -H tcp://tasks.agent:9001 --tlsskipverify
-    volumes:
-      - portainer_data:/data
-    networks:
-      - network_swarm_public
-    deploy:
-      mode: replicated
-      replicas: 1
-      placement:
-        constraints:
-          - node.role == manager
-      labels:
-        - "traefik.enable=true"
-        - "traefik.docker.network=network_swarm_public"
-        - "traefik.http.routers.portainer.rule=Host(\`painel.__DOMAIN__\`)"
-        - "traefik.http.routers.portainer.entrypoints=websecure"
-        - "traefik.http.routers.portainer.tls.certresolver=letsencryptresolver"
-        - "traefik.http.routers.portainer.service=portainer"
-        - "traefik.http.services.portainer.loadbalancer.server.port=9000"
-networks:
-  network_swarm_public:
-    external: true
-    attachable: true
-    name: network_swarm_public
-volumes:
-  portainer_data:
-    external: true
-    name: portainer_data
-PORTAINER_STACK
-sed -i "s|__DOMAIN__|$DOMAIN|g" /opt/stacks/portainer/stack.yml
-docker stack deploy -c /opt/stacks/portainer/stack.yml portainer
-echo -n "Aguardando Portainer"
-TRIES=0; until docker service ls --filter name=portainer_portainer --format '{{.Replicas}}' | grep -q "1/1" || [ $TRIES -ge 20 ]; do sleep 3; TRIES=$((TRIES+1)); printf "."; done; echo " OK"
-
-# ── 6. Postgres ───────────────────────────────────
-echo "[6/7] Subindo Postgres..."
-mkdir -p /opt/stacks/postgres
-cat > /opt/stacks/postgres/stack.yml << 'POSTGRES_STACK'
-version: "3.7"
-services:
-  axon_postgres:
-    image: pgvector/pgvector:pg16
-    networks:
-      - network_swarm_public
-    command:
-      - postgres
-      - --max_connections=200
-      - --port=5432
-    volumes:
-      - postgres_data:/var/lib/postgresql/data
-    environment:
-      POSTGRES_PASSWORD: __POSTGRES_PASS__
-      POSTGRES_INITDB_ARGS: "--auth-host=scram-sha-256"
-    deploy:
-      mode: replicated
-      replicas: 1
-      placement:
-        constraints:
-          - node.role == manager
-volumes:
-  postgres_data:
-    external: true
-    name: postgres_data
-networks:
-  network_swarm_public:
-    external: true
-    name: network_swarm_public
-POSTGRES_STACK
-sed -i "s|__POSTGRES_PASS__|$POSTGRES_PASS|g" /opt/stacks/postgres/stack.yml
-docker stack deploy -c /opt/stacks/postgres/stack.yml axon_postgres
-echo -n "Aguardando Postgres"
-sleep 10
-TRIES=0; until docker exec $(docker ps -qf name=axon_postgres_axon_postgres) pg_isready -U postgres 2>/dev/null || [ $TRIES -ge 20 ]; do sleep 3; TRIES=$((TRIES+1)); printf "."; done; echo " OK"
-PG=$(docker ps -qf name=axon_postgres_axon_postgres)
-docker exec -t "$PG" psql -U postgres -c "CREATE DATABASE axon_ops;" || true
-docker exec -t "$PG" psql -U postgres -c "CREATE USER axon_app WITH ENCRYPTED PASSWORD '$POSTGRES_PASS';" || true
-docker exec -t "$PG" psql -U postgres -c "GRANT ALL PRIVILEGES ON DATABASE axon_ops TO axon_app;" || true
-docker exec -t "$PG" psql -U postgres -c "CREATE DATABASE n8n;" || true
-docker exec -t "$PG" psql -U postgres -c "GRANT ALL PRIVILEGES ON DATABASE n8n TO axon_app;" || true
-
-# ── 7. n8n ────────────────────────────────────────
-echo "[7/7] Subindo n8n (Redis + editor + webhook + worker + runners)..."
-
-mkdir -p /opt/stacks/redis-n8n
-cat > /opt/stacks/redis-n8n/stack.yml << 'REDIS_N8N_STACK'
-version: "3.7"
-services:
-  redis_n8n:
-    image: redis:7-alpine
-    command: redis-server --appendonly yes
-    networks:
-      - network_swarm_public
-    volumes:
-      - redis_n8n_data:/data
-    deploy:
-      mode: replicated
-      replicas: 1
-      placement:
-        constraints:
-          - node.role == manager
-volumes:
-  redis_n8n_data:
-    external: true
-    name: redis_n8n_data
-networks:
-  network_swarm_public:
-    external: true
-    name: network_swarm_public
-REDIS_N8N_STACK
-docker stack deploy -c /opt/stacks/redis-n8n/stack.yml redis_n8n
-
-mkdir -p /opt/stacks/n8n-editor
-cat > /opt/stacks/n8n-editor/stack.yml << 'N8N_EDITOR_STACK'
-version: "3.7"
-services:
-  n8n_editor:
-    image: n8nio/n8n:2.16.1
-    hostname: "{{.Service.Name}}.{{.Task.Slot}}"
-    command: start
-    networks:
-      - network_swarm_public
-    environment:
-      - N8N_ENCRYPTION_KEY=__N8N_KEY__
-      - NODE_ENV=production
-      - N8N_METRICS=true
-      - N8N_DIAGNOSTICS_ENABLED=false
-      - N8N_PAYLOAD_SIZE_MAX=16
-      - N8N_LOG_LEVEL=info
-      - GENERIC_TIMEZONE=America/Sao_Paulo
-      - N8N_ENFORCE_SETTINGS_FILE_PERMISSIONS=true
-      - N8N_RUNNERS_MODE=external
-      - N8N_RUNNERS_BROKER_LISTEN_ADDRESS=0.0.0.0
-      - N8N_RUNNERS_AUTH_TOKEN=__N8N_TOKEN__
-      - N8N_NATIVE_PYTHON_RUNNER=true
-      - OFFLOAD_MANUAL_EXECUTIONS_TO_WORKERS=true
-      - DB_TYPE=postgresdb
-      - DB_POSTGRESDB_DATABASE=n8n
-      - DB_POSTGRESDB_HOST=postgres
-      - DB_POSTGRESDB_PORT=5432
-      - DB_POSTGRESDB_USER=postgres
-      - DB_POSTGRESDB_PASSWORD=__POSTGRES_PASS__
-      - N8N_PORT=5678
-      - N8N_HOST=workflows.__DOMAIN__
-      - N8N_EDITOR_BASE_URL=https://workflows.__DOMAIN__/
-      - N8N_PROTOCOL=https
-      - WEBHOOK_URL=https://webhooks.__DOMAIN__/
-      - N8N_ENDPOINT_WEBHOOK=webhook
-      - EXECUTIONS_MODE=queue
-      - QUEUE_BULL_REDIS_HOST=redis_n8n
-      - QUEUE_BULL_REDIS_PORT=6379
-      - QUEUE_BULL_REDIS_DB=2
-      - EXECUTIONS_TIMEOUT=3600
-      - EXECUTIONS_TIMEOUT_MAX=7200
-      - EXECUTIONS_DATA_PRUNE=true
-      - EXECUTIONS_DATA_MAX_AGE=336
-      - EXECUTIONS_DATA_PRUNE_MAX_COUNT=10000
-      - EXECUTIONS_DATA_SAVE_ON_ERROR=all
-      - EXECUTIONS_DATA_SAVE_ON_SUCCESS=all
-      - EXECUTIONS_DATA_SAVE_ON_PROGRESS=true
-      - EXECUTIONS_DATA_SAVE_MANUAL_EXECUTIONS=true
-      - NODE_FUNCTION_ALLOW_BUILTIN=*
-      - NODE_FUNCTION_ALLOW_EXTERNAL=lodash
-      - N8N_COMMUNITY_PACKAGES_ENABLED=true
-      - N8N_REINSTALL_MISSING_PACKAGES=true
-      - N8N_NODE_PATH=/home/node/.n8n/nodes
-      - N8N_AI_ENABLED=false
-      - N8N_ONBOARDING_FLOW_DISABLED=true
-      - N8N_EMAIL_MODE=smtp
-      - N8N_SMTP_HOST=smtp.mailersend.net
-      - N8N_SMTP_PORT=587
-      - N8N_SMTP_USER=MAILERSEND_SMTP_USER_AQUI
-      - N8N_SMTP_PASS=MAILERSEND_SMTP_PASS_AQUI
-      - N8N_SMTP_SENDER=contato@__DOMAIN__
-      - N8N_SMTP_SSL=false
-      - N8N_SECURE_COOKIE=false
-      - N8N_BLOCK_ENV_ACCESS_IN_NODE=false
-      - N8N_RESTRICT_FILE_ACCESS_TO=~/.n8n-files
-      - N8N_DEFAULT_BINARY_DATA_MODE=default
-    deploy:
-      mode: replicated
-      replicas: 1
-      placement:
-        constraints:
-          - node.role == manager
-      labels:
-        - traefik.enable=true
-        - traefik.http.routers.n8n_editor.rule=Host(\`workflows.__DOMAIN__\`)
-        - traefik.http.routers.n8n_editor.entrypoints=websecure
-        - traefik.http.routers.n8n_editor.tls.certresolver=letsencryptresolver
-        - traefik.http.routers.n8n_editor.service=n8n_editor
-        - traefik.http.services.n8n_editor.loadbalancer.server.port=5678
-        - traefik.http.services.n8n_editor.loadbalancer.passHostHeader=true
-networks:
-  network_swarm_public:
-    name: network_swarm_public
-    external: true
-N8N_EDITOR_STACK
-sed -i "s|__DOMAIN__|$DOMAIN|g" /opt/stacks/n8n-editor/stack.yml
-sed -i "s|__N8N_KEY__|$N8N_KEY|g" /opt/stacks/n8n-editor/stack.yml
-sed -i "s|__N8N_TOKEN__|$N8N_TOKEN|g" /opt/stacks/n8n-editor/stack.yml
-sed -i "s|__POSTGRES_PASS__|$POSTGRES_PASS|g" /opt/stacks/n8n-editor/stack.yml
-docker stack deploy -c /opt/stacks/n8n-editor/stack.yml n8n_editor
-
-mkdir -p /opt/stacks/n8n-webhook
-cat > /opt/stacks/n8n-webhook/stack.yml << 'N8N_WEBHOOK_STACK'
-version: "3.7"
-services:
-  n8n_webhook:
-    image: n8nio/n8n:2.16.1
-    hostname: "{{.Service.Name}}.{{.Task.Slot}}"
-    command: webhook
-    networks:
-      - network_swarm_public
-    environment:
-      - N8N_ENCRYPTION_KEY=__N8N_KEY__
-      - NODE_ENV=production
-      - N8N_DIAGNOSTICS_ENABLED=false
-      - N8N_PAYLOAD_SIZE_MAX=16
-      - N8N_LOG_LEVEL=info
-      - GENERIC_TIMEZONE=America/Sao_Paulo
-      - N8N_RUNNERS_AUTH_TOKEN=__N8N_TOKEN__
-      - DB_TYPE=postgresdb
-      - DB_POSTGRESDB_DATABASE=n8n
-      - DB_POSTGRESDB_HOST=postgres
-      - DB_POSTGRESDB_PORT=5432
-      - DB_POSTGRESDB_USER=postgres
-      - DB_POSTGRESDB_PASSWORD=__POSTGRES_PASS__
-      - N8N_PORT=5678
-      - N8N_HOST=workflows.__DOMAIN__
-      - N8N_EDITOR_BASE_URL=https://workflows.__DOMAIN__/
-      - N8N_PROTOCOL=https
-      - WEBHOOK_URL=https://webhooks.__DOMAIN__/
-      - N8N_ENDPOINT_WEBHOOK=webhook
-      - EXECUTIONS_MODE=queue
-      - QUEUE_BULL_REDIS_HOST=redis_n8n
-      - QUEUE_BULL_REDIS_PORT=6379
-      - QUEUE_BULL_REDIS_DB=2
-    deploy:
-      mode: replicated
-      replicas: 3
-      placement:
-        constraints:
-          - node.role == manager
-      labels:
-        - traefik.enable=true
-        - traefik.http.routers.n8n_webhook.rule=Host(\`webhooks.__DOMAIN__\`)
-        - traefik.http.routers.n8n_webhook.entrypoints=websecure
-        - traefik.http.routers.n8n_webhook.tls.certresolver=letsencryptresolver
-        - traefik.http.routers.n8n_webhook.service=n8n_webhook
-        - traefik.http.services.n8n_webhook.loadbalancer.server.port=5678
-        - traefik.http.services.n8n_webhook.loadbalancer.passHostHeader=true
-networks:
-  network_swarm_public:
-    name: network_swarm_public
-    external: true
-N8N_WEBHOOK_STACK
-sed -i "s|__DOMAIN__|$DOMAIN|g" /opt/stacks/n8n-webhook/stack.yml
-sed -i "s|__N8N_KEY__|$N8N_KEY|g" /opt/stacks/n8n-webhook/stack.yml
-sed -i "s|__N8N_TOKEN__|$N8N_TOKEN|g" /opt/stacks/n8n-webhook/stack.yml
-sed -i "s|__POSTGRES_PASS__|$POSTGRES_PASS|g" /opt/stacks/n8n-webhook/stack.yml
-docker stack deploy -c /opt/stacks/n8n-webhook/stack.yml n8n_webhook
-
-mkdir -p /opt/stacks/n8n-worker
-cat > /opt/stacks/n8n-worker/stack.yml << 'N8N_WORKER_STACK'
-version: "3.7"
-services:
-  n8n_worker:
-    image: n8nio/n8n:2.16.1
-    hostname: "{{.Service.Name}}.{{.Task.Slot}}"
-    command: worker --concurrency=10
-    networks:
-      - network_swarm_public
-    environment:
-      - N8N_ENCRYPTION_KEY=__N8N_KEY__
-      - NODE_ENV=production
-      - N8N_DIAGNOSTICS_ENABLED=false
-      - N8N_PAYLOAD_SIZE_MAX=16
-      - N8N_LOG_LEVEL=info
-      - GENERIC_TIMEZONE=America/Sao_Paulo
-      - N8N_RUNNERS_MODE=external
-      - N8N_RUNNERS_BROKER_LISTEN_ADDRESS=0.0.0.0
-      - N8N_RUNNERS_AUTH_TOKEN=__N8N_TOKEN__
-      - DB_TYPE=postgresdb
-      - DB_POSTGRESDB_DATABASE=n8n
-      - DB_POSTGRESDB_HOST=postgres
-      - DB_POSTGRESDB_PORT=5432
-      - DB_POSTGRESDB_USER=postgres
-      - DB_POSTGRESDB_PASSWORD=__POSTGRES_PASS__
-      - N8N_PORT=5678
-      - N8N_HOST=workflows.__DOMAIN__
-      - N8N_EDITOR_BASE_URL=https://workflows.__DOMAIN__/
-      - N8N_PROTOCOL=https
-      - WEBHOOK_URL=https://webhooks.__DOMAIN__/
-      - EXECUTIONS_MODE=queue
-      - QUEUE_BULL_REDIS_HOST=redis_n8n
-      - QUEUE_BULL_REDIS_PORT=6379
-      - QUEUE_BULL_REDIS_DB=2
-    deploy:
-      mode: replicated
-      replicas: 1
-      placement:
-        constraints:
-          - node.role == manager
-networks:
-  network_swarm_public:
-    name: network_swarm_public
-    external: true
-N8N_WORKER_STACK
-sed -i "s|__DOMAIN__|$DOMAIN|g" /opt/stacks/n8n-worker/stack.yml
-sed -i "s|__N8N_KEY__|$N8N_KEY|g" /opt/stacks/n8n-worker/stack.yml
-sed -i "s|__N8N_TOKEN__|$N8N_TOKEN|g" /opt/stacks/n8n-worker/stack.yml
-sed -i "s|__POSTGRES_PASS__|$POSTGRES_PASS|g" /opt/stacks/n8n-worker/stack.yml
-docker stack deploy -c /opt/stacks/n8n-worker/stack.yml n8n_worker
-
-mkdir -p /opt/stacks/n8n-runners
-cat > /opt/stacks/n8n-runners/stack.yml << 'N8N_RUNNERS_STACK'
-version: "3.7"
-services:
-  n8n_runners:
-    image: n8nio/runners:2.16.1
-    hostname: "{{.Service.Name}}.{{.Task.Slot}}"
-    command: ["javascript", "python"]
-    networks:
-      - network_swarm_public
-    environment:
-      N8N_RUNNERS_TASK_BROKER_URI: http://n8n_worker:5679
-      N8N_RUNNERS_AUTH_TOKEN: __N8N_TOKEN__
-    deploy:
-      mode: replicated
-      replicas: 1
-      placement:
-        constraints:
-          - node.role == manager
-networks:
-  network_swarm_public:
-    external: true
-    name: network_swarm_public
-N8N_RUNNERS_STACK
-sed -i "s|__N8N_TOKEN__|$N8N_TOKEN|g" /opt/stacks/n8n-runners/stack.yml
-docker stack deploy -c /opt/stacks/n8n-runners/stack.yml n8n_runners
-
-echo ""
-echo "============================================"
-echo "  Infraestrutura no ar!"
-echo "  Portainer : https://painel.$DOMAIN"
-echo "  n8n       : https://workflows.$DOMAIN"
-echo "============================================"
-echo ""
-echo "Proximo passo: abra o Portainer e crie o usuario admin."
-echo "  -> Clique em 'Get Started' -> 'local'"
-`;
 }
 
 function buildAtendimentoWorkflowJson() {
@@ -3093,12 +2566,6 @@ function normalizeMemberState(state) {
   }
   if (!project.chatwootSecretKey) {
     project.chatwootSecretKey = generateRandomHex(64);
-  }
-  if (!project.n8nEncryptionKey) {
-    project.n8nEncryptionKey = generateRandomHex(32);
-  }
-  if (!project.n8nRunnersAuthToken) {
-    project.n8nRunnersAuthToken = generateRandomHex(32);
   }
 
   return {
