@@ -500,7 +500,7 @@ volumes:
       {
         heading: "1. Crie a stack no Portainer",
         body: `<p>No Portainer, acesse <strong>Stacks → Add stack</strong>. Dê o nome <code>site</code> e cole o conteúdo do YAML abaixo no editor.</p>
-<p>Antes de criar, localize a variável <code>DATABASE_URL</code> no YAML e substitua <code>SENHA_FORTE_AQUI</code> pela senha real que você definiu no Postgres.</p>`
+<p>Confirme se a variável <code>DATABASE_URL</code> no YAML contém a senha real do seu Postgres (ela deve aparecer preenchida automaticamente se você a salvou no passo anterior).</p>`
       },
       {
         heading: "2. Configure a imagem Docker",
@@ -526,7 +526,7 @@ services:
     environment:
       NODE_ENV: production
       PORT: "80"
-      DATABASE_URL: "postgres://axon_app:SENHA_FORTE_AQUI@postgres:5432/axon_ops"
+      DATABASE_URL: "postgres://axon_app:{{postgresPassword}}@postgres:5432/axon_ops"
     networks:
       - network_swarm_public
     healthcheck:
@@ -575,7 +575,7 @@ networks:
     tutorial: [
       {
         heading: "1. Crie a stack no Portainer",
-        body: `<p>No Portainer, acesse <strong>Stacks → Add stack</strong>. Dê o nome <code>postgres</code> e cole o YAML abaixo. Antes de criar, substitua <code>SENHA_FORTE_AQUI</code> por uma senha que você vai guardar — ela será usada em todas as conexões ao banco.</p>
+        body: `<p>No Portainer, acesse <strong>Stacks → Add stack</strong>. Dê o nome <code>postgres</code> e cole o YAML abaixo. Antes de criar, insira a senha do banco no campo abaixo do tutorial para preenchê-la automaticamente no YAML.</p>
 <p>Clique em <strong>Deploy the stack</strong> e aguarde o container subir.</p>`
       },
       {
@@ -585,12 +585,15 @@ networks:
       },
       {
         heading: "3. Crie o banco e o usuário da aplicação",
-        body: `<p>Dentro do prompt <code>postgres=#</code>, execute os comandos abaixo (um de cada vez). Substitua <code>SENHA_FORTE_AQUI</code> pela senha da aplicação:</p>`,
-        command: "CREATE DATABASE axon_ops;\nCREATE USER axon_app WITH ENCRYPTED PASSWORD 'SENHA_FORTE_AQUI';\nGRANT ALL PRIVILEGES ON DATABASE axon_ops TO axon_app;\n\\q"
+        body: `<p>Dentro do prompt <code>postgres=#</code>, execute os comandos abaixo (um de cada vez). Ela usará a senha que você digitou no campo abaixo:</p>`,
+        command: "CREATE DATABASE axon_ops;\nCREATE USER axon_app WITH ENCRYPTED PASSWORD '{{postgresPassword}}';\nGRANT ALL PRIVILEGES ON DATABASE axon_ops TO axon_app;\n\\q"
       }
     ],
     validation: "Os comandos SQL responderem CREATE DATABASE, CREATE ROLE e GRANT sem erro.",
     done: "Banco axon_ops e usuario axon_app criados.",
+    fields: [
+      { key: "postgresPassword", label: "Senha do banco Postgres (para uso em todas as stacks)", placeholder: "SuaSenhaForteAqui" }
+    ],
     yaml: [{ name: "postgres — stack.yml", content: `version: "3.7"
 
 services:
@@ -606,7 +609,7 @@ services:
     volumes:
       - postgres_data:/var/lib/postgresql/data
     environment:
-      POSTGRES_PASSWORD: SENHA_FORTE_AQUI
+      POSTGRES_PASSWORD: {{postgresPassword}}
       POSTGRES_INITDB_ARGS: "--auth-host=scram-sha-256"
     deploy:
       mode: replicated
@@ -725,7 +728,7 @@ services:
       - DB_POSTGRESDB_HOST=postgres
       - DB_POSTGRESDB_PORT=5432
       - DB_POSTGRESDB_USER=postgres
-      - DB_POSTGRESDB_PASSWORD=SENHA_FORTE_AQUI
+      - DB_POSTGRESDB_PASSWORD={{postgresPassword}}
       - N8N_PORT=5678
       - N8N_HOST=workflows.{{domain}}
       - N8N_EDITOR_BASE_URL=https://workflows.{{domain}}/
@@ -818,7 +821,7 @@ services:
       - DB_POSTGRESDB_HOST=postgres
       - DB_POSTGRESDB_PORT=5432
       - DB_POSTGRESDB_USER=postgres
-      - DB_POSTGRESDB_PASSWORD=SENHA_FORTE_AQUI
+      - DB_POSTGRESDB_PASSWORD={{postgresPassword}}
       - N8N_PORT=5678
       - N8N_HOST=workflows.{{domain}}
       - N8N_EDITOR_BASE_URL=https://workflows.{{domain}}/
@@ -898,7 +901,7 @@ services:
       - DB_POSTGRESDB_HOST=postgres
       - DB_POSTGRESDB_PORT=5432
       - DB_POSTGRESDB_USER=postgres
-      - DB_POSTGRESDB_PASSWORD=SENHA_FORTE_AQUI
+      - DB_POSTGRESDB_PASSWORD={{postgresPassword}}
       - N8N_PORT=5678
       - N8N_HOST=workflows.{{domain}}
       - N8N_EDITOR_BASE_URL=https://workflows.{{domain}}/
@@ -1075,11 +1078,12 @@ networks:
   {
     id: "atendimento",
     title: "Atendimento automatico",
-    objective: "Subir Evolution API e Chatwoot, conectar WhatsApp e Instagram, criar agente de atendimento no n8n com transferencia para humano.",
+    objective: "Subir Evolution API e Chatwoot em um clique, conectar WhatsApp e configurar o agente de atendimento no n8n.",
     tutorial: [
       {
-        heading: "1. Adicione subdomínios no Cloudflare",
-        body: `<p>Acesse <a href="https://dash.cloudflare.com" target="_blank" rel="noopener">dash.cloudflare.com</a> → seu domínio → <strong>DNS → Records</strong>. Adicione dois registros A:</p>
+        heading: "1. DNS (Opcional)",
+        body: `<p>Se você configurou o registro curinga (<code>*</code>) no Módulo 3, pode pular esta etapa.</p>
+<p>Caso contrário, acesse a Cloudflare e adicione dois registros A para o IP da sua VPS:</p>
 <table style="width:100%;border-collapse:collapse;font-size:0.85rem">
   <tr style="text-align:left"><th>Type</th><th>Name</th><th>IPv4 address</th><th>Proxy status</th></tr>
   <tr><td>A</td><td><code>evo</code></td><td><code>{{serverIp}}</code></td><td>DNS only</td></tr>
@@ -1088,123 +1092,51 @@ networks:
 <p style="margin-top:8px">Mantenha <strong>DNS only</strong> — o Traefik precisa resolver o certificado HTTPS diretamente.</p>`
       },
       {
-        heading: "2. Suba a Evolution API",
-        body: `<p>No Portainer, crie o volume antes do deploy: <strong>Volumes → Add volume</strong>, nomeie <code>evolution_instances</code>.</p>
-<p>Depois vá em <strong>Stacks → Add stack</strong>, nomeie <code>evolution</code> e cole o YAML <strong>evolution — stack.yml</strong> abaixo.</p>
-<p><button class="button button-outline" type="button" id="copy-evolution-yaml">Copiar YAML da Evolution API</button></p>
-<p>Antes de criar a stack, substitua no YAML:</p>
-<ul>
-  <li><code>CHAVE_EVOLUTION_AQUI</code> — uma senha forte que protege o acesso à API.</li>
-  <li><code>SENHA_POSTGRES_AQUI</code> — a senha do usuário <code>axon_app</code> definida no módulo anterior.</li>
-  <li>No campo <code>SERVER_URL</code>, confirme que o valor após <code>https://evo.</code> corresponde ao seu domínio real. Se aparecer <code>SEU_DOMINIO.com</code>, substitua manualmente por <code>evo.seudominio.com.br</code>.</li>
-</ul>`
-      },
-      {
-        heading: "3. Crie o banco do Chatwoot",
-        body: `<p>Abra o terminal SSH da sua VPS — se estiver usando a Hostinger, clique em <strong>VPS Web Terminal</strong> no painel.</p>
-<p>Cole o comando abaixo para entrar no Postgres (o ID do container é resolvido automaticamente):</p>
-<div class="inline-command"><code>docker exec -it $(docker ps -qf name=axon_postgres) psql -U axon_app -d postgres</code><button class="btn-copy-inline" title="Copiar">Copiar</button></div>
-<p>Quando aparecer o prompt <code>postgres=#</code>, cole:</p>
-<div class="inline-command"><code>CREATE DATABASE chatwoot;</code><button class="btn-copy-inline" title="Copiar">Copiar</button></div>
-<p>Aguarde <code>CREATE DATABASE</code>, depois cole:</p>
-<div class="inline-command"><code>GRANT ALL PRIVILEGES ON DATABASE chatwoot TO axon_app;</code><button class="btn-copy-inline" title="Copiar">Copiar</button></div>
-<p>Aguarde <code>GRANT</code>, depois cole:</p>
-<div class="inline-command"><code>\\q</code><button class="btn-copy-inline" title="Copiar">Copiar</button></div>
-<p>Você voltará ao terminal normal. Banco criado com sucesso.</p>`
-      },
-      {
-        heading: "4. Suba o Chatwoot",
-        body: `<p>No Portainer, crie o volume <code>redis_chatwoot_data</code> em <strong>Volumes → Add volume</strong>.</p>
-<p>Crie a stack com nome <code>chatwoot</code> e cole o YAML <strong>chatwoot — stack.yml</strong> abaixo. Antes de criar, localize os dois serviços no YAML — <code>chatwoot-web</code> e <code>chatwoot-worker</code> — e preencha em ambos:</p>
-<ul>
-  <li><code>CHAVE_SECRETA_64_CHARS_AQUI</code> — acesse <a href="https://randomkeygen.com" target="_blank" rel="noopener">randomkeygen.com</a> e copie qualquer chave da seção <strong>128-bit Hex</strong>. Use o <strong>mesmo valor</strong> nas duas ocorrências.</li>
-  <li><code>SENHA_POSTGRES_AQUI</code> — a senha que você definiu no campo <code>SENHA_FORTE_AQUI</code> quando criou a stack do Postgres no módulo anterior.</li>
-</ul>`
-      },
-      {
-        heading: "5. Execute as migrações",
-        body: `<p>Após o deploy do Chatwoot, rode as migrações para criar as tabelas no banco:</p>`,
-        command: `docker exec -it $(docker ps -qf name=chatwoot-web) bundle exec rails db:chatwoot_prepare`
-      },
-      {
-        heading: "6. Configure a conta inicial",
-        body: `<p>Acesse <a href="https://chat.{{domain}}" target="_blank" rel="noopener">chat.{{domain}}</a>. O Chatwoot exibe a tela de criação da primeira conta. Crie o usuário administrador e confirme o e-mail se solicitado.</p>`
-      },
-      {
-        heading: "7. Conecte o WhatsApp",
-        body: `<p>Acesse a Evolution API em <a href="https://evo.{{domain}}/manager" target="_blank" rel="noopener">evo.{{domain}}/manager</a> com a <code>CHAVE_EVOLUTION_AQUI</code> definida na stack.</p>
-<ol>
-  <li>Clique em <strong>Create instance</strong>, dê o nome <code>atendimento</code> e confirme.</li>
-  <li>Clique em <strong>Connect</strong> para gerar o QR Code.</li>
-  <li>No celular com o chip que vai usar: <strong>WhatsApp → Aparelhos conectados → Conectar → escaneie o QR Code</strong>.</li>
-</ol>
-<p style="background:#fff3cd;border-left:3px solid #e6a817;padding:8px 12px;margin-top:8px;border-radius:3px"><strong>Aviso:</strong> A Evolution API usa a versão web não oficial do WhatsApp. O Meta pode banir o número se detectar automação em volume. É a opção mais rápida para começar — se o atendimento crescer, migre para a <strong>API oficial via Meta Business</strong> (requer aprovação e tem custo por conversa).</p>`
-      },
-      {
-        heading: "8. Conecte o Instagram",
-        body: `<p>No Chatwoot, acesse <strong>Configurações → Caixas de entrada → Adicionar caixa de entrada → Instagram</strong>.</p>
-<ol>
-  <li>Clique em <strong>Conectar com Facebook</strong> e autorize o acesso à conta Business.</li>
-  <li>Selecione a página do Facebook vinculada ao Instagram.</li>
-  <li>Clique em <strong>Criar caixa de entrada</strong>.</li>
-</ol>
-<p>As mensagens diretas do Instagram passarão a aparecer no Chatwoot.</p>`
-      },
-      {
-        heading: "9. Conecte a Evolution API ao Chatwoot",
-        body: `<p>Na Evolution API, edite a instância <code>atendimento</code> e configure o Chatwoot:</p>
-<ol>
-  <li>Acesse <strong>Chatwoot → Configurar</strong> na instância.</li>
-  <li>URL do Chatwoot: <code>https://chat.{{domain}}</code>.</li>
-  <li>No Chatwoot, gere um token em <strong>Perfil → Token de acesso</strong> e cole na Evolution API.</li>
-  <li>Selecione a caixa de entrada do WhatsApp e salve.</li>
-</ol>
-<p>Envie uma mensagem de teste para o número — ela deve aparecer no Chatwoot.</p>`
-      },
-      {
-        heading: "10. Crie o agente de atendimento no n8n",
-        body: `<p>Em vez de montar os nós do zero, baixe o fluxo já pronto e importe no n8n:</p>
-<p><button class="button button-primary" type="button" id="download-n8n-atendimento">Baixar fluxo de atendimento (.json)</button></p>
-<p>Para importar: no n8n, acesse <strong>Workflows → Add workflow</strong> → menu (⋯) no canto superior direito → <strong>Import from File</strong> → selecione o arquivo baixado.</p>
-<p>O fluxo já vem com 4 nós em sequência:</p>
-<ol>
-  <li><strong>Webhook Evolution</strong> — recebe eventos da Evolution API (método POST).</li>
-  <li><strong>Filtra mensagem recebida</strong> — passa apenas mensagens recebidas, ignorando as enviadas pelo próprio agente.</li>
-  <li><strong>Agente IA</strong> — gera a resposta com base no prompt do sistema.</li>
-  <li><strong>Responder via Evolution API</strong> — envia a resposta de volta pelo WhatsApp.</li>
-</ol>
-<p>Antes de ativar, personalize:</p>
-<ul>
-  <li>No nó <strong>Webhook Evolution</strong>: copie a URL gerada (botão <strong>Listen for test event</strong> ou aba de produção) e cole no campo de Webhook da instância na Evolution API.</li>
-  <li>No nó <strong>Agente IA</strong>: selecione a credencial OpenAI criada na etapa anterior e ajuste o prompt do sistema com o tom e as regras do seu negócio.</li>
-  <li>No nó <strong>Responder via Evolution API</strong>: confirme que a URL já veio com o seu domínio e troque <code>CHAVE_EVOLUTION_AQUI</code> pela chave real da sua instância.</li>
-</ul>`
-      },
-      {
-        heading: "11. Configure transferência para humano",
-        body: `<p>No Chatwoot, acesse <strong>Configurações → Agentes</strong> e adicione sua conta como agente disponível.</p>
-<p>No workflow do n8n, adicione uma condição: se a mensagem contiver palavras como <em>"atendente"</em> ou <em>"humano"</em>, chame a API do Chatwoot para atribuir a conversa a um agente real em vez de responder com IA:</p>`,
-        command: `POST https://chat.{{domain}}/api/v1/accounts/1/conversations/ID_CONVERSA/assignments`
-      }
-    ],
-    validation: "Uma mensagem enviada para o WhatsApp aparecer no Chatwoot e receber resposta automatica da IA.",
-    done: "WhatsApp e Instagram conectados, agente respondendo e transferencia para humano configurada.",
-    yaml: [
-      {
-        name: "evolution — stack.yml",
-        note: "Copie e cole no editor do Portainer em Stacks > Add stack > Web editor.",
-        content: `version: "3.7"
+        heading: "2. Executar script de Auto-Implementação",
+        body: `<p>Vamos automatizar a criação de volumes, banco de dados, arquivos de stack e inicialização dos serviços.</p>
+<p>Conecte-se ao SSH da sua VPS e execute o comando abaixo (ele contém suas credenciais auto-geradas e seguras):</p>`,
+        command: `cat << 'EOF' > deploy-atendimento.sh
+#!/bin/bash
+set -e
 
+# Configurações do seu projeto
+DOMAIN="{{domain}}"
+POSTGRES_PASS="{{postgresPassword}}"
+EVO_KEY="{{evolutionApiKey}}"
+CHATWOOT_SECRET="{{chatwootSecretKey}}"
+
+echo "🚀 Iniciando auto-implementação..."
+
+# 1. Volumes
+echo "📦 Criando volumes Docker..."
+docker volume create evolution_instances || true
+docker volume create redis_chatwoot_data || true
+
+# 2. Banco de dados
+echo "🗄️ Criando banco 'chatwoot' no Postgres..."
+POSTGRES_CONTAINER=$(docker ps -q -f name=postgres || docker ps -q -f name=axon_postgres)
+if [ -z "$POSTGRES_CONTAINER" ]; then
+  echo "❌ ERRO: Container Postgres não encontrado."
+  exit 1
+fi
+docker exec -t $POSTGRES_CONTAINER psql -U postgres -c "CREATE DATABASE chatwoot;" || true
+docker exec -t $POSTGRES_CONTAINER psql -U postgres -c "GRANT ALL PRIVILEGES ON DATABASE chatwoot TO axon_app;" || true
+
+# 3. Stack Evolution
+echo "📝 Criando stack do Evolution API..."
+mkdir -p /opt/stacks/evolution
+cat << 'STACK_EOF' > /opt/stacks/evolution/stack.yml
+version: "3.7"
 services:
   evolution:
     image: evoapicloud/evolution-api:v2.3.7
     environment:
-      - SERVER_URL=https://evo.{{domain}}
-      - AUTHENTICATION_API_KEY=CHAVE_EVOLUTION_AQUI
+      - SERVER_URL=https://evo.DOMAIN_PLACEHOLDER
+      - AUTHENTICATION_API_KEY=EVO_KEY_PLACEHOLDER
       - DATABASE_ENABLED=true
       - DATABASE_PROVIDER=postgresql
-      - DATABASE_CONNECTION_URI=postgresql://axon_app:SENHA_POSTGRES_AQUI@axon_postgres_axon_postgres:5432/evolution
-      - DATABASE_URL=postgresql://axon_app:SENHA_POSTGRES_AQUI@axon_postgres_axon_postgres:5432/evolution
+      - DATABASE_CONNECTION_URI=postgresql://axon_app:POSTGRES_PASS_PLACEHOLDER@axon_postgres_axon_postgres:5432/evolution
+      - DATABASE_URL=postgresql://axon_app:POSTGRES_PASS_PLACEHOLDER@axon_postgres_axon_postgres:5432/evolution
       - REDIS_ENABLED=true
       - REDIS_URI=redis://chatwoot_redis-chatwoot:6379
       - CACHE_REDIS_ENABLED=true
@@ -1224,35 +1156,38 @@ services:
       labels:
         - "traefik.enable=true"
         - "traefik.docker.network=network_swarm_public"
-        - "traefik.http.routers.evolution.rule=Host(\`evo.{{domain}}\`)"
+        - "traefik.http.routers.evolution.rule=Host(\`evo.DOMAIN_PLACEHOLDER\`)"
         - "traefik.http.routers.evolution.entrypoints=websecure"
         - "traefik.http.routers.evolution.tls=true"
         - "traefik.http.routers.evolution.tls.certresolver=letsencryptresolver"
         - "traefik.http.routers.evolution.middlewares=evolution-ws"
         - "traefik.http.services.evolution.loadbalancer.server.port=8080"
-        - "traefik.http.routers.evolution-http.rule=Host(\`evo.{{domain}}\`)"
+        - "traefik.http.routers.evolution-http.rule=Host(\`evo.DOMAIN_PLACEHOLDER\`)"
         - "traefik.http.routers.evolution-http.entrypoints=web"
         - "traefik.http.routers.evolution-http.middlewares=evolution-redirect"
         - "traefik.http.middlewares.evolution-redirect.redirectscheme.scheme=https"
         - "traefik.http.middlewares.evolution-redirect.redirectscheme.permanent=true"
         - "traefik.http.middlewares.evolution-ws.headers.customrequestheaders.Upgrade=websocket"
         - "traefik.http.middlewares.evolution-ws.headers.customrequestheaders.Connection=Upgrade"
-
 networks:
   network_swarm_public:
     external: true
     name: network_swarm_public
-
 volumes:
   evolution_instances:
     external: true
-    name: evolution_instances`
-      },
-      {
-        name: "chatwoot — stack.yml",
-        note: "Substitua CHAVE_SECRETA_64_CHARS_AQUI (mesmo valor nas duas ocorrencias) e SENHA_POSTGRES_AQUI antes de criar a stack.",
-        content: `version: "3.7"
+    name: evolution_instances
+STACK_EOF
 
+sed -i "s/DOMAIN_PLACEHOLDER/$DOMAIN/g" /opt/stacks/evolution/stack.yml
+sed -i "s/EVO_KEY_PLACEHOLDER/$EVO_KEY/g" /opt/stacks/evolution/stack.yml
+sed -i "s/POSTGRES_PASS_PLACEHOLDER/$POSTGRES_PASS/g" /opt/stacks/evolution/stack.yml
+
+# 4. Stack Chatwoot
+echo "📝 Criando stack do Chatwoot..."
+mkdir -p /opt/stacks/chatwoot
+cat << 'STACK_EOF' > /opt/stacks/chatwoot/stack.yml
+version: "3.7"
 services:
   redis-chatwoot:
     image: redis:7-alpine
@@ -1263,12 +1198,11 @@ services:
     deploy:
       mode: replicated
       replicas: 1
-
   chatwoot-web:
     image: chatwoot/chatwoot:v3.11.0
     environment:
-      - SECRET_KEY_BASE=CHAVE_SECRETA_64_CHARS_AQUI
-      - FRONTEND_URL=https://chat.{{domain}}
+      - SECRET_KEY_BASE=CHATWOOT_SECRET_PLACEHOLDER
+      - FRONTEND_URL=https://chat.DOMAIN_PLACEHOLDER
       - DEFAULT_LOCALE=pt_BR
       - RAILS_ENV=production
       - RAILS_LOG_TO_STDOUT=true
@@ -1277,7 +1211,7 @@ services:
       - POSTGRES_PORT=5432
       - POSTGRES_DATABASE=chatwoot
       - POSTGRES_USERNAME=axon_app
-      - POSTGRES_PASSWORD=SENHA_POSTGRES_AQUI
+      - POSTGRES_PASSWORD=POSTGRES_PASS_PLACEHOLDER
     command: bundle exec rails s -p 3000 -b 0.0.0.0
     networks:
       - network_swarm_public
@@ -1287,23 +1221,22 @@ services:
       labels:
         - "traefik.enable=true"
         - "traefik.docker.network=network_swarm_public"
-        - "traefik.http.routers.chatwoot.rule=Host(\`chat.{{domain}}\`)"
+        - "traefik.http.routers.chatwoot.rule=Host(\`chat.DOMAIN_PLACEHOLDER\`)"
         - "traefik.http.routers.chatwoot.entrypoints=websecure"
         - "traefik.http.routers.chatwoot.tls.certresolver=letsencryptresolver"
         - "traefik.http.services.chatwoot.loadbalancer.server.port=3000"
-
   chatwoot-worker:
     image: chatwoot/chatwoot:v3.11.0
     environment:
-      - SECRET_KEY_BASE=CHAVE_SECRETA_64_CHARS_AQUI
-      - FRONTEND_URL=https://chat.{{domain}}
+      - SECRET_KEY_BASE=CHATWOOT_SECRET_PLACEHOLDER
+      - FRONTEND_URL=https://chat.DOMAIN_PLACEHOLDER
       - RAILS_ENV=production
       - REDIS_URL=redis://redis-chatwoot:6379
       - POSTGRES_HOST=axon_postgres_axon_postgres
       - POSTGRES_PORT=5432
       - POSTGRES_DATABASE=chatwoot
       - POSTGRES_USERNAME=axon_app
-      - POSTGRES_PASSWORD=SENHA_POSTGRES_AQUI
+      - POSTGRES_PASSWORD=POSTGRES_PASS_PLACEHOLDER
     command: bundle exec sidekiq -C config/sidekiq.yml
     networks:
       - network_swarm_public
@@ -1446,7 +1379,10 @@ const DEFAULT_MEMBER_STATE = {
     serverIp: "",
     technicalEmail: "",
     hostName: "manager01",
-    siteImage: "ghcr.io/axnconsult/site:main"
+    siteImage: "ghcr.io/axnconsult/site:main",
+    postgresPassword: "",
+    evolutionApiKey: "",
+    chatwootSecretKey: ""
   },
   currentStep: "domain",
   currentModule: "module-1",
@@ -2067,7 +2003,10 @@ function fillTemplate(template) {
     .replaceAll("{{domain}}", project.domain || "SEU_DOMINIO.com")
     .replaceAll("{{serverIp}}", project.serverIp || "SEU_IP_DA_VPS")
     .replaceAll("{{technicalEmail}}", project.technicalEmail || "SEU_EMAIL_REAL")
-    .replaceAll("{{siteImage}}", project.siteImage || "IMAGEM_DO_SITE_AQUI");
+    .replaceAll("{{siteImage}}", project.siteImage || "IMAGEM_DO_SITE_AQUI")
+    .replaceAll("{{postgresPassword}}", project.postgresPassword || "SENHA_POSTGRES_AQUI")
+    .replaceAll("{{evolutionApiKey}}", project.evolutionApiKey || "CHAVE_EVOLUTION_AQUI")
+    .replaceAll("{{chatwootSecretKey}}", project.chatwootSecretKey || "CHAVE_SECRETA_64_CHARS_AQUI");
 }
 
 function currentModule() {
@@ -2373,7 +2312,7 @@ function buildAtendimentoWorkflowJson() {
           url: `https://evo.${domain}/message/sendText/atendimento`,
           sendHeaders: true,
           headerParameters: {
-            parameters: [{ name: "apikey", value: "CHAVE_EVOLUTION_AQUI" }]
+            parameters: [{ name: "apikey", value: memberApp.state.project.evolutionApiKey || "CHAVE_EVOLUTION_AQUI" }]
           },
           sendBody: true,
           bodyParameters: {
@@ -2600,20 +2539,39 @@ function errorMessageForCode(code) {
   return messages[code] || `Erro do assistente: ${code}`;
 }
 
+function generateRandomHex(length) {
+  const chars = "abcdef0123456789";
+  let result = "";
+  for (let i = 0; i < length; i++) {
+    result += chars.charAt(Math.floor(Math.random() * chars.length));
+  }
+  return result;
+}
+
 function normalizeMemberState(state) {
   const projectName = state?.project?.name === "Meu negocio online" ? "" : state?.project?.name;
   const moduleId = COURSE_MODULES.some((module) => module.id === state?.currentModule)
     ? state.currentModule
     : DEFAULT_MEMBER_STATE.currentModule;
+  
+  const project = {
+    ...DEFAULT_MEMBER_STATE.project,
+    ...(state?.project || {}),
+    id: state?.project?.id || DEFAULT_MEMBER_STATE.project.id,
+    name: projectName || ""
+  };
+
+  if (!project.evolutionApiKey) {
+    project.evolutionApiKey = "evo_api_" + generateRandomHex(24);
+  }
+  if (!project.chatwootSecretKey) {
+    project.chatwootSecretKey = generateRandomHex(64);
+  }
+
   return {
     ...structuredClone(DEFAULT_MEMBER_STATE),
     ...(state || {}),
-    project: {
-      ...DEFAULT_MEMBER_STATE.project,
-      ...(state?.project || {}),
-      id: state?.project?.id || DEFAULT_MEMBER_STATE.project.id,
-      name: projectName || ""
-    },
+    project,
     currentModule: moduleId,
     currentLesson: normalizeStageKey(moduleId, state?.currentLesson),
     currentLessonStep: state?.currentLessonStep || DEFAULT_MEMBER_STATE.currentLessonStep,
