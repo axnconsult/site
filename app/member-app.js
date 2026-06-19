@@ -287,12 +287,10 @@ const WIZARD_STEPS = [
       },
       {
         heading: "2. Baixe e envie o script para a VPS",
-        body: `<p>Clique no botão abaixo para baixar o script com seus dados já preenchidos:</p>
+        body: `<p>Clique no botão abaixo para baixar o script com seus dados já preenchidos. O arquivo será salvo na pasta de Downloads ou Desktop do seu computador.</p>
 <p><button class="button button-primary" type="button" id="download-infra-script">Baixar script de configuração (axn-setup.sh)</button></p>
-<p>Agora envie o arquivo para a VPS. <strong>Escolha uma das opções abaixo:</strong></p>
-<p><strong>Opção A — Hostinger File Manager (mais fácil):</strong><br>No painel da Hostinger, acesse <strong>VPS → File Manager</strong>, navegue até <code>/root/</code> e faça upload do arquivo <code>axn-setup.sh</code>.</p>
-<p><strong>Opção B — SCP no terminal local:</strong><br>Abra um terminal <strong>no seu computador</strong> (PowerShell, CMD ou Terminal) — <strong>não o terminal SSH da VPS</strong>. Navegue até onde o arquivo foi salvo e rode:</p>`,
-        command: `scp axn-setup.sh root@{{serverIp}}:/root/`
+<p>Agora envie o arquivo para a VPS. Abra um <strong>novo terminal no seu computador</strong> (PowerShell ou CMD) — <strong>não abra o SSH da VPS</strong>. Cole o comando abaixo substituindo o caminho pelo local onde o arquivo foi salvo:</p>`,
+        command: `scp C:\\Users\\SeuUsuario\\Desktop\\axn-setup.sh root@{{serverIp}}:/root/`
       },
       {
         heading: "3. Execute o script na VPS",
