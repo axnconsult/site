@@ -1102,11 +1102,8 @@ networks:
       {
         heading: "3. Crie o banco do Chatwoot",
         body: `<p>Abra o terminal SSH da sua VPS — se estiver usando a Hostinger, clique em <strong>VPS Web Terminal</strong> no painel.</p>
-<p>Cole esse comando para ver os containers rodando:</p>
-<div class="inline-command"><code>docker ps</code><button class="btn-copy-inline" title="Copiar">Copiar</button></div>
-<p>Na lista que aparecer, encontre a linha onde a coluna <strong>IMAGE</strong> mostra <code>postgres:16-alpine</code>. Copie os primeiros 12 caracteres da coluna <strong>CONTAINER ID</strong> dessa linha.</p>
-<p>Agora cole o comando abaixo, substituindo <code>CONTAINER_ID</code> pelo valor que você copiou:</p>
-<div class="inline-command"><code>docker exec -it CONTAINER_ID psql -U axon_app -d postgres</code><button class="btn-copy-inline" title="Copiar">Copiar</button></div>
+<p>Cole o comando abaixo para entrar no Postgres (o ID do container é resolvido automaticamente):</p>
+<div class="inline-command"><code>docker exec -it $(docker ps -qf name=axon_postgres) psql -U axon_app -d postgres</code><button class="btn-copy-inline" title="Copiar">Copiar</button></div>
 <p>Quando aparecer o prompt <code>postgres=#</code>, cole:</p>
 <div class="inline-command"><code>CREATE DATABASE chatwoot;</code><button class="btn-copy-inline" title="Copiar">Copiar</button></div>
 <p>Aguarde <code>CREATE DATABASE</code>, depois cole:</p>
