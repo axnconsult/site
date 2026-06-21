@@ -183,13 +183,13 @@ const WIZARD_STEPS = [
 <p>Clique em <strong>Save</strong>.</p>`
       },
       {
-        heading: "4. Crie os CNAMEs dos serviços",
+        heading: "4. Crie os registros A dos serviços",
         body: `<p>Repita <strong>Add record</strong> para cada linha abaixo:</p>
 <table style="width:100%;border-collapse:collapse;font-size:0.85rem">
-  <tr style="text-align:left"><th>Type</th><th>Name</th><th>Target</th><th>Proxy</th></tr>
-  <tr><td>CNAME</td><td><code>painel</code></td><td><code>{{domain}}</code></td><td>DNS only</td></tr>
-  <tr><td>CNAME</td><td><code>workflows</code></td><td><code>{{domain}}</code></td><td>DNS only</td></tr>
-  <tr><td>CNAME</td><td><code>webhooks</code></td><td><code>{{domain}}</code></td><td>DNS only</td></tr>
+  <tr style="text-align:left"><th>Type</th><th>Name</th><th>IPv4 address</th><th>Proxy</th></tr>
+  <tr><td>A</td><td><code>painel</code></td><td><code>{{serverIp}}</code></td><td>DNS only</td></tr>
+  <tr><td>A</td><td><code>workflows</code></td><td><code>{{serverIp}}</code></td><td>DNS only</td></tr>
+  <tr><td>A</td><td><code>webhooks</code></td><td><code>{{serverIp}}</code></td><td>DNS only</td></tr>
 </table>
 <p style="margin-top:10px">Mantenha todos como <strong>DNS only</strong> (nuvem cinza). O Traefik cuida do HTTPS — não deixe a Cloudflare proxiar.</p>`
       }
