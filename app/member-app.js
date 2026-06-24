@@ -27,30 +27,27 @@ const COURSE_MODULES = [
     id: "module-3",
     number: 3,
     title: "Estrutura Digital",
-    summary: "Coloque a infraestrutura no ar com dominio, VPS, Docker, Swarm, servicos base e atendimento automatico.",
-    result: "Infraestrutura digital operacional",
+    summary: "Coloque toda a infraestrutura no ar: dominio, VPS, servicos base, atendimento automatico e credenciais prontas para uso.",
+    result: "Infraestrutura digital operacional com credenciais documentadas",
     stages: [
       ["Dominio, VPS e DNS", "Compre o dominio e a VPS, conecte na Cloudflare e aponte os registros DNS.", "technical", null, ["domain", "vps-compra", "dns", "email"]],
-      ["Configuracao automatica", "Um script instala tudo: Docker, Swarm, Traefik, Portainer, Postgres e n8n.", "technical", null, ["infra-auto"]],
-      ["Atendimento automatico", "Suba Evolution API e Chatwoot, conecte WhatsApp e Instagram.", "technical", null, ["atendimento"]],
-      ["Validacao da infra", "Revise a saude da estrutura e guarde os dados da sua infra.", "technical", null, ["ops", "infra-dados"]]
+      ["Configuracao automatica", "Um script instala tudo: Docker, Swarm, Traefik, Portainer, Postgres, n8n, Evolution API e Chatwoot.", "technical", null, ["infra-auto"]],
+      ["Chaves e contas", "Crie contas no Google Ads e Meta Ads, copie os pixels e as chaves de OpenAI e Anthropic.", "technical", null, ["api-keys", "midia-paga"]],
+      ["Documento de infra", "Anote URLs de acesso, credenciais e pixels em um unico documento. Sem comandos — so revisao e registro.", "technical", null, ["ops", "infra-dados"]]
     ]
   },
   {
     id: "module-4",
     number: 4,
     title: "Presenca Comercial",
-    summary: "Coloque o negocio vendendo com chaves de IA, pagina, checkout, pixels e conteudo.",
-    result: "Presenca comercial publicada",
+    summary: "Use IA para criar estrategia, conteudo e pecas de divulgacao, depois publique o site e conecte o pagamento.",
+    result: "Presenca comercial publicada e aceitando pagamentos",
     stages: [
-      ["Chaves e credenciais", "Conecte OpenAI e Anthropic ao n8n e prepare as variaveis de ambiente.", "technical", null, ["api-keys"]],
-      ["Pixels e midia paga", "Crie contas no Google Ads e Meta Ads e copie os pixels de rastreamento.", "technical", null, ["midia-paga"]],
-      ["Publique o site", "Suba o site com Docker e configure o deploy automatico.", "technical", null, ["site"]],
-      ["Landing page", "Publique a pagina que apresenta a oferta e capta interesse.", "Estruture promessa, prova, chamada e caminho de conversao com clareza."],
-      ["Stripe, checkout e CTA", "Conecte pagamento e proximo passo comercial.", "Prepare o caminho de compra ou agendamento para que o interessado saiba exatamente o que fazer."],
-      ["Grade de conteudo", "Organize temas e cadencia para divulgar a oferta.", "Transforme o planejamento operacional em uma grade simples para atrair, educar e converter."],
-      ["Artes e posts", "Produza os primeiros materiais de divulgacao.", "Crie pecas praticas para colocar a presenca comercial em movimento."],
-      ["Calendario comercial", "Feche a agenda de publicacao e acompanhamento.", "Distribua as acoes no calendario e defina como medir o que esta funcionando."]
+      ["Estrategia de divulgacao", "Agentes leem seu planejamento dos modulos 1 e 2 e geram grade de postagens e roteiros.", "Transforme a estrategia que voce ja construiu em um plano de conteudo concreto, com temas, formatos e cadencia definidos pelos agentes."],
+      ["Pecas de divulgacao", "Use a API da OpenAI para gerar as primeiras artes estaticas para redes sociais.", "Com os roteiros prontos, os agentes criam as pecas visuais iniciais automaticamente — voce revisa e aprova."],
+      ["Canva e CapCut", "Aprenda o essencial para criar e adaptar pecas por conta propria apos esse inicio.", "Uma introducao pratica as ferramentas que voce vai usar para produzir conteudo de forma independente depois daqui."],
+      ["Site com Claude Code", "Agentes geram o prompt do site. Voce instala o Claude Code e ele constroi a pagina com todas as credenciais ja configuradas.", "Nao e uma aula de programacao — e aprender a usar o Code como executor da sua estrategia, com autonomia para ajustes futuros."],
+      ["Stripe e checkout", "Conecte o pagamento e defina o proximo passo comercial para o visitante.", "Prepare o caminho de compra ou agendamento para que o interessado saiba exatamente o que fazer."]
     ]
   },
   {
