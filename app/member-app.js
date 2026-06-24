@@ -413,6 +413,8 @@ services:
       - "--certificatesresolvers.letsencryptresolver.acme.storage=/etc/traefik/letsencrypt/acme.json"
       - "--log.level=INFO"
       - "--accesslog=true"
+    environment:
+      - DOCKER_API_VERSION=1.45
     deploy:
       placement:
         constraints:
@@ -2348,6 +2350,8 @@ services:
       - "--certificatesresolvers.letsencryptresolver.acme.storage=/etc/traefik/letsencrypt/acme.json"
       - "--log.level=INFO"
       - "--accesslog=true"
+    environment:
+      - DOCKER_API_VERSION=1.45
     deploy:
       placement:
         constraints:
