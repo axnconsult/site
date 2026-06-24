@@ -757,7 +757,7 @@ services:
       - OFFLOAD_MANUAL_EXECUTIONS_TO_WORKERS=true
       - DB_TYPE=postgresdb
       - DB_POSTGRESDB_DATABASE=n8n
-      - DB_POSTGRESDB_HOST=postgres
+      - DB_POSTGRESDB_HOST=axon_postgres_axon_postgres
       - DB_POSTGRESDB_PORT=5432
       - DB_POSTGRESDB_USER=postgres
       - DB_POSTGRESDB_PASSWORD={{postgresPassword}}
@@ -850,7 +850,7 @@ services:
       - OFFLOAD_MANUAL_EXECUTIONS_TO_WORKERS=true
       - DB_TYPE=postgresdb
       - DB_POSTGRESDB_DATABASE=n8n
-      - DB_POSTGRESDB_HOST=postgres
+      - DB_POSTGRESDB_HOST=axon_postgres_axon_postgres
       - DB_POSTGRESDB_PORT=5432
       - DB_POSTGRESDB_USER=postgres
       - DB_POSTGRESDB_PASSWORD={{postgresPassword}}
@@ -930,7 +930,7 @@ services:
       - OFFLOAD_MANUAL_EXECUTIONS_TO_WORKERS=true
       - DB_TYPE=postgresdb
       - DB_POSTGRESDB_DATABASE=n8n
-      - DB_POSTGRESDB_HOST=postgres
+      - DB_POSTGRESDB_HOST=axon_postgres_axon_postgres
       - DB_POSTGRESDB_PORT=5432
       - DB_POSTGRESDB_USER=postgres
       - DB_POSTGRESDB_PASSWORD={{postgresPassword}}
@@ -2541,7 +2541,7 @@ services:
       - OFFLOAD_MANUAL_EXECUTIONS_TO_WORKERS=true
       - DB_TYPE=postgresdb
       - DB_POSTGRESDB_DATABASE=n8n
-      - DB_POSTGRESDB_HOST=postgres
+      - DB_POSTGRESDB_HOST=axon_postgres_axon_postgres
       - DB_POSTGRESDB_PORT=5432
       - DB_POSTGRESDB_USER=postgres
       - DB_POSTGRESDB_PASSWORD=__POSTGRES_PASS__
@@ -2627,7 +2627,7 @@ services:
       - N8N_RUNNERS_AUTH_TOKEN=__N8N_TOKEN__
       - DB_TYPE=postgresdb
       - DB_POSTGRESDB_DATABASE=n8n
-      - DB_POSTGRESDB_HOST=postgres
+      - DB_POSTGRESDB_HOST=axon_postgres_axon_postgres
       - DB_POSTGRESDB_PORT=5432
       - DB_POSTGRESDB_USER=postgres
       - DB_POSTGRESDB_PASSWORD=__POSTGRES_PASS__
@@ -2688,7 +2688,7 @@ services:
       - N8N_RUNNERS_AUTH_TOKEN=__N8N_TOKEN__
       - DB_TYPE=postgresdb
       - DB_POSTGRESDB_DATABASE=n8n
-      - DB_POSTGRESDB_HOST=postgres
+      - DB_POSTGRESDB_HOST=axon_postgres_axon_postgres
       - DB_POSTGRESDB_PORT=5432
       - DB_POSTGRESDB_USER=postgres
       - DB_POSTGRESDB_PASSWORD=__POSTGRES_PASS__
