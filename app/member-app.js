@@ -27,35 +27,25 @@ const COURSE_MODULES = [
     id: "module-3",
     number: 3,
     title: "Estrutura Digital",
-    summary: "Coloque a infraestrutura no ar com dominio, VPS, Docker, Swarm e servicos base.",
+    summary: "Coloque a infraestrutura no ar com dominio, VPS, Docker, Swarm, servicos base e atendimento automatico.",
     result: "Infraestrutura digital operacional",
     stages: [
       ["Dominio, VPS e DNS", "Compre o dominio e a VPS, conecte na Cloudflare e aponte os registros DNS.", "technical", null, ["domain", "vps-compra", "dns", "email"]],
       ["Configuracao automatica", "Um script instala tudo: Docker, Swarm, Traefik, Portainer, Postgres e n8n.", "technical", null, ["infra-auto"]],
-      ["Publique o site", "Suba o site com Docker e configure o deploy automatico.", "technical", null, ["site"]],
+      ["Atendimento automatico", "Suba Evolution API e Chatwoot, conecte WhatsApp e Instagram.", "technical", null, ["atendimento"]],
       ["Validacao da infra", "Revise a saude da estrutura e guarde os dados da sua infra.", "technical", null, ["ops", "infra-dados"]]
     ]
   },
   {
     id: "module-4",
     number: 4,
-    title: "Sistema Operacional da Empresa",
-    summary: "Configure as ferramentas que automatizam atendimento, producao de conteudo e acompanhamento de leads.",
-    result: "Stack operacional ativa e pronta para produzir e vender.",
-    stages: [
-      ["Chaves e credenciais", "Conecte OpenAI e Anthropic ao n8n e prepare as variaveis de ambiente.", "technical", null, ["api-keys"]],
-      ["Atendimento automatico", "Suba Evolution API e Chatwoot, conecte WhatsApp e Instagram.", "technical", null, ["atendimento"]],
-      ["Pixels e midia paga", "Crie contas no Google Ads e Meta Ads e copie os pixels de rastreamento.", "technical", null, ["midia-paga"]],
-      ["CRM e leads", "Configure Chatwoot como CRM leve e conecte o registro automatico de leads via n8n.", "technical", null, ["crm"]]
-    ]
-  },
-  {
-    id: "module-5",
-    number: 5,
     title: "Presenca Comercial",
-    summary: "Coloque o negocio vendendo com pagina, checkout, CTA e conteudo.",
+    summary: "Coloque o negocio vendendo com chaves de IA, pagina, checkout, pixels e conteudo.",
     result: "Presenca comercial publicada",
     stages: [
+      ["Chaves e credenciais", "Conecte OpenAI e Anthropic ao n8n e prepare as variaveis de ambiente.", "technical", null, ["api-keys"]],
+      ["Pixels e midia paga", "Crie contas no Google Ads e Meta Ads e copie os pixels de rastreamento.", "technical", null, ["midia-paga"]],
+      ["Publique o site", "Suba o site com Docker e configure o deploy automatico.", "technical", null, ["site"]],
       ["Landing page", "Publique a pagina que apresenta a oferta e capta interesse.", "Estruture promessa, prova, chamada e caminho de conversao com clareza."],
       ["Stripe, checkout e CTA", "Conecte pagamento e proximo passo comercial.", "Prepare o caminho de compra ou agendamento para que o interessado saiba exatamente o que fazer."],
       ["Grade de conteudo", "Organize temas e cadencia para divulgar a oferta.", "Transforme o planejamento operacional em uma grade simples para atrair, educar e converter."],
@@ -64,12 +54,13 @@ const COURSE_MODULES = [
     ]
   },
   {
-    id: "module-6",
-    number: 6,
+    id: "module-5",
+    number: 5,
     title: "Operacao Assistida",
-    summary: "Transforme IA em apoio operacional para rotina, decisao, tarefas e atendimento.",
+    summary: "Transforme IA em apoio operacional para CRM, rotina, decisao, tarefas e atendimento.",
     result: "Operacao assistida em funcionamento",
     stages: [
+      ["CRM e leads", "Configure Chatwoot como CRM leve e conecte o registro automatico de leads via n8n.", "technical", null, ["crm"]],
       ["Agentes basicos", "Configure os primeiros agentes de apoio operacional.", "Defina funcao, limite, entrada e entrega de cada agente para manter utilidade e controle."],
       ["Calendario do gestor", "Crie uma rotina assistida para prioridades e agenda.", "Organize compromissos, revisoes e proximas acoes para reduzir dispersao."],
       ["Apoio a decisao", "Use IA para comparar caminhos e preparar decisoes.", "Estruture perguntas, criterios e blocos de transferencia para decidir com mais clareza."],
