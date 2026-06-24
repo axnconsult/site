@@ -395,13 +395,12 @@ const WIZARD_STEPS = [
 
 services:
   traefik:
-    image: traefik:v2.11.8
+    image: traefik:v3.3
     command:
       - "--api.dashboard=true"
-      - "--providers.docker.swarmMode=true"
-      - "--providers.docker.endpoint=unix:///var/run/docker.sock"
-      - "--providers.docker.exposedbydefault=false"
-      - "--providers.docker.network=network_swarm_public"
+      - "--providers.swarm.endpoint=unix:///var/run/docker.sock"
+      - "--providers.swarm.exposedbydefault=false"
+      - "--providers.swarm.network=network_swarm_public"
       - "--entrypoints.web.address=:80"
       - "--entrypoints.web.http.redirections.entryPoint.to=websecure"
       - "--entrypoints.web.http.redirections.entryPoint.scheme=https"
@@ -413,8 +412,6 @@ services:
       - "--certificatesresolvers.letsencryptresolver.acme.storage=/etc/traefik/letsencrypt/acme.json"
       - "--log.level=INFO"
       - "--accesslog=true"
-    environment:
-      - DOCKER_API_VERSION=1.45
     deploy:
       placement:
         constraints:
@@ -423,9 +420,9 @@ services:
         - "traefik.enable=true"
         - "traefik.http.middlewares.redirect-https.redirectscheme.scheme=https"
         - "traefik.http.middlewares.redirect-https.redirectscheme.permanent=true"
-        - "traefik.http.routers.http-catchall.rule=hostregexp(\`{host:.+}\`)"
+        - "traefik.http.routers.http-catchall.rule=hostregexp(`{host:.+}`)"
         - "traefik.http.routers.http-catchall.entrypoints=web"
-        - "traefik.http.routers.http-catchall.middlewares=redirect-https@docker"
+        - "traefik.http.routers.http-catchall.middlewares=redirect-https@swarm"
         - "traefik.http.routers.http-catchall.priority=1"
     volumes:
       - "/var/run/docker.sock:/var/run/docker.sock:ro"
@@ -2332,13 +2329,12 @@ cat > /opt/stacks/traefik/stack.yml << 'TRAEFIK_STACK'
 version: "3.7"
 services:
   traefik:
-    image: traefik:v2.11.8
+    image: traefik:v3.3
     command:
       - "--api.dashboard=true"
-      - "--providers.docker.swarmMode=true"
-      - "--providers.docker.endpoint=unix:///var/run/docker.sock"
-      - "--providers.docker.exposedbydefault=false"
-      - "--providers.docker.network=network_swarm_public"
+      - "--providers.swarm.endpoint=unix:///var/run/docker.sock"
+      - "--providers.swarm.exposedbydefault=false"
+      - "--providers.swarm.network=network_swarm_public"
       - "--entrypoints.web.address=:80"
       - "--entrypoints.web.http.redirections.entryPoint.to=websecure"
       - "--entrypoints.web.http.redirections.entryPoint.scheme=https"
@@ -2350,8 +2346,6 @@ services:
       - "--certificatesresolvers.letsencryptresolver.acme.storage=/etc/traefik/letsencrypt/acme.json"
       - "--log.level=INFO"
       - "--accesslog=true"
-    environment:
-      - DOCKER_API_VERSION=1.45
     deploy:
       placement:
         constraints:
@@ -2360,9 +2354,9 @@ services:
         - "traefik.enable=true"
         - "traefik.http.middlewares.redirect-https.redirectscheme.scheme=https"
         - "traefik.http.middlewares.redirect-https.redirectscheme.permanent=true"
-        - "traefik.http.routers.http-catchall.rule=hostregexp(\`{host:.+}\`)"
+        - "traefik.http.routers.http-catchall.rule=hostregexp(`{host:.+}`)"
         - "traefik.http.routers.http-catchall.entrypoints=web"
-        - "traefik.http.routers.http-catchall.middlewares=redirect-https@docker"
+        - "traefik.http.routers.http-catchall.middlewares=redirect-https@swarm"
         - "traefik.http.routers.http-catchall.priority=1"
     volumes:
       - "/var/run/docker.sock:/var/run/docker.sock:ro"
