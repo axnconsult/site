@@ -2326,61 +2326,8 @@ docker stack deploy -c /opt/stacks/traefik/stack.yml traefik
 echo -n "Aguardando Traefik"
 TRIES=0; until docker service ls --filter name=traefik_traefik --format '{{.Replicas}}' | grep -q "1/1" || [ $TRIES -ge 20 ]; do sleep 3; TRIES=$((TRIES+1)); printf "."; done; echo " OK"
 
-# ── 5. Portainer ──────────────────────────────────
-echo "[5/9] Subindo Portainer..."
-mkdir -p /opt/stacks/portainer
-cat > /opt/stacks/portainer/stack.yml << 'PORTAINER_STACK'
-version: "3.7"
-services:
-  agent:
-    image: portainer/agent:sts
-    volumes:
-      - /var/run/docker.sock:/var/run/docker.sock
-      - /var/lib/docker/volumes:/var/lib/docker/volumes
-    networks:
-      - network_swarm_public
-    deploy:
-      mode: global
-      placement:
-        constraints:
-          - node.platform.os == linux
-  portainer:
-    image: portainer/portainer-ce:sts
-    command: -H tcp://tasks.agent:9001 --tlsskipverify
-    volumes:
-      - portainer_data:/data
-    networks:
-      - network_swarm_public
-    deploy:
-      mode: replicated
-      replicas: 1
-      placement:
-        constraints:
-          - node.role == manager
-      labels:
-        - "traefik.enable=true"
-        - "traefik.http.routers.portainer.rule=Host(\`painel.__DOMAIN__\`)"
-        - "traefik.http.routers.portainer.entrypoints=websecure"
-        - "traefik.http.routers.portainer.tls.certresolver=letsencryptresolver"
-        - "traefik.http.routers.portainer.service=portainer"
-        - "traefik.http.services.portainer.loadbalancer.server.port=9000"
-networks:
-  network_swarm_public:
-    external: true
-    attachable: true
-    name: network_swarm_public
-volumes:
-  portainer_data:
-    external: true
-    name: portainer_data
-PORTAINER_STACK
-sed -i "s|__DOMAIN__|$DOMAIN|g" /opt/stacks/portainer/stack.yml
-docker stack deploy -c /opt/stacks/portainer/stack.yml portainer
-echo -n "Aguardando Portainer"
-TRIES=0; until docker service ls --filter name=portainer_portainer --format '{{.Replicas}}' | grep -q "1/1" || [ $TRIES -ge 20 ]; do sleep 3; TRIES=$((TRIES+1)); printf "."; done; echo " OK"
-
-# ── 6. Postgres ───────────────────────────────────
-echo "[6/9] Subindo Postgres..."
+# ── 5. Postgres ───────────────────────────────────
+echo "[5/9] Subindo Postgres..."
 mkdir -p /opt/stacks/postgres
 cat > /opt/stacks/postgres/stack.yml << 'POSTGRES_STACK'
 version: "3.7"
@@ -2430,7 +2377,7 @@ docker exec -t "$PG" psql -U postgres -c "CREATE DATABASE chatwoot;" || true
 docker exec -t "$PG" psql -U postgres -c "GRANT ALL PRIVILEGES ON DATABASE chatwoot TO axon_app;" || true
 
 # ── 7. n8n ────────────────────────────────────────
-echo "[7/9] Subindo n8n (Redis + editor + webhook + worker + runners)..."
+echo "[6/9] Subindo n8n (Redis + editor + webhook + worker + runners)..."
 
 mkdir -p /opt/stacks/redis-n8n
 cat > /opt/stacks/redis-n8n/stack.yml << 'REDIS_N8N_STACK'
@@ -2691,7 +2638,7 @@ sed -i "s|__N8N_TOKEN__|$N8N_TOKEN|g" /opt/stacks/n8n-runners/stack.yml
 docker stack deploy -c /opt/stacks/n8n-runners/stack.yml n8n_runners
 
 # ── 8. Chatwoot ───────────────────────────────────
-echo "[8/9] Subindo Chatwoot (Redis + web + worker)..."
+echo "[7/9] Subindo Chatwoot (Redis + web + worker)..."
 mkdir -p /opt/stacks/chatwoot
 cat > /opt/stacks/chatwoot/stack.yml << 'CHATWOOT_STACK'
 version: "3.7"
@@ -2767,7 +2714,7 @@ echo -n "Aguardando Chatwoot"
 TRIES=0; until docker service ls --filter name=chatwoot_chatwoot-web --format '{{.Replicas}}' | grep -q "1/1" || [ $TRIES -ge 40 ]; do sleep 5; TRIES=$((TRIES+1)); printf "."; done; echo " OK"
 
 # ── 9. Evolution API ──────────────────────────────
-echo "[9/9] Subindo Evolution API..."
+echo "[8/9] Subindo Evolution API..."
 mkdir -p /opt/stacks/evolution
 cat > /opt/stacks/evolution/stack.yml << 'EVOLUTION_STACK'
 version: "3.7"
@@ -2823,6 +2770,59 @@ docker stack deploy -c /opt/stacks/evolution/stack.yml evolution
 echo -n "Aguardando Evolution"
 TRIES=0; until docker service ls --filter name=evolution_evolution --format '{{.Replicas}}' | grep -q "1/1" || [ $TRIES -ge 20 ]; do sleep 3; TRIES=$((TRIES+1)); printf "."; done; echo " OK"
 
+# ── 9. Portainer ──────────────────────────────────
+echo "[9/9] Subindo Portainer..."
+mkdir -p /opt/stacks/portainer
+cat > /opt/stacks/portainer/stack.yml << 'PORTAINER_STACK'
+version: "3.7"
+services:
+  agent:
+    image: portainer/agent:sts
+    volumes:
+      - /var/run/docker.sock:/var/run/docker.sock
+      - /var/lib/docker/volumes:/var/lib/docker/volumes
+    networks:
+      - network_swarm_public
+    deploy:
+      mode: global
+      placement:
+        constraints:
+          - node.platform.os == linux
+  portainer:
+    image: portainer/portainer-ce:sts
+    command: -H tcp://tasks.agent:9001 --tlsskipverify
+    volumes:
+      - portainer_data:/data
+    networks:
+      - network_swarm_public
+    deploy:
+      mode: replicated
+      replicas: 1
+      placement:
+        constraints:
+          - node.role == manager
+      labels:
+        - "traefik.enable=true"
+        - "traefik.http.routers.portainer.rule=Host(\`painel.__DOMAIN__\`)"
+        - "traefik.http.routers.portainer.entrypoints=websecure"
+        - "traefik.http.routers.portainer.tls.certresolver=letsencryptresolver"
+        - "traefik.http.routers.portainer.service=portainer"
+        - "traefik.http.services.portainer.loadbalancer.server.port=9000"
+networks:
+  network_swarm_public:
+    external: true
+    attachable: true
+    name: network_swarm_public
+volumes:
+  portainer_data:
+    external: true
+    name: portainer_data
+PORTAINER_STACK
+sed -i "s|__DOMAIN__|$DOMAIN|g" /opt/stacks/portainer/stack.yml
+docker stack deploy -c /opt/stacks/portainer/stack.yml portainer
+echo -n "Aguardando Portainer"
+TRIES=0; until docker service ls --filter name=portainer_portainer --format '{{.Replicas}}' | grep -q "1/1" || [ $TRIES -ge 20 ]; do sleep 3; TRIES=$((TRIES+1)); printf "."; done; echo " OK"
+
 echo ""
 echo "============================================"
 echo "  Infraestrutura no ar!"
@@ -2836,6 +2836,7 @@ echo "  (anote no documento de infra do modulo 3)"
 echo "============================================"
 echo ""
 echo "Proximo passo: abra https://painel.$DOMAIN e crie o usuario admin."
+echo "  Se aparecer tela de timeout, rode: docker service update --force portainer_portainer"
 `;
 }
 
