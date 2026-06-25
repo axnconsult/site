@@ -175,17 +175,18 @@ const WIZARD_STEPS = [
         body: `<p>Repita <strong>Add record</strong> para cada linha abaixo:</p>
 <table style="width:100%;border-collapse:collapse;font-size:0.85rem">
   <tr style="text-align:left"><th>Type</th><th>Name</th><th>IPv4 address</th><th>Proxy</th></tr>
+  <tr><td>A</td><td><code>@</code></td><td><code>{{serverIp}}</code></td><td>DNS only</td></tr>
   <tr><td>A</td><td><code>painel</code></td><td><code>{{serverIp}}</code></td><td>DNS only</td></tr>
   <tr><td>A</td><td><code>workflows</code></td><td><code>{{serverIp}}</code></td><td>DNS only</td></tr>
   <tr><td>A</td><td><code>webhooks</code></td><td><code>{{serverIp}}</code></td><td>DNS only</td></tr>
   <tr><td>A</td><td><code>chat</code></td><td><code>{{serverIp}}</code></td><td>DNS only</td></tr>
   <tr><td>A</td><td><code>evo</code></td><td><code>{{serverIp}}</code></td><td>DNS only</td></tr>
 </table>
-<p style="margin-top:10px">Mantenha todos como <strong>DNS only</strong> (nuvem cinza). O Traefik cuida do HTTPS — não deixe a Cloudflare proxiar.</p>`
+<p style="margin-top:8px">O registro <code>@</code> aponta o domínio raiz (<code>{{domain}}</code>) para a VPS — o site ficará aqui no módulo 4. Mantenha todos como <strong>DNS only</strong> (nuvem cinza). O Traefik cuida do HTTPS — não deixe a Cloudflare proxiar.</p>`
       }
     ],
-    validation: "Os 5 registros aparecerem na lista de DNS da Cloudflare.",
-    done: "Registros A (raiz e manager01) e os 3 CNAMEs criados."
+    validation: "Os 6 registros A aparecerem na lista de DNS da Cloudflare.",
+    done: "Registros A criados — dominio raiz e todos os subdominios apontando para a VPS."
   },
   {
     id: "email",
