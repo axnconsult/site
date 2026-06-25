@@ -2716,6 +2716,10 @@ sed -i "s|__POSTGRES_PASS__|$POSTGRES_PASS|g" /opt/stacks/chatwoot/stack.yml
 docker stack deploy -c /opt/stacks/chatwoot/stack.yml chatwoot
 echo -n "Aguardando Chatwoot"
 TRIES=0; until docker service ls --filter name=chatwoot_chatwoot-web --format '{{.Replicas}}' | grep -q "1/1" || [ $TRIES -ge 40 ]; do sleep 5; TRIES=$((TRIES+1)); printf "."; done; echo " OK"
+echo "Executando migrations do Chatwoot..."
+CW=$(docker ps -qf name=chatwoot_chatwoot-web)
+docker exec -t $CW bundle exec rails db:chatwoot_prepare RAILS_ENV=production
+docker service update --force chatwoot_chatwoot-web
 
 # ── 9. Evolution API ──────────────────────────────
 echo "[8/9] Subindo Evolution API..."
@@ -2836,7 +2840,7 @@ echo ""
 echo "  Portainer  : https://painel.$DOMAIN"
 echo "  n8n        : https://workflows.$DOMAIN"
 echo "  Chatwoot   : https://chat.$DOMAIN"
-echo "  Evolution  : https://evo.$DOMAIN"
+echo "  Evolution  : https://evo.$DOMAIN/manager"
 echo ""
 echo "  Token Portainer     : $PORTAINER_TOKEN"
 [ -z "$PORTAINER_TOKEN" ] && echo "  (rode para obter: docker logs \$(docker ps -qf name=portainer_portainer) 2>&1 | grep -i token)"
