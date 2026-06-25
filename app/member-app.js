@@ -178,6 +178,8 @@ const WIZARD_STEPS = [
   <tr><td>A</td><td><code>painel</code></td><td><code>{{serverIp}}</code></td><td>DNS only</td></tr>
   <tr><td>A</td><td><code>workflows</code></td><td><code>{{serverIp}}</code></td><td>DNS only</td></tr>
   <tr><td>A</td><td><code>webhooks</code></td><td><code>{{serverIp}}</code></td><td>DNS only</td></tr>
+  <tr><td>A</td><td><code>chat</code></td><td><code>{{serverIp}}</code></td><td>DNS only</td></tr>
+  <tr><td>A</td><td><code>evo</code></td><td><code>{{serverIp}}</code></td><td>DNS only</td></tr>
 </table>
 <p style="margin-top:10px">Mantenha todos como <strong>DNS only</strong> (nuvem cinza). O Traefik cuida do HTTPS — não deixe a Cloudflare proxiar.</p>`
       }
@@ -2290,28 +2292,42 @@ EMAIL="${email}"
 POSTGRES_PASS="${pgPass}"
 N8N_KEY="${n8nKey}"
 N8N_TOKEN="${n8nToken}"
+EVO_KEY=$(openssl rand -hex 32)
+CHATWOOT_SECRET=$(openssl rand -hex 32)
 
 # ── 1. Sistema ────────────────────────────────────
-echo "[1/7] Atualizando sistema e configurando firewall..."
+echo "[1/9] Atualizando sistema e configurando firewall..."
 apt-get update -y && apt-get upgrade -y
 ufw allow 22/tcp && ufw allow 80/tcp && ufw allow 443/tcp && ufw --force enable
 
 # ── 2. Docker ─────────────────────────────────────
-echo "[2/7] Instalando Docker..."
+echo "[2/9] Instalando Docker..."
 curl -fsSL https://get.docker.com | sh
 
+# Fix: Docker 29+ requer DOCKER_MIN_API_VERSION para compatibilidade com Traefik
+mkdir -p /etc/systemd/system/docker.service.d
+cat > /etc/systemd/system/docker.service.d/override.conf << 'DOCKER_OVERRIDE'
+[Service]
+Environment="DOCKER_MIN_API_VERSION=1.24"
+DOCKER_OVERRIDE
+systemctl daemon-reload
+systemctl restart docker
+sleep 5
+
 # ── 3. Swarm e rede ───────────────────────────────
-echo "[3/7] Inicializando Docker Swarm..."
+echo "[3/9] Inicializando Docker Swarm..."
 docker swarm init --advertise-addr "$SERVER_IP"
 docker network create --driver=overlay --attachable network_swarm_public
-echo "[3/7] Criando volumes..."
+echo "[3/9] Criando volumes..."
 docker volume create volume_swarm_certificates
 docker volume create portainer_data
 docker volume create postgres_data
 docker volume create redis_n8n_data
+docker volume create evolution_instances
+docker volume create redis_chatwoot_data
 
 # ── 4. Traefik ────────────────────────────────────
-echo "[4/7] Subindo Traefik..."
+echo "[4/9] Subindo Traefik..."
 mkdir -p /opt/stacks/traefik
 cat > /opt/stacks/traefik/stack.yml << 'TRAEFIK_STACK'
 version: "3.7"
@@ -2373,7 +2389,7 @@ echo -n "Aguardando Traefik"
 TRIES=0; until docker service ls --filter name=traefik_traefik --format '{{.Replicas}}' | grep -q "1/1" || [ $TRIES -ge 20 ]; do sleep 3; TRIES=$((TRIES+1)); printf "."; done; echo " OK"
 
 # ── 5. Portainer ──────────────────────────────────
-echo "[5/7] Subindo Portainer..."
+echo "[5/9] Subindo Portainer..."
 mkdir -p /opt/stacks/portainer
 cat > /opt/stacks/portainer/stack.yml << 'PORTAINER_STACK'
 version: "3.7"
@@ -2405,7 +2421,6 @@ services:
           - node.role == manager
       labels:
         - "traefik.enable=true"
-        - "traefik.docker.network=network_swarm_public"
         - "traefik.http.routers.portainer.rule=Host(\`painel.__DOMAIN__\`)"
         - "traefik.http.routers.portainer.entrypoints=websecure"
         - "traefik.http.routers.portainer.tls.certresolver=letsencryptresolver"
@@ -2427,7 +2442,7 @@ echo -n "Aguardando Portainer"
 TRIES=0; until docker service ls --filter name=portainer_portainer --format '{{.Replicas}}' | grep -q "1/1" || [ $TRIES -ge 20 ]; do sleep 3; TRIES=$((TRIES+1)); printf "."; done; echo " OK"
 
 # ── 6. Postgres ───────────────────────────────────
-echo "[6/7] Subindo Postgres..."
+echo "[6/9] Subindo Postgres..."
 mkdir -p /opt/stacks/postgres
 cat > /opt/stacks/postgres/stack.yml << 'POSTGRES_STACK'
 version: "3.7"
@@ -2471,9 +2486,13 @@ docker exec -t "$PG" psql -U postgres -c "CREATE USER axon_app WITH ENCRYPTED PA
 docker exec -t "$PG" psql -U postgres -c "GRANT ALL PRIVILEGES ON DATABASE axon_ops TO axon_app;" || true
 docker exec -t "$PG" psql -U postgres -c "CREATE DATABASE n8n;" || true
 docker exec -t "$PG" psql -U postgres -c "GRANT ALL PRIVILEGES ON DATABASE n8n TO axon_app;" || true
+docker exec -t "$PG" psql -U postgres -c "CREATE DATABASE evolution;" || true
+docker exec -t "$PG" psql -U postgres -c "GRANT ALL PRIVILEGES ON DATABASE evolution TO axon_app;" || true
+docker exec -t "$PG" psql -U postgres -c "CREATE DATABASE chatwoot;" || true
+docker exec -t "$PG" psql -U postgres -c "GRANT ALL PRIVILEGES ON DATABASE chatwoot TO axon_app;" || true
 
 # ── 7. n8n ────────────────────────────────────────
-echo "[7/7] Subindo n8n (Redis + editor + webhook + worker + runners)..."
+echo "[7/9] Subindo n8n (Redis + editor + webhook + worker + runners)..."
 
 mkdir -p /opt/stacks/redis-n8n
 cat > /opt/stacks/redis-n8n/stack.yml << 'REDIS_N8N_STACK'
@@ -2733,15 +2752,152 @@ N8N_RUNNERS_STACK
 sed -i "s|__N8N_TOKEN__|$N8N_TOKEN|g" /opt/stacks/n8n-runners/stack.yml
 docker stack deploy -c /opt/stacks/n8n-runners/stack.yml n8n_runners
 
+# ── 8. Chatwoot ───────────────────────────────────
+echo "[8/9] Subindo Chatwoot (Redis + web + worker)..."
+mkdir -p /opt/stacks/chatwoot
+cat > /opt/stacks/chatwoot/stack.yml << 'CHATWOOT_STACK'
+version: "3.7"
+services:
+  redis-chatwoot:
+    image: redis:7-alpine
+    volumes:
+      - redis_chatwoot_data:/data
+    networks:
+      - network_swarm_public
+    deploy:
+      mode: replicated
+      replicas: 1
+  chatwoot-web:
+    image: chatwoot/chatwoot:v3.11.0
+    environment:
+      - SECRET_KEY_BASE=__CHATWOOT_SECRET__
+      - FRONTEND_URL=https://chat.__DOMAIN__
+      - DEFAULT_LOCALE=pt_BR
+      - RAILS_ENV=production
+      - RAILS_LOG_TO_STDOUT=true
+      - REDIS_URL=redis://redis-chatwoot:6379
+      - POSTGRES_HOST=axon_postgres_axon_postgres
+      - POSTGRES_PORT=5432
+      - POSTGRES_DATABASE=chatwoot
+      - POSTGRES_USERNAME=axon_app
+      - POSTGRES_PASSWORD=__POSTGRES_PASS__
+    command: bundle exec rails s -p 3000 -b 0.0.0.0
+    networks:
+      - network_swarm_public
+    deploy:
+      mode: replicated
+      replicas: 1
+      labels:
+        - "traefik.enable=true"
+        - "traefik.http.routers.chatwoot.rule=Host(\`chat.__DOMAIN__\`)"
+        - "traefik.http.routers.chatwoot.entrypoints=websecure"
+        - "traefik.http.routers.chatwoot.tls=true"
+        - "traefik.http.routers.chatwoot.tls.certresolver=letsencryptresolver"
+        - "traefik.http.services.chatwoot.loadbalancer.server.port=3000"
+  chatwoot-worker:
+    image: chatwoot/chatwoot:v3.11.0
+    environment:
+      - SECRET_KEY_BASE=__CHATWOOT_SECRET__
+      - FRONTEND_URL=https://chat.__DOMAIN__
+      - RAILS_ENV=production
+      - REDIS_URL=redis://redis-chatwoot:6379
+      - POSTGRES_HOST=axon_postgres_axon_postgres
+      - POSTGRES_PORT=5432
+      - POSTGRES_DATABASE=chatwoot
+      - POSTGRES_USERNAME=axon_app
+      - POSTGRES_PASSWORD=__POSTGRES_PASS__
+    command: bundle exec sidekiq -C config/sidekiq.yml
+    networks:
+      - network_swarm_public
+    deploy:
+      mode: replicated
+      replicas: 1
+networks:
+  network_swarm_public:
+    external: true
+    name: network_swarm_public
+volumes:
+  redis_chatwoot_data:
+    external: true
+    name: redis_chatwoot_data
+CHATWOOT_STACK
+sed -i "s|__DOMAIN__|$DOMAIN|g" /opt/stacks/chatwoot/stack.yml
+sed -i "s|__CHATWOOT_SECRET__|$CHATWOOT_SECRET|g" /opt/stacks/chatwoot/stack.yml
+sed -i "s|__POSTGRES_PASS__|$POSTGRES_PASS|g" /opt/stacks/chatwoot/stack.yml
+docker stack deploy -c /opt/stacks/chatwoot/stack.yml chatwoot
+echo -n "Aguardando Chatwoot"
+TRIES=0; until docker service ls --filter name=chatwoot_chatwoot-web --format '{{.Replicas}}' | grep -q "1/1" || [ $TRIES -ge 40 ]; do sleep 5; TRIES=$((TRIES+1)); printf "."; done; echo " OK"
+
+# ── 9. Evolution API ──────────────────────────────
+echo "[9/9] Subindo Evolution API..."
+mkdir -p /opt/stacks/evolution
+cat > /opt/stacks/evolution/stack.yml << 'EVOLUTION_STACK'
+version: "3.7"
+services:
+  evolution:
+    image: evoapicloud/evolution-api:v2.3.7
+    environment:
+      - SERVER_URL=https://evo.__DOMAIN__
+      - AUTHENTICATION_API_KEY=__EVO_KEY__
+      - DATABASE_ENABLED=true
+      - DATABASE_PROVIDER=postgresql
+      - DATABASE_CONNECTION_URI=postgresql://axon_app:__POSTGRES_PASS__@axon_postgres_axon_postgres:5432/evolution
+      - DATABASE_URL=postgresql://axon_app:__POSTGRES_PASS__@axon_postgres_axon_postgres:5432/evolution
+      - REDIS_ENABLED=true
+      - REDIS_URI=redis://chatwoot_redis-chatwoot:6379
+      - CACHE_REDIS_ENABLED=true
+      - CACHE_REDIS_URI=redis://chatwoot_redis-chatwoot:6379
+      - CACHE_REDIS_PREFIX_KEY=evolution
+      - CACHE_REDIS_SAVE_INSTANCES=true
+      - CACHE_LOCAL_ENABLED=false
+      - LOG_LEVEL=ERROR
+      - DEL_INSTANCE=false
+    volumes:
+      - evolution_instances:/evolution/instances
+    networks:
+      - network_swarm_public
+    deploy:
+      mode: replicated
+      replicas: 1
+      labels:
+        - "traefik.enable=true"
+        - "traefik.http.routers.evolution.rule=Host(\`evo.__DOMAIN__\`)"
+        - "traefik.http.routers.evolution.entrypoints=websecure"
+        - "traefik.http.routers.evolution.tls=true"
+        - "traefik.http.routers.evolution.tls.certresolver=letsencryptresolver"
+        - "traefik.http.routers.evolution.middlewares=evolution-ws"
+        - "traefik.http.services.evolution.loadbalancer.server.port=8080"
+        - "traefik.http.middlewares.evolution-ws.headers.customrequestheaders.Upgrade=websocket"
+        - "traefik.http.middlewares.evolution-ws.headers.customrequestheaders.Connection=Upgrade"
+networks:
+  network_swarm_public:
+    external: true
+    name: network_swarm_public
+volumes:
+  evolution_instances:
+    external: true
+    name: evolution_instances
+EVOLUTION_STACK
+sed -i "s|__DOMAIN__|$DOMAIN|g" /opt/stacks/evolution/stack.yml
+sed -i "s|__EVO_KEY__|$EVO_KEY|g" /opt/stacks/evolution/stack.yml
+sed -i "s|__POSTGRES_PASS__|$POSTGRES_PASS|g" /opt/stacks/evolution/stack.yml
+docker stack deploy -c /opt/stacks/evolution/stack.yml evolution
+echo -n "Aguardando Evolution"
+TRIES=0; until docker service ls --filter name=evolution_evolution --format '{{.Replicas}}' | grep -q "1/1" || [ $TRIES -ge 20 ]; do sleep 3; TRIES=$((TRIES+1)); printf "."; done; echo " OK"
+
 echo ""
 echo "============================================"
 echo "  Infraestrutura no ar!"
-echo "  Portainer : https://painel.$DOMAIN"
-echo "  n8n       : https://workflows.$DOMAIN"
+echo "  Portainer  : https://painel.$DOMAIN"
+echo "  n8n        : https://workflows.$DOMAIN"
+echo "  Chatwoot   : https://chat.$DOMAIN"
+echo "  Evolution  : https://evo.$DOMAIN"
+echo ""
+echo "  Chave Evolution API : $EVO_KEY"
+echo "  (anote no documento de infra do modulo 3)"
 echo "============================================"
 echo ""
-echo "Proximo passo: abra o Portainer e crie o usuario admin."
-echo "  -> Clique em 'Get Started' -> 'local'"
+echo "Proximo passo: abra https://painel.$DOMAIN e crie o usuario admin."
 `;
 }
 
