@@ -2822,21 +2822,27 @@ sed -i "s|__DOMAIN__|$DOMAIN|g" /opt/stacks/portainer/stack.yml
 docker stack deploy -c /opt/stacks/portainer/stack.yml portainer
 echo -n "Aguardando Portainer"
 TRIES=0; until docker service ls --filter name=portainer_portainer --format '{{.Replicas}}' | grep -q "1/1" || [ $TRIES -ge 20 ]; do sleep 3; TRIES=$((TRIES+1)); printf "."; done; echo " OK"
+sleep 5
+PORTAINER_TOKEN=$(docker logs $(docker ps -qf name=portainer_portainer) 2>&1 | grep -i "token" | grep -oE '[a-zA-Z0-9]{32,}' | head -1)
 
 echo ""
 echo "============================================"
 echo "  Infraestrutura no ar!"
+echo ""
 echo "  Portainer  : https://painel.$DOMAIN"
 echo "  n8n        : https://workflows.$DOMAIN"
 echo "  Chatwoot   : https://chat.$DOMAIN"
 echo "  Evolution  : https://evo.$DOMAIN"
 echo ""
+echo "  Token Portainer     : $PORTAINER_TOKEN"
+[ -z "$PORTAINER_TOKEN" ] && echo "  (rode para obter: docker logs \$(docker ps -qf name=portainer_portainer) 2>&1 | grep -i token)"
 echo "  Chave Evolution API : $EVO_KEY"
-echo "  (anote no documento de infra do modulo 3)"
+echo "  (anote ambos no documento de infra do modulo 3)"
 echo "============================================"
 echo ""
-echo "Proximo passo: abra https://painel.$DOMAIN e crie o usuario admin."
-echo "  Se aparecer tela de timeout, rode: docker service update --force portainer_portainer"
+echo "Proximo passo: abra https://painel.$DOMAIN"
+echo "  -> Crie o usuario admin com o token acima"
+echo "  -> Se aparecer timeout: docker service update --force portainer_portainer"
 `;
 }
 
