@@ -2369,12 +2369,16 @@ PG=$(docker ps -qf name=axon_postgres_axon_postgres)
 docker exec -t "$PG" psql -U postgres -c "CREATE DATABASE axon_ops;" || true
 docker exec -t "$PG" psql -U postgres -c "CREATE USER axon_app WITH ENCRYPTED PASSWORD '$POSTGRES_PASS';" || true
 docker exec -t "$PG" psql -U postgres -c "GRANT ALL PRIVILEGES ON DATABASE axon_ops TO axon_app;" || true
+docker exec -t "$PG" psql -U postgres -d axon_ops -c "GRANT ALL ON SCHEMA public TO axon_app;" || true
 docker exec -t "$PG" psql -U postgres -c "CREATE DATABASE n8n;" || true
 docker exec -t "$PG" psql -U postgres -c "GRANT ALL PRIVILEGES ON DATABASE n8n TO axon_app;" || true
+docker exec -t "$PG" psql -U postgres -d n8n -c "GRANT ALL ON SCHEMA public TO axon_app;" || true
 docker exec -t "$PG" psql -U postgres -c "CREATE DATABASE evolution;" || true
 docker exec -t "$PG" psql -U postgres -c "GRANT ALL PRIVILEGES ON DATABASE evolution TO axon_app;" || true
+docker exec -t "$PG" psql -U postgres -d evolution -c "GRANT ALL ON SCHEMA public TO axon_app;" || true
 docker exec -t "$PG" psql -U postgres -c "CREATE DATABASE chatwoot;" || true
 docker exec -t "$PG" psql -U postgres -c "GRANT ALL PRIVILEGES ON DATABASE chatwoot TO axon_app;" || true
+docker exec -t "$PG" psql -U postgres -d chatwoot -c "GRANT ALL ON SCHEMA public TO axon_app;" || true
 
 # ── 7. n8n ────────────────────────────────────────
 echo "[6/9] Subindo n8n (Redis + editor + webhook + worker + runners)..."
