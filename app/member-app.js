@@ -121,9 +121,9 @@ const WIZARD_STEPS = [
     tutorial: [
       {
         heading: "1. Contrate a VPS",
-        body: `<p>Recomendamos a <a href="https://hostinger.com.br/vps-hosting" target="_blank" rel="noopener">Hostinger VPS</a> pelo custo-benefício e suporte em português. O plano <strong>KVM 2</strong> (2 vCPU, 8 GB RAM) é suficiente para toda a infraestrutura.</p>
+        body: `<p>Recomendamos a <a href="https://www.hostinger.com/br/cart?product=vps%3Avps_kvm_2&period=12&referral_type=cart_link&REFERRALCODE=5JMAXNCONSMV&referral_id=019eff18-e879-7085-9be4-4eb1848f1cc0" target="_blank" rel="noopener">Hostinger VPS</a> pelo custo-benefício e suporte em português. O plano <strong>KVM 2</strong> (2 vCPU, 8 GB RAM) é suficiente para toda a infraestrutura.</p>
 <ol>
-  <li>Acesse <a href="https://hostinger.com.br/vps-hosting" target="_blank" rel="noopener">hostinger.com.br/vps-hosting</a> e escolha o plano <strong>KVM 2</strong>.</li>
+  <li>Acesse <a href="https://www.hostinger.com/br/cart?product=vps%3Avps_kvm_2&period=12&referral_type=cart_link&REFERRALCODE=5JMAXNCONSMV&referral_id=019eff18-e879-7085-9be4-4eb1848f1cc0" target="_blank" rel="noopener">esse link com desconto</a> e escolha o plano <strong>KVM 2</strong>.</li>
   <li>Na configuração, selecione sistema operacional <strong>Ubuntu 24.04</strong>.</li>
   <li>Escolha a região <strong>São Paulo</strong> — menor latência para o Brasil.</li>
   <li>Conclua a compra. O painel de controle da VPS aparece em alguns minutos.</li>
@@ -189,82 +189,18 @@ const WIZARD_STEPS = [
   },
   {
     id: "email",
-    title: "E-mail profissional",
-    objective: "Configurar recebimento (ImprovMX) e envio (MailerSend) de e-mail no dominio.",
+    title: "E-mail para certificados",
+    objective: "Registrar o e-mail do negocio para geracao dos certificados HTTPS.",
     tutorial: [
       {
-        heading: "Como funciona",
-        body: `<p>Você vai usar dois serviços gratuitos, cada um cuidando de uma ponta:</p>
-<ul>
-  <li><strong>ImprovMX</strong> — <em>recebe</em> os e-mails do seu domínio (ex: <code>contato@{{domain}}</code>) e <strong>encaminha para o seu Gmail</strong>.</li>
-  <li><strong>MailerSend</strong> — <em>envia</em> os e-mails do site e das automações com o seu domínio como remetente.</li>
-</ul>
-<p>Os dois pedem um registro SPF. Como o domínio só pode ter <strong>um</strong> registro SPF, no passo 4 você vai juntar os dois num único registro.</p>`
-      },
-      {
-        heading: "1. Configure o recebimento no ImprovMX",
-        body: `<p>Acesse <a href="https://improvmx.com" target="_blank" rel="noopener">improvmx.com</a> e crie uma conta gratuita.</p>
-<ol>
-  <li>Em <strong>Add domain</strong>, digite seu domínio (<code>{{domain}}</code>).</li>
-  <li>Crie um alias de encaminhamento: por exemplo, <code>contato@{{domain}}</code> → seu endereço do <strong>Gmail</strong>.</li>
-</ol>
-<p>O ImprovMX vai mostrar os registros que você precisa adicionar: <strong>2 registros MX</strong> e o include de SPF <code>improvmx.com</code>. Deixe essa tela aberta.</p>`
-      },
-      {
-        heading: "2. Configure o envio no MailerSend",
-        body: `<p>Acesse <a href="https://www.mailersend.com" target="_blank" rel="noopener">mailersend.com</a> e crie uma conta gratuita (plano free: 3.000 e-mails/mês).</p>
-<ol>
-  <li>Vá em <strong>Email → Domains → Add domain</strong> e digite seu domínio.</li>
-  <li>O MailerSend vai exibir um registro <strong>DKIM</strong> (CNAME) e o include de SPF <code>_spf.mailersend.net</code>.</li>
-</ol>
-<p>Deixe essa tela aberta também.</p>`
-      },
-      {
-        heading: "3. Adicione MX e DKIM no Cloudflare",
-        body: `<p>Acesse <a href="https://dash.cloudflare.com" target="_blank" rel="noopener">dash.cloudflare.com</a> → seu domínio → <strong>DNS → Records</strong>.</p>
-<p><strong>Os 2 registros MX do ImprovMX</strong> (clique em <strong>Add record</strong> para cada um):</p>
-<table style="width:100%;border-collapse:collapse;font-size:0.85rem">
-  <tr style="text-align:left"><th>Type</th><th>Name</th><th>Mail server</th><th>Priority</th></tr>
-  <tr><td>MX</td><td><code>@</code></td><td><code>mx1.improvmx.com</code></td><td>10</td></tr>
-  <tr><td>MX</td><td><code>@</code></td><td><code>mx2.improvmx.com</code></td><td>20</td></tr>
-</table>
-<p style="margin-top:10px"><strong>O registro DKIM do MailerSend:</strong> adicione um <strong>CNAME</strong> com o nome e o destino exatamente como o MailerSend indicar (algo como <code>mlsend2._domainkey</code>). Mantenha <strong>DNS only</strong>.</p>`
-      },
-      {
-        heading: "4. Crie UM único registro SPF (ImprovMX + MailerSend)",
-        body: `<p>Atenção: o domínio só pode ter <strong>um</strong> registro SPF. Não crie um para cada serviço — junte os dois includes num só. Em <strong>Add record</strong>:</p>
-<ul>
-  <li><strong>Type:</strong> TXT</li>
-  <li><strong>Name:</strong> <code>@</code></li>
-  <li><strong>Content:</strong> <code>v=spf1 include:improvmx.com include:_spf.mailersend.net include:mailersend.net ~all</code></li>
-  <li><strong>Proxy status:</strong> DNS only</li>
-</ul>
-<p>Se já existir um registro SPF (começando com <code>v=spf1</code>), <strong>edite</strong> ele em vez de criar outro.</p>`
-      },
-      {
-        heading: "5. Adicione o DMARC",
-        body: `<p>Crie mais um registro TXT para a política de autenticação:</p>
-<ul>
-  <li><strong>Type:</strong> TXT</li>
-  <li><strong>Name:</strong> <code>_dmarc</code></li>
-  <li><strong>Content:</strong> <code>v=DMARC1; p=none; rua=mailto:SEU_EMAIL@gmail.com</code></li>
-  <li><strong>Proxy status:</strong> DNS only</li>
-</ul>
-<p>Troque <code>SEU_EMAIL@gmail.com</code> pelo e-mail onde quer receber os relatórios.</p>`
-      },
-      {
-        heading: "6. Verifique nos dois serviços",
-        body: `<p>Volte em cada painel e confirme a verificação (pode levar alguns minutos):</p>
-<ul>
-  <li><strong>ImprovMX:</strong> os registros MX e SPF ficam verdes. Faça um teste enviando um e-mail para <code>contato@{{domain}}</code> e veja se chega no seu Gmail.</li>
-  <li><strong>MailerSend:</strong> em <strong>Domains → Verify</strong>, SPF e DKIM ficam verdes.</li>
-</ul>
-<p>Registre abaixo seu e-mail de contato técnico (um e-mail real que você acessa) — ele entra na configuração do HTTPS mais adiante.</p>`
+        heading: "1. Informe o e-mail do negócio",
+        body: `<p>Preencha o campo abaixo com o e-mail do seu negócio. Ele será usado pela infraestrutura para gerar e renovar automaticamente os certificados de segurança HTTPS de todos os seus subdomínios.</p>
+<p>Use um e-mail real que você acessa — avisos de renovação de certificado chegam por aqui.</p>`
       }
     ],
-    validation: "ImprovMX e MailerSend mostrarem os registros verdes e um e-mail de teste chegar no Gmail.",
-    done: "Recebimento (ImprovMX) e envio (MailerSend) verificados.",
-    fields: [{ key: "technicalEmail", label: "E-mail tecnico", placeholder: "voce@seudominio.com.br" }]
+    validation: "E-mail preenchido.",
+    done: "E-mail tecnico registrado.",
+    fields: [{ key: "technicalEmail", label: "E-mail do negócio", placeholder: "voce@seudominio.com.br" }]
   },
   {
     id: "infra-auto",
@@ -272,8 +208,9 @@ const WIZARD_STEPS = [
     objective: "Um script baixa, instala e configura toda a infraestrutura: Docker, Swarm, Traefik, Portainer, Postgres e n8n.",
     tutorial: [
       {
-        heading: "1. Confirme os dados do projeto",
-        body: `<p>Verifique que domínio, IP da VPS e e-mail estão preenchidos nas etapas anteriores. A senha do banco é o único campo desta etapa — defina-a no campo abaixo e guarde-a, pois ela será usada em todas as stacks.</p>`
+        heading: "1. Crie a senha do banco de dados",
+        body: `<p>Acesse <a href="https://randomkeygen.com/" target="_blank" rel="noopener">randomkeygen.com</a>, selecione uma senha da seção <strong>128-bit Hex</strong> e cole no campo abaixo. Ela será usada em todas as stacks — guarde-a em lugar seguro.</p>`,
+        field: "postgresPassword"
       },
       {
         heading: "2. Baixe e envie o script para a VPS",
