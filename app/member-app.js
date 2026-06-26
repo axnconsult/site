@@ -2488,6 +2488,8 @@ sed -i "s|__N8N_KEY__|$N8N_KEY|g" /opt/stacks/n8n-editor/stack.yml
 sed -i "s|__N8N_TOKEN__|$N8N_TOKEN|g" /opt/stacks/n8n-editor/stack.yml
 sed -i "s|__POSTGRES_PASS__|$POSTGRES_PASS|g" /opt/stacks/n8n-editor/stack.yml
 docker stack deploy -c /opt/stacks/n8n-editor/stack.yml n8n_editor
+echo -n "Aguardando n8n editor (migrations)"
+TRIES=0; until docker service ls --filter name=n8n_editor_n8n_editor --format '{{.Replicas}}' | grep -q "1/1" || [ $TRIES -ge 40 ]; do sleep 5; TRIES=$((TRIES+1)); printf "."; done; echo " OK"
 
 mkdir -p /opt/stacks/n8n-webhook
 cat > /opt/stacks/n8n-webhook/stack.yml << 'N8N_WEBHOOK_STACK'
