@@ -33,7 +33,7 @@ const COURSE_MODULES = [
       ["Dominio, VPS e DNS", "Compre o dominio e a VPS, conecte na Cloudflare e aponte os registros DNS.", "technical", null, ["domain", "vps-compra", "dns", "email"]],
       ["Configuracao automatica", "Um script instala tudo: Docker, Swarm, Traefik, Portainer, Postgres, n8n, Evolution API e Chatwoot.", "technical", null, ["infra-auto"]],
       ["Chaves e contas", "Crie contas no Google Ads e Meta Ads, copie os pixels e as chaves de OpenAI e Anthropic.", "technical", null, ["api-keys", "midia-paga"]],
-      ["Documento de infra", "Anote URLs de acesso, credenciais e pixels em um unico documento. Sem comandos — so revisao e registro.", "technical", null, ["ops", "infra-dados"]]
+      ["Documento de infra", "Anote URLs de acesso, credenciais e pixels em um unico documento. Sem comandos — so revisao e registro.", "technical", null, ["infra-dados"]]
     ]
   },
   {
@@ -149,29 +149,7 @@ const WIZARD_STEPS = [
         body: `<p>Em <a href="https://dash.cloudflare.com" target="_blank" rel="noopener">dash.cloudflare.com</a>, clique no seu domínio e depois em <strong>DNS → Records</strong> no menu lateral.</p>`
       },
       {
-        heading: "2. Crie o registro A do domínio raiz",
-        body: `<p>Clique em <strong>Add record</strong> e preencha:</p>
-<ul>
-  <li><strong>Type:</strong> A</li>
-  <li><strong>Name:</strong> <code>@</code></li>
-  <li><strong>IPv4 address:</strong> <code>{{serverIp}}</code></li>
-  <li><strong>Proxy status:</strong> DNS only (nuvem cinza)</li>
-</ul>
-<p>Clique em <strong>Save</strong>.</p>`
-      },
-      {
-        heading: "3. Crie o registro A do manager",
-        body: `<p>Clique em <strong>Add record</strong> e preencha:</p>
-<ul>
-  <li><strong>Type:</strong> A</li>
-  <li><strong>Name:</strong> <code>manager01</code></li>
-  <li><strong>IPv4 address:</strong> <code>{{serverIp}}</code></li>
-  <li><strong>Proxy status:</strong> DNS only (nuvem cinza)</li>
-</ul>
-<p>Clique em <strong>Save</strong>.</p>`
-      },
-      {
-        heading: "4. Crie os registros A dos serviços",
+        heading: "2. Crie os registros A dos serviços",
         body: `<p>Repita <strong>Add record</strong> para cada linha abaixo:</p>
 <table style="width:100%;border-collapse:collapse;font-size:0.85rem">
   <tr style="text-align:left"><th>Type</th><th>Name</th><th>IPv4 address</th><th>Proxy</th></tr>
@@ -221,21 +199,27 @@ const WIZARD_STEPS = [
         command: `scp C:\\Users\\SeuUsuario\\Desktop\\axn-setup.sh root@{{serverIp}}:/root/`
       },
       {
-        heading: "3. Execute o script na VPS",
-        body: `<p>No terminal SSH da VPS, execute:</p>`,
-        command: `ssh root@{{serverIp}}\nbash /root/axn-setup.sh`
+        heading: "3. Conecte na VPS via SSH",
+        body: `<p>No terminal do seu computador (PowerShell ou CMD), conecte na VPS:</p>`,
+        command: `ssh root@{{serverIp}}`
       },
       {
-        heading: "4. Crie o usuário admin no Portainer",
-        body: `<p>Quando o script terminar e exibir a mensagem de conclusão, acesse o Portainer no navegador:</p>
-<p>Defina usuário e senha do administrador. Clique em <strong>Get Started</strong> → <strong>local</strong> para conectar ao Swarm local. A partir daí, todos os deploys futuros são feitos pelo Portainer.</p>`,
-        command: `https://painel.{{domain}}`
+        heading: "4. Execute o script",
+        body: `<p>Já dentro do terminal SSH da VPS, rode:</p>`,
+        command: `bash /root/axn-setup.sh`
+      },
+      {
+        heading: "5. Crie o usuário admin no Portainer",
+        body: `<p>Quando o script terminar, ele vai exibir no terminal o <strong>Token do Portainer</strong> e a <strong>Chave da Evolution API</strong>. Copie e guarde esses valores — você vai precisar deles agora e no documento de infra.</p>
+<p>Abra o Portainer no navegador, preencha usuário, senha e cole o <strong>token</strong> exibido pelo script. Clique em <strong>Create user</strong>.</p>
+<p>Se a página exibir "timeout", rode o comando abaixo e acesse novamente:</p>`,
+        command: `docker service update --force portainer_portainer`
       }
     ],
     fields: [
-      { key: "postgresPassword", label: "Senha do banco Postgres (usada em todas as stacks)", placeholder: "SuaSenhaForteAqui" }
+      { key: "postgresPassword", label: "Senha do banco Postgres (usada em todas as stacks)", placeholder: "SuaSenhaForteAqui", inline: true }
     ],
-    validation: "docker service ls mostrar traefik, portainer, postgres e n8n com replica 1/1.",
+    validation: "docker service ls mostrar todos os serviços (traefik, postgres, n8n, chatwoot, evolution, portainer) com replica 1/1.",
     done: "Infraestrutura completa no ar. Admin criado no Portainer."
   },
   {
@@ -696,7 +680,7 @@ services:
       - WEBHOOK_URL=https://webhooks.{{domain}}/
       - N8N_ENDPOINT_WEBHOOK=webhook
       - EXECUTIONS_MODE=queue
-      - QUEUE_BULL_REDIS_HOST=redis_n8n
+      - QUEUE_BULL_REDIS_HOST=redis_n8n_redis_n8n
       - QUEUE_BULL_REDIS_PORT=6379
       - QUEUE_BULL_REDIS_DB=2
       - EXECUTIONS_TIMEOUT=3600
@@ -789,7 +773,7 @@ services:
       - WEBHOOK_URL=https://webhooks.{{domain}}/
       - N8N_ENDPOINT_WEBHOOK=webhook
       - EXECUTIONS_MODE=queue
-      - QUEUE_BULL_REDIS_HOST=redis_n8n
+      - QUEUE_BULL_REDIS_HOST=redis_n8n_redis_n8n
       - QUEUE_BULL_REDIS_PORT=6379
       - QUEUE_BULL_REDIS_DB=2
       - EXECUTIONS_TIMEOUT=3600
@@ -868,7 +852,7 @@ services:
       - N8N_PROTOCOL=https
       - WEBHOOK_URL=https://webhooks.{{domain}}/
       - EXECUTIONS_MODE=queue
-      - QUEUE_BULL_REDIS_HOST=redis_n8n
+      - QUEUE_BULL_REDIS_HOST=redis_n8n_redis_n8n
       - QUEUE_BULL_REDIS_PORT=6379
       - QUEUE_BULL_REDIS_DB=2
       - EXECUTIONS_TIMEOUT=3600
@@ -914,7 +898,7 @@ services:
     networks:
       - network_swarm_public
     environment:
-      N8N_RUNNERS_TASK_BROKER_URI: http://n8n_worker:5679
+      N8N_RUNNERS_TASK_BROKER_URI: http://n8n_worker_n8n_worker:5679
       N8N_RUNNERS_AUTH_TOKEN: {{n8nRunnersAuthToken}}
     deploy:
       mode: replicated
@@ -980,11 +964,7 @@ networks:
     objective: "Conferir e guardar os dados da infraestrutura criada neste modulo.",
     tutorial: [
       {
-        heading: "1. Confira os dados registrados",
-        body: `<p>Os campos abaixo mostram o que você registrou ao longo do módulo. Confira e corrija o que precisar — os próximos módulos usam esses dados.</p>`
-      },
-      {
-        heading: "2. Baixe o documento da infraestrutura",
+        heading: "1. Baixe o documento da infraestrutura",
         body: `<p>Gere um documento com os dados e endereços da sua infra e guarde junto do seu planejamento estratégico.</p>
 <p>As senhas <strong>não</strong> ficam salvas no app — confira se você anotou a senha root da VPS, a do Portainer, a do Postgres e as chaves do n8n no seu gerenciador de senhas.</p>
 <p><button class="button button-primary" type="button" id="download-infra-doc">Baixar documento da infra (.md)</button></p>`
@@ -2213,9 +2193,10 @@ function buildInfraSetupScript() {
   const domain    = p.domain           || "SEU_DOMINIO.com";
   const serverIp  = p.serverIp         || "SEU_IP_DA_VPS";
   const email     = p.technicalEmail   || "SEU_EMAIL_REAL";
-  const pgPass    = p.postgresPassword || "SENHA_POSTGRES_AQUI";
+  const pgPass    = p.postgresPassword    || "SENHA_POSTGRES_AQUI";
   const n8nKey    = p.n8nEncryptionKey    || "N8N_ENCRYPTION_KEY_AQUI";
   const n8nToken  = p.n8nRunnersAuthToken || "N8N_RUNNERS_AUTH_TOKEN_AQUI";
+  const evoKey    = p.evolutionApiKey     || "EVOLUTION_API_KEY_AQUI";
 
   return `#!/bin/bash
 set -e
@@ -2230,7 +2211,7 @@ EMAIL="${email}"
 POSTGRES_PASS="${pgPass}"
 N8N_KEY="${n8nKey}"
 N8N_TOKEN="${n8nToken}"
-EVO_KEY=$(openssl rand -hex 32)
+EVO_KEY="${evoKey}"
 CHATWOOT_SECRET=$(openssl rand -hex 32)
 
 # ── 1. Sistema ────────────────────────────────────
@@ -2448,7 +2429,7 @@ services:
       - WEBHOOK_URL=https://webhooks.__DOMAIN__/
       - N8N_ENDPOINT_WEBHOOK=webhook
       - EXECUTIONS_MODE=queue
-      - QUEUE_BULL_REDIS_HOST=redis_n8n
+      - QUEUE_BULL_REDIS_HOST=redis_n8n_redis_n8n
       - QUEUE_BULL_REDIS_PORT=6379
       - QUEUE_BULL_REDIS_DB=2
       - EXECUTIONS_TIMEOUT=3600
@@ -2534,7 +2515,7 @@ services:
       - WEBHOOK_URL=https://webhooks.__DOMAIN__/
       - N8N_ENDPOINT_WEBHOOK=webhook
       - EXECUTIONS_MODE=queue
-      - QUEUE_BULL_REDIS_HOST=redis_n8n
+      - QUEUE_BULL_REDIS_HOST=redis_n8n_redis_n8n
       - QUEUE_BULL_REDIS_PORT=6379
       - QUEUE_BULL_REDIS_DB=2
     deploy:
@@ -2594,7 +2575,7 @@ services:
       - N8N_PROTOCOL=https
       - WEBHOOK_URL=https://webhooks.__DOMAIN__/
       - EXECUTIONS_MODE=queue
-      - QUEUE_BULL_REDIS_HOST=redis_n8n
+      - QUEUE_BULL_REDIS_HOST=redis_n8n_redis_n8n
       - QUEUE_BULL_REDIS_PORT=6379
       - QUEUE_BULL_REDIS_DB=2
     deploy:
@@ -2625,7 +2606,7 @@ services:
     networks:
       - network_swarm_public
     environment:
-      N8N_RUNNERS_TASK_BROKER_URI: http://n8n_worker:5679
+      N8N_RUNNERS_TASK_BROKER_URI: http://n8n_worker_n8n_worker:5679
       N8N_RUNNERS_AUTH_TOKEN: __N8N_TOKEN__
     deploy:
       mode: replicated
@@ -2717,9 +2698,18 @@ docker stack deploy -c /opt/stacks/chatwoot/stack.yml chatwoot
 echo -n "Aguardando Chatwoot"
 TRIES=0; until docker service ls --filter name=chatwoot_chatwoot-web --format '{{.Replicas}}' | grep -q "1/1" || [ $TRIES -ge 40 ]; do sleep 5; TRIES=$((TRIES+1)); printf "."; done; echo " OK"
 echo "Executando migrations do Chatwoot..."
-CW=$(docker ps -qf name=chatwoot_chatwoot-web)
-docker exec -t $CW bundle exec rails db:chatwoot_prepare RAILS_ENV=production
-docker service update --force chatwoot_chatwoot-web
+echo -n "Aguardando container chatwoot-web"
+CW=""; TRIES=0
+until [ -n "$CW" ] || [ $TRIES -ge 20 ]; do
+  CW=$(docker ps -qf name=chatwoot_chatwoot-web --filter status=running)
+  sleep 3; TRIES=$((TRIES+1)); printf "."
+done; echo " OK"
+if [ -n "$CW" ]; then
+  docker exec -t $CW bundle exec rails db:chatwoot_prepare RAILS_ENV=production || true
+  docker service update --force chatwoot_chatwoot-web
+else
+  echo "AVISO: container chatwoot-web nao encontrado — rode manualmente apos subir: docker exec \$(docker ps -qf name=chatwoot_chatwoot-web) bundle exec rails db:chatwoot_prepare RAILS_ENV=production"
+fi
 
 # ── 9. Evolution API ──────────────────────────────
 echo "[8/9] Subindo Evolution API..."
@@ -3006,7 +2996,8 @@ function buildInfraDocument() {
 
 function buildLessonStepContent(step, lesson) {
   // Campos de dados do projeto — substituem o checklist nas etapas que geram dados
-  const fields = (step.fields || []).map((field) => {
+  // Campos marcados como inline:true são renderizados dentro do tutorial item que os referencia
+  const fields = (step.fields || []).filter(f => !f.inline).map((field) => {
     const value = memberApp.state.project[field.key] || "";
     return `
       <label class="wizard-data-field${value ? " is-filled" : ""}">
@@ -3025,7 +3016,15 @@ function buildLessonStepContent(step, lesson) {
     const cmdHtml = block.command
       ? `<div class="inline-command"><pre class="command-box"><code>${escapeHtml(fillTemplate(block.command))}</code></pre><button class="btn-copy-inline" type="button" data-copy-command title="Copiar"><svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="9" y="9" width="13" height="13" rx="2"/><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/></svg></button></div>`
       : "";
-    return `<div class="tutorial-block"><h4 class="tutorial-heading">${escapeHtml(block.heading)}</h4><div class="tutorial-body">${fillTemplate(block.body)}${cmdHtml}</div></div>`;
+    let inlineFieldHtml = "";
+    if (block.field) {
+      const fieldDef = (step.fields || []).find(f => f.key === block.field);
+      if (fieldDef) {
+        const value = memberApp.state.project[fieldDef.key] || "";
+        inlineFieldHtml = `<div class="wizard-data-fields"><label class="wizard-data-field${value ? " is-filled" : ""}"><span>${escapeHtml(fieldDef.label)}</span><span class="wizard-data-input"><input data-project-field="${escapeHtml(fieldDef.key)}" placeholder="${escapeHtml(fieldDef.placeholder || "")}" value="${escapeHtml(value)}" /><svg class="field-check" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M20 6 9 17l-5-5"/></svg></span></label></div>`;
+      }
+    }
+    return `<div class="tutorial-block"><h4 class="tutorial-heading">${escapeHtml(block.heading)}</h4><div class="tutorial-body">${fillTemplate(block.body)}${inlineFieldHtml}${cmdHtml}</div></div>`;
   }).join("");
 
   // Bloco de comando isolado (etapas sem tutorial, ex: VPS, Swarm)
