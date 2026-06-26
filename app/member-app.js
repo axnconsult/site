@@ -2365,6 +2365,7 @@ docker exec -t "$PG" psql -U postgres -d evolution -c "GRANT ALL ON SCHEMA publi
 docker exec -t "$PG" psql -U postgres -c "CREATE DATABASE chatwoot;" || true
 docker exec -t "$PG" psql -U postgres -c "GRANT ALL PRIVILEGES ON DATABASE chatwoot TO axon_app;" || true
 docker exec -t "$PG" psql -U postgres -d chatwoot -c "GRANT ALL ON SCHEMA public TO axon_app;" || true
+docker exec -t "$PG" psql -U postgres -d chatwoot -c "CREATE EXTENSION IF NOT EXISTS pg_stat_statements;" || true
 
 # ── 7. n8n ────────────────────────────────────────
 echo "[6/9] Subindo n8n (Redis + editor + webhook + worker + runners)..."
