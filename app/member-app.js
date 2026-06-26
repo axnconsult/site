@@ -2658,7 +2658,7 @@ services:
       - POSTGRES_DATABASE=chatwoot
       - POSTGRES_USERNAME=axon_app
       - POSTGRES_PASSWORD=__POSTGRES_PASS__
-    command: bundle exec rails s -p 3000 -b 0.0.0.0
+    command: sh -c "bundle exec rails db:chatwoot_prepare; bundle exec rails s -p 3000 -b 0.0.0.0"
     networks:
       - network_swarm_public
     deploy:
@@ -2704,19 +2704,6 @@ sed -i "s|__POSTGRES_PASS__|$POSTGRES_PASS|g" /opt/stacks/chatwoot/stack.yml
 docker stack deploy -c /opt/stacks/chatwoot/stack.yml chatwoot
 echo -n "Aguardando Chatwoot"
 TRIES=0; until docker service ls --filter name=chatwoot_chatwoot-web --format '{{.Replicas}}' | grep -q "1/1" || [ $TRIES -ge 40 ]; do sleep 5; TRIES=$((TRIES+1)); printf "."; done; echo " OK"
-echo "Executando migrations do Chatwoot..."
-echo -n "Aguardando container chatwoot-web"
-CW=""; TRIES=0
-until [ -n "$CW" ] || [ $TRIES -ge 20 ]; do
-  CW=$(docker ps -qf name=chatwoot_chatwoot-web --filter status=running)
-  sleep 3; TRIES=$((TRIES+1)); printf "."
-done; echo " OK"
-if [ -n "$CW" ]; then
-  docker exec -t $CW bundle exec rails db:chatwoot_prepare RAILS_ENV=production || true
-  docker service update --force chatwoot_chatwoot-web
-else
-  echo "AVISO: container chatwoot-web nao encontrado — rode manualmente apos subir: docker exec \$(docker ps -qf name=chatwoot_chatwoot-web) bundle exec rails db:chatwoot_prepare RAILS_ENV=production"
-fi
 
 # ── 9. Evolution API ──────────────────────────────
 echo "[8/9] Subindo Evolution API..."
