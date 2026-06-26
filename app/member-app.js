@@ -210,8 +210,8 @@ const WIZARD_STEPS = [
       },
       {
         heading: "5. Crie o usuário admin no Portainer",
-        body: `<p>Quando o script terminar, ele vai exibir no terminal o <strong>Token do Portainer</strong> e a <strong>Chave da Evolution API</strong>. Copie e guarde esses valores — você vai precisar deles agora e no documento de infra.</p>
-<p>Abra o Portainer no navegador, preencha usuário, senha e cole o <strong>token</strong> exibido pelo script. Clique em <strong>Create user</strong>.</p>
+        body: `<p>Quando o script terminar, ele vai exibir a <strong>Chave da Evolution API</strong> — copie e guarde no documento de infra.</p>
+<p>Abra o Portainer no navegador, defina usuário e senha e clique em <strong>Create user</strong>. Não será pedido nenhum token.</p>
 <p>Se a página exibir "timeout", rode o comando abaixo e acesse novamente:</p>`,
         command: `docker service update --force portainer_portainer`
       }
@@ -671,7 +671,7 @@ services:
       - DB_POSTGRESDB_DATABASE=n8n
       - DB_POSTGRESDB_HOST=axon_postgres_axon_postgres
       - DB_POSTGRESDB_PORT=5432
-      - DB_POSTGRESDB_USER=postgres
+      - DB_POSTGRESDB_USER=axon_app
       - DB_POSTGRESDB_PASSWORD={{postgresPassword}}
       - N8N_PORT=5678
       - N8N_HOST=workflows.{{domain}}
@@ -764,7 +764,7 @@ services:
       - DB_POSTGRESDB_DATABASE=n8n
       - DB_POSTGRESDB_HOST=axon_postgres_axon_postgres
       - DB_POSTGRESDB_PORT=5432
-      - DB_POSTGRESDB_USER=postgres
+      - DB_POSTGRESDB_USER=axon_app
       - DB_POSTGRESDB_PASSWORD={{postgresPassword}}
       - N8N_PORT=5678
       - N8N_HOST=workflows.{{domain}}
@@ -844,7 +844,7 @@ services:
       - DB_POSTGRESDB_DATABASE=n8n
       - DB_POSTGRESDB_HOST=axon_postgres_axon_postgres
       - DB_POSTGRESDB_PORT=5432
-      - DB_POSTGRESDB_USER=postgres
+      - DB_POSTGRESDB_USER=axon_app
       - DB_POSTGRESDB_PASSWORD={{postgresPassword}}
       - N8N_PORT=5678
       - N8N_HOST=workflows.{{domain}}
@@ -2345,7 +2345,12 @@ sed -i "s|__POSTGRES_PASS__|$POSTGRES_PASS|g" /opt/stacks/postgres/stack.yml
 docker stack deploy -c /opt/stacks/postgres/stack.yml axon_postgres
 echo -n "Aguardando Postgres"
 sleep 10
-TRIES=0; until docker exec $(docker ps -qf name=axon_postgres_axon_postgres) pg_isready -U postgres 2>/dev/null || [ $TRIES -ge 20 ]; do sleep 3; TRIES=$((TRIES+1)); printf "."; done; echo " OK"
+TRIES=0
+until [ $TRIES -ge 20 ]; do
+  PG=$(docker ps -qf name=axon_postgres_axon_postgres 2>/dev/null)
+  [ -n "$PG" ] && docker exec "$PG" pg_isready -U postgres 2>/dev/null && break
+  sleep 3; TRIES=$((TRIES+1)); printf "."
+done; echo " OK"
 PG=$(docker ps -qf name=axon_postgres_axon_postgres)
 docker exec -t "$PG" psql -U postgres -c "CREATE DATABASE axon_ops;" || true
 docker exec -t "$PG" psql -U postgres -c "CREATE USER axon_app WITH ENCRYPTED PASSWORD '$POSTGRES_PASS';" || true
@@ -2420,7 +2425,7 @@ services:
       - DB_POSTGRESDB_DATABASE=n8n
       - DB_POSTGRESDB_HOST=axon_postgres_axon_postgres
       - DB_POSTGRESDB_PORT=5432
-      - DB_POSTGRESDB_USER=postgres
+      - DB_POSTGRESDB_USER=axon_app
       - DB_POSTGRESDB_PASSWORD=__POSTGRES_PASS__
       - N8N_PORT=5678
       - N8N_HOST=workflows.__DOMAIN__
@@ -2506,7 +2511,7 @@ services:
       - DB_POSTGRESDB_DATABASE=n8n
       - DB_POSTGRESDB_HOST=axon_postgres_axon_postgres
       - DB_POSTGRESDB_PORT=5432
-      - DB_POSTGRESDB_USER=postgres
+      - DB_POSTGRESDB_USER=axon_app
       - DB_POSTGRESDB_PASSWORD=__POSTGRES_PASS__
       - N8N_PORT=5678
       - N8N_HOST=workflows.__DOMAIN__
@@ -2567,7 +2572,7 @@ services:
       - DB_POSTGRESDB_DATABASE=n8n
       - DB_POSTGRESDB_HOST=axon_postgres_axon_postgres
       - DB_POSTGRESDB_PORT=5432
-      - DB_POSTGRESDB_USER=postgres
+      - DB_POSTGRESDB_USER=axon_app
       - DB_POSTGRESDB_PASSWORD=__POSTGRES_PASS__
       - N8N_PORT=5678
       - N8N_HOST=workflows.__DOMAIN__
@@ -2788,7 +2793,7 @@ services:
           - node.platform.os == linux
   portainer:
     image: portainer/portainer-ce:sts
-    command: -H tcp://tasks.agent:9001 --tlsskipverify
+    command: -H tcp://tasks.agent:9001 --tlsskipverify --no-setup-token
     volumes:
       - portainer_data:/data
     networks:
@@ -2820,8 +2825,6 @@ sed -i "s|__DOMAIN__|$DOMAIN|g" /opt/stacks/portainer/stack.yml
 docker stack deploy -c /opt/stacks/portainer/stack.yml portainer
 echo -n "Aguardando Portainer"
 TRIES=0; until docker service ls --filter name=portainer_portainer --format '{{.Replicas}}' | grep -q "1/1" || [ $TRIES -ge 20 ]; do sleep 3; TRIES=$((TRIES+1)); printf "."; done; echo " OK"
-sleep 5
-PORTAINER_TOKEN=$(docker logs $(docker ps -qf name=portainer_portainer) 2>&1 | grep -i "token" | grep -oE '[a-zA-Z0-9]{32,}' | head -1)
 
 echo ""
 echo "============================================"
@@ -2832,15 +2835,12 @@ echo "  n8n        : https://workflows.$DOMAIN"
 echo "  Chatwoot   : https://chat.$DOMAIN"
 echo "  Evolution  : https://evo.$DOMAIN/manager"
 echo ""
-echo "  Token Portainer     : $PORTAINER_TOKEN"
-[ -z "$PORTAINER_TOKEN" ] && echo "  (rode para obter: docker logs \$(docker ps -qf name=portainer_portainer) 2>&1 | grep -i token)"
 echo "  Chave Evolution API : $EVO_KEY"
-echo "  (anote ambos no documento de infra do modulo 3)"
+echo "  (anote no documento de infra do modulo 3)"
 echo "============================================"
 echo ""
-echo "Proximo passo: abra https://painel.$DOMAIN"
-echo "  -> Crie o usuario admin com o token acima"
-echo "  -> Se aparecer timeout: docker service update --force portainer_portainer"
+echo "Proximo passo: abra https://painel.$DOMAIN e crie o usuario admin."
+echo "  Se aparecer timeout: docker service update --force portainer_portainer"
 `;
 }
 
