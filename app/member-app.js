@@ -2659,7 +2659,7 @@ services:
       - POSTGRES_DATABASE=chatwoot
       - POSTGRES_USERNAME=axon_app
       - POSTGRES_PASSWORD=__POSTGRES_PASS__
-    command: sh -c "bundle exec rails db:chatwoot_prepare; bundle exec rails s -p 3000 -b 0.0.0.0"
+    command: sh -c "bundle exec rails db:chatwoot_prepare && bundle exec rails s -p 3000 -b 0.0.0.0"
     networks:
       - network_swarm_public
     deploy:
