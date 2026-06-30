@@ -214,6 +214,18 @@ const WIZARD_STEPS = [
 <p>Abra o Portainer no navegador, defina usuário e senha e clique em <strong>Create user</strong>. Não será pedido nenhum token.</p>
 <p>Se a página exibir "timeout", rode o comando abaixo e acesse novamente:</p>`,
         command: `docker service update --force portainer_portainer`
+      },
+      {
+        heading: "6. Verifique os serviços no ar",
+        body: `<p>Quando o script terminar, esses são os endereços da sua infraestrutura. Abra cada um e confirme que carrega:</p>
+<ul>
+  <li><strong>Portainer</strong> (painel): <a href="https://painel.{{serverDomain}}" target="_blank">https://painel.{{serverDomain}}</a></li>
+  <li><strong>n8n</strong> (workflows): <a href="https://workflows.{{serverDomain}}" target="_blank">https://workflows.{{serverDomain}}</a></li>
+  <li><strong>Chatwoot</strong> (atendimento): <a href="https://chat.{{serverDomain}}" target="_blank">https://chat.{{serverDomain}}</a></li>
+  <li><strong>Evolution API</strong> (WhatsApp): <a href="https://evo.{{serverDomain}}/manager" target="_blank">https://evo.{{serverDomain}}/manager</a></li>
+</ul>
+<p><strong>Chave da Evolution API:</strong> <code>{{evolutionApiKey}}</code><br>Anote no documento de infra do módulo 3.</p>
+<p>Se algum serviço demorar para abrir, aguarde 2 minutos e recarregue — os certificados SSL podem levar um instante para ser emitidos.</p>`
       }
     ],
     fields: [
