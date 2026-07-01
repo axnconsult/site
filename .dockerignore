@@ -4,7 +4,6 @@ node_modules
 source-material
 !source-material/
 !source-material/Agents/
-!source-material/Agents/revised-module-1/
-!source-material/Agents/revised-module-1/**
+!source-material/Agents/**
 skills
 *.log

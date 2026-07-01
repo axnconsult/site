@@ -122,7 +122,14 @@ export async function streamContentGeneration({ rootDir, query, member, payload,
     return;
   }
 
-  const agentPrompt = await loadAgentPrompt(rootDir, promptFile);
+  let agentPrompt;
+  try {
+    agentPrompt = await loadAgentPrompt(rootDir, promptFile);
+  } catch (error) {
+    console.warn(`content-agents: prompt file missing (${promptFile})`, error.message);
+    onDone({ ok: false, error: "prompt_file_missing" });
+    return;
+  }
   const systemPrompt = agentPrompt + systemAddendum;
 
   const openaiRequest = {
@@ -154,7 +161,13 @@ export async function generateCampaignImage({ rootDir, query, member, payload })
     strategicDoc = "Planejamento estratégico não disponível.";
   }
 
-  const agent9Prompt = await loadAgentPrompt(rootDir, "9 - AXN _ Comunicação Visual.md");
+  let agent9Prompt;
+  try {
+    agent9Prompt = await loadAgentPrompt(rootDir, "9 - AXN _ Comunicação Visual.md");
+  } catch (error) {
+    console.warn("content-agents: Agent 9 prompt file missing", error.message);
+    return { ok: false, error: "prompt_file_missing" };
+  }
   const systemForImagePrompt = agent9Prompt + "\n\n## Planejamento estratégico\n\n" + strategicDoc;
 
   const userMessage = feedback

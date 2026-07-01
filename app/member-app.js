@@ -3520,7 +3520,8 @@ function errorMessageForCode(code) {
     image_prompt_failed: "Nao consegui preparar o prompt da imagem. Tente novamente.",
     image_prompt_empty: "O agente nao retornou um prompt de imagem. Tente novamente.",
     image_generation_failed: "A geracao da imagem falhou. Tente novamente em instantes.",
-    image_url_missing: "A imagem foi gerada mas a URL nao chegou. Tente novamente."
+    image_url_missing: "A imagem foi gerada mas a URL nao chegou. Tente novamente.",
+    prompt_file_missing: "O prompt do agente nao esta no servidor. Rebuild da imagem do site necessario (source-material/Agents)."
   };
   return messages[code] || `Erro do assistente: ${code}`;
 }
