@@ -1978,7 +1978,36 @@ button:focus {
 .generate-status {
   font-size: 0.85rem;
   color: var(--muted);
-  font-style: italic;
+  padding: 10px 14px;
+  border-radius: 10px;
+}
+
+.generate-status.is-loading {
+  background: rgba(255, 255, 255, 0.04);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+}
+
+.generate-status.is-loading::before {
+  content: "";
+  display: inline-block;
+  width: 13px;
+  height: 13px;
+  margin-right: 10px;
+  border: 2px solid rgba(255, 255, 255, 0.2);
+  border-top-color: currentColor;
+  border-radius: 50%;
+  vertical-align: -2px;
+  animation: generate-spin 0.8s linear infinite;
+}
+
+@keyframes generate-spin {
+  to { transform: rotate(360deg); }
+}
+
+.generate-status.is-error {
+  color: #ff8a8a;
+  background: rgba(255, 100, 100, 0.08);
+  border: 1px solid rgba(255, 100, 100, 0.25);
 }
 
 .generate-output {

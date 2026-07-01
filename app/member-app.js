@@ -2321,9 +2321,10 @@ function renderLessonStage(lesson, steps) {
   });
 
   document.querySelectorAll(".btn-generate-feedback").forEach((button) => {
-    const genId = button.dataset.generateId;
-    const feedbackEl = document.querySelector(`#generate-feedback-${genId}`);
-    if (feedbackEl) feedbackEl.classList.toggle("hidden");
+    button.addEventListener("click", () => {
+      const genId = button.dataset.generateId;
+      document.querySelector(`#generate-feedback-${genId}`)?.classList.toggle("hidden");
+    });
   });
 
   document.querySelectorAll(".btn-regenerate").forEach((button) => {
@@ -2353,37 +2354,41 @@ async function handleGenerateClick(button) {
   const resultEl = document.querySelector(`#generate-result-${genId}`);
 
   if (!genId || button.disabled) return;
-  button.disabled = true;
 
-  if (statusEl) {
-    statusEl.textContent = loadingMsg;
-    statusEl.classList.remove("hidden");
-  }
+  const originalLabel = button.textContent;
+  button.disabled = true;
+  button.textContent = "Gerando...";
+
+  const showStatus = (text, kind) => {
+    if (!statusEl) return;
+    statusEl.textContent = text;
+    statusEl.classList.remove("hidden", "is-loading", "is-error");
+    statusEl.classList.add(kind);
+  };
+
+  showStatus(loadingMsg, "is-loading");
   if (resultEl) resultEl.classList.add("hidden");
 
-  if (genType === "text") {
-    let accumulated = "";
-    if (resultEl) {
-      resultEl.textContent = "";
-      resultEl.classList.remove("hidden");
-    }
-
-    try {
-      const payload = {
-        token: memberApp.token,
-        project: memberApp.state.project,
-        agentType: genId,
-        context: { grade: contentCache.grade_postagens || "" }
-      };
+  try {
+    if (genType === "text") {
+      let accumulated = "";
 
       const response = await fetch("/api/content/generate", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(payload)
+        body: JSON.stringify({
+          token: memberApp.token,
+          project: memberApp.state.project,
+          agentType: genId,
+          context: { grade: contentCache.grade_postagens || "" }
+        })
       });
 
+      if (response.status === 404) {
+        throw new Error("O servidor ainda nao tem esta funcao. Atualize a stack do site (deploy da versao mais recente) e tente de novo.");
+      }
       if (!response.ok || !response.body) {
-        throw new Error("stream_failed");
+        throw new Error("Nao consegui conectar ao servidor. Confira /api/health e tente novamente.");
       }
 
       const reader = response.body.getReader();
@@ -2399,46 +2404,48 @@ async function handleGenerateClick(button) {
           let event;
           try { event = JSON.parse(dataStr); } catch { continue; }
           if (event.type === "delta" && event.text) {
+            if (!accumulated && resultEl) resultEl.classList.remove("hidden");
             accumulated += event.text;
             if (resultEl) resultEl.textContent = accumulated;
           } else if (event.type === "done") {
+            if (event.ok === false) {
+              throw new Error(errorMessageForCode(event.error || "generate_failed"));
+            }
             contentCache[genId] = accumulated;
           } else if (event.type === "error") {
-            throw new Error(event.message || event.code || "generate_failed");
+            throw new Error(errorMessageForCode(event.code || event.message || "generate_failed"));
           }
         }
       }
-    } catch (error) {
-      if (statusEl) {
-        statusEl.textContent = `Erro: ${error.message || "Nao consegui gerar agora. Tente novamente."}`;
-        statusEl.classList.remove("hidden");
-      }
-    } finally {
-      button.disabled = false;
-      if (statusEl) statusEl.classList.add("hidden");
-    }
-  } else if (genType === "image") {
-    const feedbackEl = document.querySelector(`#generate-feedback-${genId}`);
-    const feedbackInput = feedbackEl?.querySelector(".generate-feedback-input");
-    const feedback = feedbackInput?.value?.trim() || "";
 
-    try {
-      const payload = {
-        token: memberApp.token,
-        project: memberApp.state.project,
-        feedback
-      };
+      if (!accumulated) {
+        throw new Error("O agente nao retornou conteudo. Tente novamente em instantes.");
+      }
+
+      statusEl?.classList.add("hidden");
+    } else if (genType === "image") {
+      const feedbackEl = document.querySelector(`#generate-feedback-${genId}`);
+      const feedbackInput = feedbackEl?.querySelector(".generate-feedback-input");
+      const feedback = feedbackInput?.value?.trim() || "";
 
       const response = await fetch("/api/content/image", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(payload)
+        body: JSON.stringify({
+          token: memberApp.token,
+          project: memberApp.state.project,
+          feedback
+        })
       });
+
+      if (response.status === 404) {
+        throw new Error("O servidor ainda nao tem esta funcao. Atualize a stack do site (deploy da versao mais recente) e tente de novo.");
+      }
 
       const data = await response.json().catch(() => ({}));
 
       if (!data.ok || !data.url) {
-        throw new Error(data.error || "image_generation_failed");
+        throw new Error(errorMessageForCode(data.error || "image_generation_failed"));
       }
 
       contentCache[genId] = data.url;
@@ -2450,15 +2457,15 @@ async function handleGenerateClick(button) {
       if (resultEl) resultEl.classList.remove("hidden");
       if (feedbackEl) feedbackEl.classList.add("hidden");
       if (feedbackInput) feedbackInput.value = "";
-    } catch (error) {
-      if (statusEl) {
-        statusEl.textContent = `Erro: ${error.message || "Nao consegui gerar a imagem agora. Tente novamente."}`;
-        statusEl.classList.remove("hidden");
-      }
-    } finally {
-      button.disabled = false;
-      if (statusEl) statusEl.classList.add("hidden");
+
+      statusEl?.classList.add("hidden");
     }
+  } catch (error) {
+    // Mantém a mensagem de erro visível — não esconder no finally
+    showStatus(error.message || "Nao consegui gerar agora. Tente novamente.", "is-error");
+  } finally {
+    button.disabled = false;
+    button.textContent = originalLabel;
   }
 }
 
@@ -3505,7 +3512,15 @@ function errorMessageForCode(code) {
     database_unavailable: "Banco indisponivel para salvar a conversa. Confira /api/health e a DATABASE_URL.",
     openai_not_configured: "OPENAI_API_KEY ainda nao esta configurada no backend.",
     operation_assistant_failed: "O backend chamou o assistente, mas a OpenAI/API falhou. Confira os logs da stack.",
-    request_failed: "A requisicao ao assistente falhou. Confira os logs da stack."
+    request_failed: "A requisicao ao assistente falhou. Confira os logs da stack.",
+    auth_failed: "Sessao expirada ou invalida. Saia e entre novamente.",
+    stream_failed: "A geracao falhou no meio do caminho. Tente novamente em instantes.",
+    generate_failed: "Nao consegui gerar o conteudo agora. Tente novamente em instantes.",
+    invalid_agent_type: "Tipo de geracao invalido. Recarregue a pagina e tente de novo.",
+    image_prompt_failed: "Nao consegui preparar o prompt da imagem. Tente novamente.",
+    image_prompt_empty: "O agente nao retornou um prompt de imagem. Tente novamente.",
+    image_generation_failed: "A geracao da imagem falhou. Tente novamente em instantes.",
+    image_url_missing: "A imagem foi gerada mas a URL nao chegou. Tente novamente."
   };
   return messages[code] || `Erro do assistente: ${code}`;
 }
