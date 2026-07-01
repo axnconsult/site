@@ -209,39 +209,59 @@ export async function generateCampaignImage({ rootDir, query, member, payload })
     return { ok: false, error: "image_prompt_empty" };
   }
 
-  try {
-    const imageResponse = await fetch("https://api.openai.com/v1/images/generations", {
-      method: "POST",
-      headers: {
-        Authorization: `Bearer ${process.env.OPENAI_API_KEY}`,
-        "Content-Type": "application/json"
-      },
-      body: JSON.stringify({
-        model: "dall-e-3",
-        prompt: imagePrompt,
-        n: 1,
-        size: "1024x1792",
-        quality: "standard",
-        response_format: "url"
-      })
-    });
+  // gpt-image-1 é o modelo atual (retrato 1024x1536, retorna b64);
+  // dall-e-3 fica como fallback para contas sem acesso ao novo modelo
+  const primaryModel = process.env.OPENAI_IMAGE_MODEL || "gpt-image-1";
+  const attempts = primaryModel === "dall-e-3"
+    ? [{ model: "dall-e-3", size: "1024x1792", response_format: "url" }]
+    : [
+        { model: primaryModel, size: "1024x1536" },
+        { model: "dall-e-3", size: "1024x1792", response_format: "url" }
+      ];
 
-    if (!imageResponse.ok) {
-      const errData = await imageResponse.json().catch(() => ({}));
-      console.warn("DALL-E image generation failed", imageResponse.status, errData);
-      return { ok: false, error: "image_generation_failed" };
+  let lastDetail = "";
+
+  for (const attempt of attempts) {
+    const body = {
+      model: attempt.model,
+      prompt: imagePrompt,
+      n: 1,
+      size: attempt.size
+    };
+    if (attempt.response_format) body.response_format = attempt.response_format;
+
+    try {
+      const imageResponse = await fetch("https://api.openai.com/v1/images/generations", {
+        method: "POST",
+        headers: {
+          Authorization: `Bearer ${process.env.OPENAI_API_KEY}`,
+          "Content-Type": "application/json"
+        },
+        body: JSON.stringify(body)
+      });
+
+      const imageData = await imageResponse.json().catch(() => ({}));
+
+      if (!imageResponse.ok) {
+        lastDetail = imageData.error?.message || `HTTP ${imageResponse.status}`;
+        console.warn(`Image generation failed (${attempt.model})`, imageResponse.status, lastDetail);
+        continue;
+      }
+
+      const item = imageData.data?.[0] || {};
+      const url = item.url || (item.b64_json ? `data:image/png;base64,${item.b64_json}` : "");
+
+      if (url) {
+        return { ok: true, url, prompt: imagePrompt, model: attempt.model };
+      }
+      lastDetail = "resposta da API sem imagem";
+    } catch (error) {
+      lastDetail = error.message;
+      console.warn(`Image generation request failed (${attempt.model}):`, error.message);
     }
-
-    const imageData = await imageResponse.json();
-    const url = imageData.data?.[0]?.url || "";
-
-    if (!url) return { ok: false, error: "image_url_missing" };
-
-    return { ok: true, url, prompt: imagePrompt };
-  } catch (error) {
-    console.warn("Image generation request failed:", error.message);
-    return { ok: false, error: "image_generation_failed" };
   }
+
+  return { ok: false, error: "image_generation_failed", detail: lastDetail };
 }
 
 async function callOpenAIChatStream(body, onDelta, onDone) {
@@ -275,13 +295,18 @@ async function callOpenAIChatStream(body, onDelta, onDone) {
 
     const reader = response.body.getReader();
     const decoder = new TextDecoder();
+    // Linhas SSE podem chegar cortadas entre chunks — o resto fica no buffer
+    let lineBuffer = "";
 
     while (true) {
       const { done, value } = await reader.read();
       if (done) break;
 
-      const chunk = decoder.decode(value, { stream: true });
-      for (const line of chunk.split("\n")) {
+      lineBuffer += decoder.decode(value, { stream: true });
+      const lines = lineBuffer.split("\n");
+      lineBuffer = lines.pop();
+
+      for (const line of lines) {
         if (!line.startsWith("data: ")) continue;
         const dataStr = line.slice(6).trim();
         if (dataStr === "[DONE]") continue;

@@ -45,8 +45,7 @@ const COURSE_MODULES = [
     stages: [
       ["Estrategia de divulgacao", "Agentes leem seu planejamento e geram uma grade estrategica de 28 dias.", "technical", null, ["grade-postagens"]],
       ["Roteiros e textos", "Agente converte a grade em roteiros prontos para producao por formato.", "technical", null, ["roteiros-textos"]],
-      ["Peca de campanha", "IA gera a primeira arte visual de divulgacao para aprovacao.", "technical", null, ["peca-campanha"]],
-      ["Documento de conteudo", "Baixe a grade, roteiros e imagem gerados neste modulo.", "technical", null, ["conteudo-dados"]]
+      ["Peca de campanha", "IA gera a primeira arte visual de divulgacao para aprovacao.", "technical", null, ["peca-campanha"]]
     ]
   },
   {
@@ -1403,7 +1402,7 @@ volumes:
     tutorial: [
       {
         heading: "1. O que sera gerado",
-        body: `<p>O agente lê a Identidade Visual do seu planejamento e cria um prompt detalhado para gerar uma imagem 1080×1792 px — formato Stories e Reels vertical.</p>
+        body: `<p>O agente lê a Identidade Visual do seu planejamento e cria um prompt detalhado para gerar uma imagem vertical — formato Stories e Reels.</p>
 <p>Se a primeira versão não agradar, você pode pedir ajustes e gerar uma nova versão.</p>`
       },
       {
@@ -1419,20 +1418,6 @@ volumes:
     ],
     validation: "Peca aprovada e baixada.",
     done: "Peca de campanha criada e aprovada."
-  },
-  {
-    id: "conteudo-dados",
-    title: "Documento de Conteudo",
-    objective: "Baixar a grade e os roteiros gerados neste modulo.",
-    tutorial: [
-      {
-        heading: "1. Baixe o documento de conteudo",
-        body: `<p>Gere e baixe um arquivo com a grade de postagens e todos os roteiros criados neste módulo.</p>
-<p><button class="button button-primary" type="button" id="download-content-doc">Baixar documento de conteudo (.md)</button></p>`
-      }
-    ],
-    validation: "Documento baixado.",
-    done: "Conteudo do modulo 4 exportado."
   }
 ];
 
@@ -2320,6 +2305,13 @@ function renderLessonStage(lesson, steps) {
     button.addEventListener("click", () => handleGenerateClick(button));
   });
 
+  // Reexibe conteúdo de texto já gerado nesta sessão ao voltar para a etapa
+  (step.tutorial || []).forEach((block) => {
+    if (block.generate?.type === "text" && contentCache[block.generate.id]) {
+      renderGenerateResult(block.generate.id);
+    }
+  });
+
   document.querySelectorAll(".btn-generate-feedback").forEach((button) => {
     button.addEventListener("click", () => {
       const genId = button.dataset.generateId;
@@ -2331,18 +2323,6 @@ function renderLessonStage(lesson, steps) {
     button.addEventListener("click", () => handleGenerateClick(button));
   });
 
-  document.querySelector("#download-content-doc")?.addEventListener("click", () => {
-    const name = memberApp.state.project?.name || "meu-negocio";
-    const blob = new Blob([buildContentDocument()], { type: "text/markdown;charset=utf-8" });
-    const url = URL.createObjectURL(blob);
-    const link = document.createElement("a");
-    link.href = url;
-    link.download = `conteudo-${name.toLowerCase().replace(/\s+/g, "-")}.md`;
-    document.body.appendChild(link);
-    link.click();
-    link.remove();
-    URL.revokeObjectURL(url);
-  });
 }
 
 async function handleGenerateClick(button) {
@@ -2393,12 +2373,18 @@ async function handleGenerateClick(button) {
 
       const reader = response.body.getReader();
       const decoder = new TextDecoder();
+      // Linhas SSE podem chegar cortadas entre chunks — o resto fica no buffer
+      let lineBuffer = "";
+
+      if (resultEl) resultEl.classList.remove("is-rendered");
 
       while (true) {
         const { done, value } = await reader.read();
         if (done) break;
-        const chunk = decoder.decode(value, { stream: true });
-        for (const line of chunk.split("\n")) {
+        lineBuffer += decoder.decode(value, { stream: true });
+        const lines = lineBuffer.split("\n");
+        lineBuffer = lines.pop();
+        for (const line of lines) {
           if (!line.startsWith("data: ")) continue;
           const dataStr = line.slice(6).trim();
           let event;
@@ -2422,6 +2408,7 @@ async function handleGenerateClick(button) {
         throw new Error("O agente nao retornou conteudo. Tente novamente em instantes.");
       }
 
+      renderGenerateResult(genId);
       statusEl?.classList.add("hidden");
     } else if (genType === "image") {
       const feedbackEl = document.querySelector(`#generate-feedback-${genId}`);
@@ -2445,7 +2432,8 @@ async function handleGenerateClick(button) {
       const data = await response.json().catch(() => ({}));
 
       if (!data.ok || !data.url) {
-        throw new Error(errorMessageForCode(data.error || "image_generation_failed"));
+        const base = errorMessageForCode(data.error || "image_generation_failed");
+        throw new Error(data.detail ? `${base} (${data.detail})` : base);
       }
 
       contentCache[genId] = data.url;
@@ -2469,44 +2457,151 @@ async function handleGenerateClick(button) {
   }
 }
 
-function buildContentDocument() {
-  const name = memberApp.state.project?.name || "Meu Negócio";
-  const date = new Date().toLocaleDateString("pt-BR", { day: "2-digit", month: "long", year: "numeric" });
+// ─── Renderização do conteúdo gerado (Módulo 4) ─────────────────────────────
 
-  const sections = [
-    { key: "grade_postagens",   title: "Grade de Postagens — 28 dias" },
-    { key: "roteiros_reels",    title: "Roteiros de Reels / Shorts" },
-    { key: "roteiros_carrossel", title: "Roteiros de Carrossel" },
-    { key: "roteiros_feed",     title: "Posts de Feed" },
-    { key: "roteiros_stories",  title: "Stories" }
-  ];
+function renderGenerateResult(genId) {
+  const resultEl = document.querySelector(`#generate-result-${genId}`);
+  const full = contentCache[genId];
+  if (!resultEl || !full) return;
 
-  const lines = [
-    `# Conteúdo — ${name}`,
-    `Gerado em: ${date}`,
-    ""
-  ];
+  resultEl.classList.remove("hidden");
+  resultEl.classList.add("is-rendered");
 
-  for (const section of sections) {
-    const content = contentCache[section.key];
-    lines.push(`## ${section.title}`);
-    lines.push("");
-    if (content) {
-      lines.push(content);
+  if (genId === "grade_postagens") {
+    // A tabela de 28 dias vai para download em CSV; o app mostra só a parte narrativa
+    const { narrative, tableMd } = splitGeneratedTable(full);
+    const hasTable = tableMd.split("\n").length >= 3;
+    resultEl.innerHTML = markdownToHtml(narrative) + (hasTable
+      ? `<div class="generate-actions">
+           <button class="button button-primary" type="button" data-download-grade>Baixar grade de 28 dias (.csv)</button>
+           <p class="generate-note">A grade completa está no arquivo — abra no Excel ou Google Sheets.</p>
+         </div>`
+      : "");
+    resultEl.querySelector("[data-download-grade]")?.addEventListener("click", () => {
+      const grade = splitGeneratedTable(contentCache.grade_postagens || "");
+      const blob = new Blob([gradeTableToCsv(grade.tableMd)], { type: "text/csv;charset=utf-8" });
+      const url = URL.createObjectURL(blob);
+      const link = document.createElement("a");
+      link.href = url;
+      link.download = "grade-postagens-28-dias.csv";
+      document.body.appendChild(link);
+      link.click();
+      link.remove();
+      URL.revokeObjectURL(url);
+    });
+  } else {
+    const downloadNames = {
+      roteiros_reels: ["roteiros-reels-shorts.md", "Baixar roteiros de Reels / Shorts (.md)"],
+      roteiros_carrossel: ["roteiros-carrossel.md", "Baixar roteiros de Carrossel (.md)"],
+      roteiros_feed: ["posts-feed.md", "Baixar posts de Feed (.md)"],
+      roteiros_stories: ["roteiros-stories.md", "Baixar roteiros de Stories (.md)"]
+    };
+    const download = downloadNames[genId];
+    resultEl.innerHTML = markdownToHtml(full) + (download
+      ? `<div class="generate-actions">
+           <button class="button button-primary" type="button" data-download-text>${escapeHtml(download[1])}</button>
+           <p class="generate-note">Guarde o arquivo junto do seu planejamento — o conteúdo não fica salvo no app.</p>
+         </div>`
+      : "");
+    resultEl.querySelector("[data-download-text]")?.addEventListener("click", () => {
+      const blob = new Blob([contentCache[genId] || ""], { type: "text/markdown;charset=utf-8" });
+      const url = URL.createObjectURL(blob);
+      const link = document.createElement("a");
+      link.href = url;
+      link.download = download[0];
+      document.body.appendChild(link);
+      link.click();
+      link.remove();
+      URL.revokeObjectURL(url);
+    });
+  }
+}
+
+function splitGeneratedTable(text) {
+  const lines = String(text || "").split("\n");
+  const table = [];
+  const rest = [];
+  for (const line of lines) {
+    const trimmed = line.trim();
+    if (/^\|.*\|$/.test(trimmed)) {
+      table.push(trimmed);
+    } else if (trimmed === "```" || trimmed === "```markdown") {
+      // fences que às vezes cercam a tabela — descarta
     } else {
-      lines.push("_Não gerado nesta sessão._");
+      rest.push(line);
     }
-    lines.push("");
   }
+  return {
+    tableMd: table.join("\n"),
+    narrative: rest.join("\n").replace(/\n{3,}/g, "\n\n").trim()
+  };
+}
 
-  if (contentCache.campanha_image) {
-    lines.push("## Peça de Campanha");
-    lines.push("");
-    lines.push(`[Baixar imagem](${contentCache.campanha_image})`);
-    lines.push("");
+function gradeTableToCsv(tableMd) {
+  const rows = [];
+  for (const line of String(tableMd || "").split("\n")) {
+    if (!line.includes("|")) continue;
+    // pula linha separadora do markdown (|---|---|)
+    if (/^[\s|:-]+$/.test(line)) continue;
+    const cells = line
+      .replace(/^\|/, "")
+      .replace(/\|$/, "")
+      .split("|")
+      .map((cell) => cell.trim().replace(/\*\*/g, ""));
+    rows.push(cells.map((cell) => (/[";\n]/.test(cell) ? `"${cell.replace(/"/g, '""')}"` : cell)).join(";"));
   }
+  // BOM para o Excel abrir acentos corretamente; ';' é o separador padrão pt-BR
+  return String.fromCharCode(0xfeff) + rows.join("\r\n");
+}
 
-  return lines.join("\n");
+function markdownToHtml(md) {
+  const inline = (text) => escapeHtml(text)
+    .replace(/\*\*([^*]+)\*\*/g, "<strong>$1</strong>")
+    .replace(/`([^`]+)`/g, "<code>$1</code>");
+
+  const html = [];
+  let listOpen = false;
+  let tableRows = [];
+
+  const flushList = () => {
+    if (listOpen) { html.push("</ul>"); listOpen = false; }
+  };
+  const flushTable = () => {
+    if (!tableRows.length) return;
+    const rows = tableRows;
+    tableRows = [];
+    let out = "<table>";
+    let headerDone = false;
+    for (const row of rows) {
+      if (/^[\s|:-]+$/.test(row)) continue;
+      const cells = row.replace(/^\|/, "").replace(/\|$/, "").split("|").map((c) => c.trim());
+      const tag = headerDone ? "td" : "th";
+      out += "<tr>" + cells.map((c) => `<${tag}>${inline(c)}</${tag}>`).join("") + "</tr>";
+      headerDone = true;
+    }
+    html.push(out + "</table>");
+  };
+
+  for (const raw of String(md || "").split("\n")) {
+    const line = raw.trim();
+    if (/^\|.*\|$/.test(line)) { flushList(); tableRows.push(line); continue; }
+    flushTable();
+    if (!line) { flushList(); continue; }
+    if (line === "```" || line === "```markdown") continue;
+    if (/^#{1,6}\s/.test(line)) { flushList(); html.push(`<h4>${inline(line.replace(/^#+\s*/, ""))}</h4>`); continue; }
+    if (/^---+$/.test(line)) { flushList(); html.push("<hr>"); continue; }
+    if (/^>\s?/.test(line)) { flushList(); html.push(`<blockquote>${inline(line.replace(/^>\s?/, ""))}</blockquote>`); continue; }
+    if (/^[-*]\s+/.test(line)) {
+      if (!listOpen) { html.push("<ul>"); listOpen = true; }
+      html.push(`<li>${inline(line.replace(/^[-*]\s+/, ""))}</li>`);
+      continue;
+    }
+    flushList();
+    html.push(`<p>${inline(line)}</p>`);
+  }
+  flushList();
+  flushTable();
+  return html.join("");
 }
 
 function buildInfraSetupScript() {
@@ -3346,10 +3441,10 @@ function buildLessonStepContent(step, lesson) {
               data-generate-id="${escapeHtml(gen.id)}"
               data-generate-type="text"
               data-generate-loading="${escapeHtml(gen.loadingMessage || "Gerando...")}">
-              ${escapeHtml(gen.label)}
+              ${cached ? "Gerar novamente" : escapeHtml(gen.label)}
             </button>
             <div class="generate-status hidden" id="generate-status-${escapeHtml(gen.id)}"></div>
-            <pre class="generate-output${cached ? "" : " hidden"}" id="generate-result-${escapeHtml(gen.id)}">${cached ? escapeHtml(cached) : ""}</pre>
+            <div class="generate-output hidden" id="generate-result-${escapeHtml(gen.id)}"></div>
           </div>`;
       } else if (gen.type === "image") {
         const cachedImg = contentCache[gen.id];
@@ -3747,13 +3842,18 @@ async function streamLessonAgentAnswer(body, key) {
   const reader = response.body.getReader();
   const decoder = new TextDecoder();
   let finalResult = null;
+  // Linhas SSE podem chegar cortadas entre chunks — o resto fica no buffer
+  let lineBuffer = "";
 
   while (true) {
     const { done, value } = await reader.read();
     if (done) break;
 
-    const chunk = decoder.decode(value, { stream: true });
-    for (const line of chunk.split("\n")) {
+    lineBuffer += decoder.decode(value, { stream: true });
+    const lines = lineBuffer.split("\n");
+    lineBuffer = lines.pop();
+
+    for (const line of lines) {
       if (!line.startsWith("data: ")) continue;
 
       let event;

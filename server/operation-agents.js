@@ -843,13 +843,18 @@ async function callOpenAIStream(body, onDelta, onComplete) {
 
     const reader = response.body.getReader();
     const decoder = new TextDecoder();
+    // Linhas SSE podem chegar cortadas entre chunks — o resto fica no buffer
+    let lineBuffer = "";
 
     while (true) {
       const { done, value } = await reader.read();
       if (done) break;
 
-      const chunk = decoder.decode(value, { stream: true });
-      for (const line of chunk.split("\n")) {
+      lineBuffer += decoder.decode(value, { stream: true });
+      const lines = lineBuffer.split("\n");
+      lineBuffer = lines.pop();
+
+      for (const line of lines) {
         if (!line.startsWith("data: ")) continue;
         const dataStr = line.slice(6).trim();
         if (dataStr === "[DONE]") continue;
