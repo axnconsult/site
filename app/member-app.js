@@ -40,14 +40,13 @@ const COURSE_MODULES = [
     id: "module-4",
     number: 4,
     title: "Presenca Comercial",
-    summary: "Use IA para criar estrategia, conteudo e pecas de divulgacao, depois publique o site e conecte o pagamento.",
-    result: "Presenca comercial publicada e aceitando pagamentos",
+    summary: "Use IA para criar grade de postagens, roteiros por formato e a primeira peca de campanha — tudo a partir do seu planejamento dos modulos 1 e 2.",
+    result: "Grade, roteiros e peca de campanha criados e exportados",
     stages: [
-      ["Estrategia de divulgacao", "Agentes leem seu planejamento dos modulos 1 e 2 e geram grade de postagens e roteiros.", "Transforme a estrategia que voce ja construiu em um plano de conteudo concreto, com temas, formatos e cadencia definidos pelos agentes."],
-      ["Pecas de divulgacao", "Use a API da OpenAI para gerar as primeiras artes estaticas para redes sociais.", "Com os roteiros prontos, os agentes criam as pecas visuais iniciais automaticamente — voce revisa e aprova."],
-      ["Canva e CapCut", "Aprenda o essencial para criar e adaptar pecas por conta propria apos esse inicio.", "Uma introducao pratica as ferramentas que voce vai usar para produzir conteudo de forma independente depois daqui."],
-      ["Site com Claude Code", "Agentes geram o prompt do site. Voce instala o Claude Code e ele constroi a pagina com todas as credenciais ja configuradas.", "Nao e uma aula de programacao — e aprender a usar o Code como executor da sua estrategia, com autonomia para ajustes futuros."],
-      ["Stripe e checkout", "Conecte o pagamento e defina o proximo passo comercial para o visitante.", "Prepare o caminho de compra ou agendamento para que o interessado saiba exatamente o que fazer."]
+      ["Estrategia de divulgacao", "Agentes leem seu planejamento e geram uma grade estrategica de 28 dias.", "technical", null, ["grade-postagens"]],
+      ["Roteiros e textos", "Agente converte a grade em roteiros prontos para producao por formato.", "technical", null, ["roteiros-textos"]],
+      ["Peca de campanha", "IA gera a primeira arte visual de divulgacao para aprovacao.", "technical", null, ["peca-campanha"]],
+      ["Documento de conteudo", "Baixe a grade, roteiros e imagem gerados neste modulo.", "technical", null, ["conteudo-dados"]]
     ]
   },
   {
@@ -219,10 +218,10 @@ const WIZARD_STEPS = [
         heading: "6. Verifique os serviços no ar",
         body: `<p>Quando o script terminar, esses são os endereços da sua infraestrutura. Abra cada um e confirme que carrega:</p>
 <ul>
-  <li><strong>Portainer</strong> (painel): <a href="https://painel.{{serverDomain}}" target="_blank">https://painel.{{serverDomain}}</a></li>
-  <li><strong>n8n</strong> (workflows): <a href="https://workflows.{{serverDomain}}" target="_blank">https://workflows.{{serverDomain}}</a></li>
-  <li><strong>Chatwoot</strong> (atendimento): <a href="https://chat.{{serverDomain}}" target="_blank">https://chat.{{serverDomain}}</a></li>
-  <li><strong>Evolution API</strong> (WhatsApp): <a href="https://evo.{{serverDomain}}/manager" target="_blank">https://evo.{{serverDomain}}/manager</a></li>
+  <li><strong>Portainer</strong> (painel): <a href="https://painel.{{domain}}" target="_blank">https://painel.{{domain}}</a></li>
+  <li><strong>n8n</strong> (workflows): <a href="https://workflows.{{domain}}" target="_blank">https://workflows.{{domain}}</a></li>
+  <li><strong>Chatwoot</strong> (atendimento): <a href="https://chat.{{domain}}" target="_blank">https://chat.{{domain}}</a></li>
+  <li><strong>Evolution API</strong> (WhatsApp): <a href="https://evo.{{domain}}/manager" target="_blank">https://evo.{{domain}}/manager</a></li>
 </ul>
 <p><strong>Chave da Evolution API:</strong> <code>{{evolutionApiKey}}</code><br>Anote no documento de infra do módulo 3.</p>
 <p>Se algum serviço demorar para abrir, aguarde 2 minutos e recarregue — os certificados SSL podem levar um instante para ser emitidos.</p>`
@@ -1320,6 +1319,120 @@ volumes:
     ],
     validation: "Um lead de teste aparecer no Chatwoot com etiqueta novo-lead e atributos preenchidos.",
     done: "Pipeline de leads ativo e registro automatico funcionando via n8n."
+  },
+
+  // ─── Módulo 4 — Presença Comercial ──────────────────────────────────────────
+
+  {
+    id: "grade-postagens",
+    title: "Grade de Postagens",
+    objective: "Gerar uma grade estrategica de 28 dias com base no planejamento dos modulos 1 e 2.",
+    tutorial: [
+      {
+        heading: "1. Como funciona",
+        body: `<p>O agente lê o seu planejamento estratégico e monta uma grade de conteúdo para 28 dias, com tema, formato, plataforma e pilar de conteúdo definidos para cada postagem.</p>
+<p>Você não precisa preencher nada — o agente usa o que você já construiu nos módulos anteriores.</p>`
+      },
+      {
+        heading: "2. Gerar grade de 28 dias",
+        body: `<p>Clique para gerar. O processo leva alguns segundos.</p>`,
+        generate: {
+          id: "grade_postagens",
+          type: "text",
+          label: "Gerar grade de postagens",
+          loadingMessage: "Criando sua grade de 28 dias..."
+        }
+      }
+    ],
+    validation: "Grade revisada e aprovada.",
+    done: "Grade de 28 dias criada."
+  },
+  {
+    id: "roteiros-textos",
+    title: "Roteiros e Textos",
+    objective: "Converter a grade em roteiros e textos prontos para producao por formato.",
+    tutorial: [
+      {
+        heading: "1. Reels e Shorts",
+        body: `<p>O mesmo roteiro serve para Instagram Reels e YouTube Shorts — fala direta para a câmera, sem descrição de cenas.</p>`,
+        generate: {
+          id: "roteiros_reels",
+          type: "text",
+          label: "Gerar roteiros de Reels / Shorts",
+          loadingMessage: "Escrevendo os roteiros de Reels..."
+        }
+      },
+      {
+        heading: "2. Carrossel",
+        body: `<p>Conteúdo slide a slide com prompt de imagem para geração por IA.</p>`,
+        generate: {
+          id: "roteiros_carrossel",
+          type: "text",
+          label: "Gerar roteiros de Carrossel",
+          loadingMessage: "Montando os carrosseis..."
+        }
+      },
+      {
+        heading: "3. Feed (post único)",
+        body: `<p>Headline, prompt de imagem e legenda para cada post de feed da grade.</p>`,
+        generate: {
+          id: "roteiros_feed",
+          type: "text",
+          label: "Gerar posts de Feed",
+          loadingMessage: "Criando os posts de feed..."
+        }
+      },
+      {
+        heading: "4. Stories",
+        body: `<p>Sequências de 3 a 5 stories com sugestão de interação para cada dia programado.</p>`,
+        generate: {
+          id: "roteiros_stories",
+          type: "text",
+          label: "Gerar Stories",
+          loadingMessage: "Escrevendo as sequencias de stories..."
+        }
+      }
+    ],
+    validation: "Roteiros revisados para todos os formatos.",
+    done: "Roteiros gerados para todos os formatos."
+  },
+  {
+    id: "peca-campanha",
+    title: "Peca de Campanha",
+    objective: "Gerar a primeira arte visual de divulgacao com base na identidade da sua marca.",
+    tutorial: [
+      {
+        heading: "1. O que sera gerado",
+        body: `<p>O agente lê a Identidade Visual do seu planejamento e cria um prompt detalhado para gerar uma imagem 1080×1792 px — formato Stories e Reels vertical.</p>
+<p>Se a primeira versão não agradar, você pode pedir ajustes e gerar uma nova versão.</p>`
+      },
+      {
+        heading: "2. Gerar peca de campanha",
+        body: `<p>Clique para gerar. O processo leva cerca de 20 segundos.</p>`,
+        generate: {
+          id: "campanha_image",
+          type: "image",
+          label: "Gerar peca de campanha",
+          loadingMessage: "Criando sua peca... isso leva cerca de 20 segundos."
+        }
+      }
+    ],
+    validation: "Peca aprovada e baixada.",
+    done: "Peca de campanha criada e aprovada."
+  },
+  {
+    id: "conteudo-dados",
+    title: "Documento de Conteudo",
+    objective: "Baixar a grade e os roteiros gerados neste modulo.",
+    tutorial: [
+      {
+        heading: "1. Baixe o documento de conteudo",
+        body: `<p>Gere e baixe um arquivo com a grade de postagens e todos os roteiros criados neste módulo.</p>
+<p><button class="button button-primary" type="button" id="download-content-doc">Baixar documento de conteudo (.md)</button></p>`
+      }
+    ],
+    validation: "Documento baixado.",
+    done: "Conteudo do modulo 4 exportado."
   }
 ];
 
@@ -1347,6 +1460,9 @@ const DEFAULT_MEMBER_STATE = {
   assistantThreads: {},
   updatedAt: null
 };
+
+// Cache de conteúdo gerado no Módulo 4 — vive apenas na sessão, não é persistido
+const contentCache = {};
 
 const memberStoreKey = "axonMemberApp";
 let memberApp = {
@@ -2198,6 +2314,192 @@ function renderLessonStage(lesson, steps) {
     link.remove();
     URL.revokeObjectURL(url);
   });
+
+  // Botões de geração de conteúdo (Módulo 4)
+  document.querySelectorAll(".btn-generate").forEach((button) => {
+    button.addEventListener("click", () => handleGenerateClick(button));
+  });
+
+  document.querySelectorAll(".btn-generate-feedback").forEach((button) => {
+    const genId = button.dataset.generateId;
+    const feedbackEl = document.querySelector(`#generate-feedback-${genId}`);
+    if (feedbackEl) feedbackEl.classList.toggle("hidden");
+  });
+
+  document.querySelectorAll(".btn-regenerate").forEach((button) => {
+    button.addEventListener("click", () => handleGenerateClick(button));
+  });
+
+  document.querySelector("#download-content-doc")?.addEventListener("click", () => {
+    const name = memberApp.state.project?.name || "meu-negocio";
+    const blob = new Blob([buildContentDocument()], { type: "text/markdown;charset=utf-8" });
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement("a");
+    link.href = url;
+    link.download = `conteudo-${name.toLowerCase().replace(/\s+/g, "-")}.md`;
+    document.body.appendChild(link);
+    link.click();
+    link.remove();
+    URL.revokeObjectURL(url);
+  });
+}
+
+async function handleGenerateClick(button) {
+  const genId = button.dataset.generateId;
+  const genType = button.dataset.generateType;
+  const loadingMsg = button.dataset.generateLoading || "Gerando...";
+
+  const statusEl = document.querySelector(`#generate-status-${genId}`);
+  const resultEl = document.querySelector(`#generate-result-${genId}`);
+
+  if (!genId || button.disabled) return;
+  button.disabled = true;
+
+  if (statusEl) {
+    statusEl.textContent = loadingMsg;
+    statusEl.classList.remove("hidden");
+  }
+  if (resultEl) resultEl.classList.add("hidden");
+
+  if (genType === "text") {
+    let accumulated = "";
+    if (resultEl) {
+      resultEl.textContent = "";
+      resultEl.classList.remove("hidden");
+    }
+
+    try {
+      const payload = {
+        token: memberApp.token,
+        project: memberApp.state.project,
+        agentType: genId,
+        context: { grade: contentCache.grade_postagens || "" }
+      };
+
+      const response = await fetch("/api/content/generate", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(payload)
+      });
+
+      if (!response.ok || !response.body) {
+        throw new Error("stream_failed");
+      }
+
+      const reader = response.body.getReader();
+      const decoder = new TextDecoder();
+
+      while (true) {
+        const { done, value } = await reader.read();
+        if (done) break;
+        const chunk = decoder.decode(value, { stream: true });
+        for (const line of chunk.split("\n")) {
+          if (!line.startsWith("data: ")) continue;
+          const dataStr = line.slice(6).trim();
+          let event;
+          try { event = JSON.parse(dataStr); } catch { continue; }
+          if (event.type === "delta" && event.text) {
+            accumulated += event.text;
+            if (resultEl) resultEl.textContent = accumulated;
+          } else if (event.type === "done") {
+            contentCache[genId] = accumulated;
+          } else if (event.type === "error") {
+            throw new Error(event.message || event.code || "generate_failed");
+          }
+        }
+      }
+    } catch (error) {
+      if (statusEl) {
+        statusEl.textContent = `Erro: ${error.message || "Nao consegui gerar agora. Tente novamente."}`;
+        statusEl.classList.remove("hidden");
+      }
+    } finally {
+      button.disabled = false;
+      if (statusEl) statusEl.classList.add("hidden");
+    }
+  } else if (genType === "image") {
+    const feedbackEl = document.querySelector(`#generate-feedback-${genId}`);
+    const feedbackInput = feedbackEl?.querySelector(".generate-feedback-input");
+    const feedback = feedbackInput?.value?.trim() || "";
+
+    try {
+      const payload = {
+        token: memberApp.token,
+        project: memberApp.state.project,
+        feedback
+      };
+
+      const response = await fetch("/api/content/image", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(payload)
+      });
+
+      const data = await response.json().catch(() => ({}));
+
+      if (!data.ok || !data.url) {
+        throw new Error(data.error || "image_generation_failed");
+      }
+
+      contentCache[genId] = data.url;
+
+      const imgEl = document.querySelector(`#generate-image-${genId}`);
+      const downloadEl = document.querySelector(`#generate-image-download-${genId}`);
+      if (imgEl) imgEl.src = data.url;
+      if (downloadEl) downloadEl.href = data.url;
+      if (resultEl) resultEl.classList.remove("hidden");
+      if (feedbackEl) feedbackEl.classList.add("hidden");
+      if (feedbackInput) feedbackInput.value = "";
+    } catch (error) {
+      if (statusEl) {
+        statusEl.textContent = `Erro: ${error.message || "Nao consegui gerar a imagem agora. Tente novamente."}`;
+        statusEl.classList.remove("hidden");
+      }
+    } finally {
+      button.disabled = false;
+      if (statusEl) statusEl.classList.add("hidden");
+    }
+  }
+}
+
+function buildContentDocument() {
+  const name = memberApp.state.project?.name || "Meu Negócio";
+  const date = new Date().toLocaleDateString("pt-BR", { day: "2-digit", month: "long", year: "numeric" });
+
+  const sections = [
+    { key: "grade_postagens",   title: "Grade de Postagens — 28 dias" },
+    { key: "roteiros_reels",    title: "Roteiros de Reels / Shorts" },
+    { key: "roteiros_carrossel", title: "Roteiros de Carrossel" },
+    { key: "roteiros_feed",     title: "Posts de Feed" },
+    { key: "roteiros_stories",  title: "Stories" }
+  ];
+
+  const lines = [
+    `# Conteúdo — ${name}`,
+    `Gerado em: ${date}`,
+    ""
+  ];
+
+  for (const section of sections) {
+    const content = contentCache[section.key];
+    lines.push(`## ${section.title}`);
+    lines.push("");
+    if (content) {
+      lines.push(content);
+    } else {
+      lines.push("_Não gerado nesta sessão._");
+    }
+    lines.push("");
+  }
+
+  if (contentCache.campanha_image) {
+    lines.push("## Peça de Campanha");
+    lines.push("");
+    lines.push(`[Baixar imagem](${contentCache.campanha_image})`);
+    lines.push("");
+  }
+
+  return lines.join("\n");
 }
 
 function buildInfraSetupScript() {
@@ -3026,7 +3328,53 @@ function buildLessonStepContent(step, lesson) {
         inlineFieldHtml = `<div class="wizard-data-fields"><label class="wizard-data-field${value ? " is-filled" : ""}"><span>${escapeHtml(fieldDef.label)}</span><span class="wizard-data-input"><input data-project-field="${escapeHtml(fieldDef.key)}" placeholder="${escapeHtml(fieldDef.placeholder || "")}" value="${escapeHtml(value)}" /><svg class="field-check" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M20 6 9 17l-5-5"/></svg></span></label></div>`;
       }
     }
-    return `<div class="tutorial-block"><h4 class="tutorial-heading">${escapeHtml(block.heading)}</h4><div class="tutorial-body">${fillTemplate(block.body)}${inlineFieldHtml}${cmdHtml}</div></div>`;
+    let generateHtml = "";
+    if (block.generate) {
+      const gen = block.generate;
+      const cached = contentCache[gen.id];
+      if (gen.type === "text") {
+        generateHtml = `
+          <div class="generate-block" data-generate-id="${escapeHtml(gen.id)}">
+            <button class="button button-primary btn-generate" type="button"
+              data-generate-id="${escapeHtml(gen.id)}"
+              data-generate-type="text"
+              data-generate-loading="${escapeHtml(gen.loadingMessage || "Gerando...")}">
+              ${escapeHtml(gen.label)}
+            </button>
+            <div class="generate-status hidden" id="generate-status-${escapeHtml(gen.id)}"></div>
+            <pre class="generate-output${cached ? "" : " hidden"}" id="generate-result-${escapeHtml(gen.id)}">${cached ? escapeHtml(cached) : ""}</pre>
+          </div>`;
+      } else if (gen.type === "image") {
+        const cachedImg = contentCache[gen.id];
+        generateHtml = `
+          <div class="generate-block" data-generate-id="${escapeHtml(gen.id)}">
+            <button class="button button-primary btn-generate" type="button"
+              data-generate-id="${escapeHtml(gen.id)}"
+              data-generate-type="image"
+              data-generate-loading="${escapeHtml(gen.loadingMessage || "Gerando imagem...")}">
+              ${escapeHtml(gen.label)}
+            </button>
+            <div class="generate-status hidden" id="generate-status-${escapeHtml(gen.id)}"></div>
+            <div class="generate-image-result${cachedImg ? "" : " hidden"}" id="generate-result-${escapeHtml(gen.id)}">
+              <img class="generated-image" id="generate-image-${escapeHtml(gen.id)}" src="${cachedImg || ""}" alt="Peca gerada" />
+              <div class="generate-image-actions">
+                <a class="button button-primary" id="generate-image-download-${escapeHtml(gen.id)}" href="${cachedImg || "#"}" download="peca-campanha.png" target="_blank">Aprovar e baixar</a>
+                <button class="button button-secondary btn-generate-feedback" type="button" data-generate-id="${escapeHtml(gen.id)}">Quero ajustar</button>
+              </div>
+              <div class="generate-feedback hidden" id="generate-feedback-${escapeHtml(gen.id)}">
+                <textarea class="generate-feedback-input" placeholder="O que voce quer ajustar? (opcional — deixe em branco para gerar outra versao)"></textarea>
+                <button class="button button-primary btn-regenerate" type="button"
+                  data-generate-id="${escapeHtml(gen.id)}"
+                  data-generate-type="image"
+                  data-generate-loading="${escapeHtml(gen.loadingMessage || "Gerando imagem...")}">
+                  Gerar nova versao
+                </button>
+              </div>
+            </div>
+          </div>`;
+      }
+    }
+    return `<div class="tutorial-block"><h4 class="tutorial-heading">${escapeHtml(block.heading)}</h4><div class="tutorial-body">${fillTemplate(block.body)}${inlineFieldHtml}${cmdHtml}${generateHtml}</div></div>`;
   }).join("");
 
   // Bloco de comando isolado (etapas sem tutorial, ex: VPS, Swarm)

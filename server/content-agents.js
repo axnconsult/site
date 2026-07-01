@@ -1,0 +1,298 @@
+import { readFile } from "node:fs/promises";
+import path from "node:path";
+
+const PROMPT_CACHE = new Map();
+
+async function loadAgentPrompt(rootDir, filename) {
+  if (PROMPT_CACHE.has(filename)) return PROMPT_CACHE.get(filename);
+  const filePath = path.join(rootDir, "source-material", "Agents", filename);
+  const content = await readFile(filePath, "utf8");
+  PROMPT_CACHE.set(filename, content);
+  return content;
+}
+
+async function loadStrategicDocument(query, member, projectId) {
+  const result = await query(
+    `select agent_id, transfer_block_json
+     from operation_agent_runs
+     where project_id = $1::uuid and member_id = $2::uuid
+       and status = 'result' and transfer_block_json is not null
+     order by created_at asc`,
+    [projectId, member.id]
+  );
+
+  const blocks = {};
+  for (const row of result.rows) {
+    if (!blocks[row.agent_id]) {
+      blocks[row.agent_id] = row.transfer_block_json;
+    }
+  }
+
+  const SECTIONS = [
+    { id: "business_modeling",         title: "1. Modelagem de Negócio" },
+    { id: "target_audience",           title: "2. Público-Alvo" },
+    { id: "strategic_differentiation", title: "3. Diferencial Estratégico" },
+    { id: "strategic_pricing",         title: "4. Precificação Estratégica" },
+    { id: "product_concept",           title: "5. Conceito de Produto" },
+    { id: "visual_identity",           title: "6. Identidade Visual" }
+  ];
+
+  const lines = ["# Planejamento Estratégico\n"];
+  for (const section of SECTIONS) {
+    const block = blocks[section.id];
+    lines.push(`## ${section.title}`);
+    if (block) {
+      if (block.section_title) lines.push(`**${block.section_title}**`);
+      if (block.content) lines.push("", block.content);
+      if (Array.isArray(block.key_points) && block.key_points.length) {
+        lines.push("");
+        for (const point of block.key_points) lines.push(`- ${point}`);
+      }
+    } else {
+      lines.push("_Não concluída._");
+    }
+    lines.push("");
+  }
+
+  return lines.join("\n");
+}
+
+export async function streamContentGeneration({ rootDir, query, member, payload, onDelta, onDone }) {
+  const { agentType, project, context } = payload;
+  const projectId = project?.id;
+
+  if (!process.env.OPENAI_API_KEY) {
+    onDelta("OPENAI_API_KEY não configurada. Configure a chave na stack e faça o deploy novamente.");
+    onDone({ ok: false, error: "openai_not_configured" });
+    return;
+  }
+
+  let strategicDoc;
+  try {
+    strategicDoc = await loadStrategicDocument(query, member, projectId);
+  } catch (error) {
+    console.warn("content-agents: failed to load strategic document", error.message);
+    strategicDoc = "Planejamento estratégico não disponível.";
+  }
+
+  const today = new Date().toLocaleDateString("pt-BR");
+
+  const FORMAT_MAP = {
+    roteiros_reels:     "Reels / Shorts",
+    roteiros_carrossel: "Carrossel",
+    roteiros_feed:      "Feed",
+    roteiros_stories:   "Stories"
+  };
+
+  let promptFile;
+  let systemAddendum;
+
+  if (agentType === "grade_postagens") {
+    promptFile = "7 - AXN _ Grade de Postagens.md";
+    systemAddendum = [
+      "",
+      "## Contexto de execução",
+      "",
+      `Data de início da grade: ${today}`,
+      "",
+      "## Planejamento estratégico do empreendimento",
+      "",
+      strategicDoc
+    ].join("\n");
+  } else if (FORMAT_MAP[agentType]) {
+    const format = FORMAT_MAP[agentType];
+    promptFile = "8 - AXN _ Conteúdo de Posts.md";
+    const gradeSection = context?.grade
+      ? `\n\n## Grade de postagens aprovada\n\n${context.grade}`
+      : "";
+    systemAddendum = [
+      "",
+      "## Formato solicitado pelo wizard",
+      "",
+      `Gere SOMENTE o formato: **${format}**`,
+      "",
+      "## Planejamento estratégico",
+      "",
+      strategicDoc,
+      gradeSection
+    ].join("\n");
+  } else {
+    onDelta("Tipo de agente inválido.");
+    onDone({ ok: false, error: "invalid_agent_type" });
+    return;
+  }
+
+  const agentPrompt = await loadAgentPrompt(rootDir, promptFile);
+  const systemPrompt = agentPrompt + systemAddendum;
+
+  const openaiRequest = {
+    model: process.env.OPENAI_CONTENT_MODEL || "gpt-4.1",
+    stream: true,
+    messages: [
+      { role: "system", content: systemPrompt },
+      { role: "user", content: "Pode gerar." }
+    ],
+    max_tokens: 4000
+  };
+
+  await callOpenAIChatStream(openaiRequest, onDelta, onDone);
+}
+
+export async function generateCampaignImage({ rootDir, query, member, payload }) {
+  const { project, feedback } = payload;
+  const projectId = project?.id;
+
+  if (!process.env.OPENAI_API_KEY) {
+    return { ok: false, error: "openai_not_configured" };
+  }
+
+  let strategicDoc;
+  try {
+    strategicDoc = await loadStrategicDocument(query, member, projectId);
+  } catch (error) {
+    console.warn("content-agents: failed to load strategic document for image", error.message);
+    strategicDoc = "Planejamento estratégico não disponível.";
+  }
+
+  const agent9Prompt = await loadAgentPrompt(rootDir, "9 - AXN _ Comunicação Visual.md");
+  const systemForImagePrompt = agent9Prompt + "\n\n## Planejamento estratégico\n\n" + strategicDoc;
+
+  const userMessage = feedback
+    ? `Gere um novo prompt de imagem incorporando este feedback: "${feedback}"`
+    : "Gere o prompt de imagem para a peça de campanha.";
+
+  let imagePrompt;
+  try {
+    const promptResponse = await fetch("https://api.openai.com/v1/chat/completions", {
+      method: "POST",
+      headers: {
+        Authorization: `Bearer ${process.env.OPENAI_API_KEY}`,
+        "Content-Type": "application/json"
+      },
+      body: JSON.stringify({
+        model: process.env.OPENAI_CONTENT_MODEL || "gpt-4.1",
+        messages: [
+          { role: "system", content: systemForImagePrompt },
+          { role: "user", content: userMessage }
+        ],
+        max_tokens: 600
+      })
+    });
+
+    if (!promptResponse.ok) {
+      const errData = await promptResponse.json().catch(() => ({}));
+      console.warn("Agent 9 prompt generation failed", promptResponse.status, errData);
+      return { ok: false, error: "image_prompt_failed" };
+    }
+
+    const promptData = await promptResponse.json();
+    imagePrompt = (promptData.choices?.[0]?.message?.content || "").trim();
+  } catch (error) {
+    console.warn("Agent 9 call failed:", error.message);
+    return { ok: false, error: "image_prompt_failed" };
+  }
+
+  if (!imagePrompt) {
+    return { ok: false, error: "image_prompt_empty" };
+  }
+
+  try {
+    const imageResponse = await fetch("https://api.openai.com/v1/images/generations", {
+      method: "POST",
+      headers: {
+        Authorization: `Bearer ${process.env.OPENAI_API_KEY}`,
+        "Content-Type": "application/json"
+      },
+      body: JSON.stringify({
+        model: "dall-e-3",
+        prompt: imagePrompt,
+        n: 1,
+        size: "1024x1792",
+        quality: "standard",
+        response_format: "url"
+      })
+    });
+
+    if (!imageResponse.ok) {
+      const errData = await imageResponse.json().catch(() => ({}));
+      console.warn("DALL-E image generation failed", imageResponse.status, errData);
+      return { ok: false, error: "image_generation_failed" };
+    }
+
+    const imageData = await imageResponse.json();
+    const url = imageData.data?.[0]?.url || "";
+
+    if (!url) return { ok: false, error: "image_url_missing" };
+
+    return { ok: true, url, prompt: imagePrompt };
+  } catch (error) {
+    console.warn("Image generation request failed:", error.message);
+    return { ok: false, error: "image_generation_failed" };
+  }
+}
+
+async function callOpenAIChatStream(body, onDelta, onDone) {
+  const controller = new AbortController();
+  const timeout = setTimeout(
+    () => controller.abort(),
+    Number(process.env.OPENAI_CONTENT_TIMEOUT_MS || 120000)
+  );
+
+  let fullText = "";
+
+  try {
+    const response = await fetch("https://api.openai.com/v1/chat/completions", {
+      method: "POST",
+      headers: {
+        Authorization: `Bearer ${process.env.OPENAI_API_KEY}`,
+        "Content-Type": "application/json"
+      },
+      body: JSON.stringify(body),
+      signal: controller.signal
+    });
+
+    if (!response.ok) {
+      const data = await response.json().catch(() => ({}));
+      console.warn("OpenAI content stream returned", response.status, data);
+      const msg = "Não consegui acionar o agente agora. Tente novamente em instantes.";
+      onDelta(msg);
+      onDone({ ok: false, error: "stream_failed" });
+      return;
+    }
+
+    const reader = response.body.getReader();
+    const decoder = new TextDecoder();
+
+    while (true) {
+      const { done, value } = await reader.read();
+      if (done) break;
+
+      const chunk = decoder.decode(value, { stream: true });
+      for (const line of chunk.split("\n")) {
+        if (!line.startsWith("data: ")) continue;
+        const dataStr = line.slice(6).trim();
+        if (dataStr === "[DONE]") continue;
+
+        let event;
+        try {
+          event = JSON.parse(dataStr);
+        } catch {
+          continue;
+        }
+
+        const delta = event.choices?.[0]?.delta?.content;
+        if (delta) {
+          fullText += delta;
+          onDelta(delta);
+        }
+      }
+    }
+
+    onDone({ ok: true, text: fullText });
+  } catch (error) {
+    console.warn("Content stream failed:", error.message);
+    onDone({ ok: false, error: "stream_failed" });
+  } finally {
+    clearTimeout(timeout);
+  }
+}

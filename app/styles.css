@@ -1967,6 +1967,75 @@ button:focus {
   font-size: 0.82rem;
 }
 
+/* ─── Módulo 4 — Geração de conteúdo ─────────────────────────────────────── */
+
+.generate-block {
+  margin-top: 16px;
+  display: grid;
+  gap: 12px;
+}
+
+.generate-status {
+  font-size: 0.85rem;
+  color: var(--muted);
+  font-style: italic;
+}
+
+.generate-output {
+  margin: 0;
+  padding: 16px;
+  border-radius: 12px;
+  background: rgba(255, 255, 255, 0.04);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  font-size: 0.82rem;
+  line-height: 1.6;
+  white-space: pre-wrap;
+  word-break: break-word;
+  max-height: 480px;
+  overflow-y: auto;
+}
+
+.generate-image-result {
+  display: grid;
+  gap: 14px;
+}
+
+.generated-image {
+  width: 100%;
+  max-width: 360px;
+  border-radius: 12px;
+  border: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+.generate-image-actions {
+  display: flex;
+  gap: 10px;
+  flex-wrap: wrap;
+}
+
+.generate-feedback {
+  display: grid;
+  gap: 10px;
+}
+
+.generate-feedback-input {
+  width: 100%;
+  min-height: 72px;
+  padding: 10px 14px;
+  border-radius: 10px;
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  background: rgba(255, 255, 255, 0.04);
+  color: inherit;
+  font-size: 0.9rem;
+  font-family: inherit;
+  resize: vertical;
+  box-sizing: border-box;
+}
+
+.generate-feedback-input::placeholder {
+  color: var(--muted);
+}
+
 .wizard-help {
   display: grid;
   gap: 12px;

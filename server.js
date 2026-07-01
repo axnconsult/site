@@ -6,6 +6,7 @@ import path from "node:path";
 import { fileURLToPath } from "node:url";
 import pg from "pg";
 import { runOperationAgentTurn, streamOperationAgentTurn, generateStrategicPlanMarkdown, runTechAssistantTurn } from "./server/operation-agents.js";
+import { streamContentGeneration, generateCampaignImage } from "./server/content-agents.js";
 
 const { Pool } = pg;
 
@@ -74,6 +75,40 @@ const server = http.createServer(async (request, response) => {
       if (request.method === "POST") {
         const payload = await readJsonBody(request);
         return await handlePlanDownload(payload, response);
+      }
+    }
+
+    // Rota SSE de geração de conteúdo (Módulo 4)
+    if (url.pathname === "/api/content/generate") {
+      if (request.method === "OPTIONS") {
+        response.writeHead(204, {
+          "Access-Control-Allow-Origin": "*",
+          "Access-Control-Allow-Methods": "POST, OPTIONS",
+          "Access-Control-Allow-Headers": "Content-Type"
+        });
+        response.end();
+        return;
+      }
+      if (request.method === "POST") {
+        const payload = await readJsonBody(request);
+        return await handleContentGenerateStream(payload, response);
+      }
+    }
+
+    // Geração de imagem de campanha (Módulo 4)
+    if (url.pathname === "/api/content/image") {
+      if (request.method === "OPTIONS") {
+        response.writeHead(204, {
+          "Access-Control-Allow-Origin": "*",
+          "Access-Control-Allow-Methods": "POST, OPTIONS",
+          "Access-Control-Allow-Headers": "Content-Type"
+        });
+        response.end();
+        return;
+      }
+      if (request.method === "POST") {
+        const payload = await readJsonBody(request);
+        return await handleContentImage(payload, response);
       }
     }
 
@@ -244,6 +279,64 @@ async function handleOperationStream(payload, response) {
     console.warn("operation stream handler failed", error);
     send({ type: "error", message: "stream_failed" });
     response.end();
+  }
+}
+
+async function handleContentGenerateStream(payload, response) {
+  response.writeHead(200, {
+    "Content-Type": "text/event-stream; charset=utf-8",
+    "Cache-Control": "no-cache",
+    "Connection": "keep-alive",
+    "Access-Control-Allow-Origin": "*",
+    "X-Content-Type-Options": "nosniff"
+  });
+
+  const send = (obj) => response.write(`data: ${JSON.stringify(obj)}\n\n`);
+
+  let member;
+  try {
+    member = await getAuthenticatedMember(payload);
+  } catch (error) {
+    send({ type: "error", code: error.code || "auth_failed" });
+    response.end();
+    return;
+  }
+
+  try {
+    await streamContentGeneration({
+      rootDir: __dirname,
+      query,
+      member,
+      payload,
+      onDelta(text) {
+        send({ type: "delta", text });
+      },
+      onDone(result) {
+        send({ type: "done", ...result });
+        response.end();
+      }
+    });
+  } catch (error) {
+    console.warn("content generate stream handler failed", error);
+    send({ type: "error", message: "stream_failed" });
+    response.end();
+  }
+}
+
+async function handleContentImage(payload, response) {
+  let member;
+  try {
+    member = await getAuthenticatedMember(payload);
+  } catch (error) {
+    return sendJson(response, 401, { ok: false, error: error.code || "auth_failed" });
+  }
+
+  try {
+    const result = await generateCampaignImage({ rootDir: __dirname, query, member, payload });
+    return sendJson(response, result.ok ? 200 : 500, result);
+  } catch (error) {
+    console.warn("content image handler failed", error);
+    return sendJson(response, 500, { ok: false, error: "image_generation_failed" });
   }
 }
 
