@@ -2092,6 +2092,13 @@ button:focus {
   color: var(--muted);
 }
 
+.generate-brief-label {
+  font-size: 0.82rem;
+  font-weight: 600;
+  color: var(--muted);
+  margin-bottom: -4px;
+}
+
 .generate-image-result {
   display: grid;
   gap: 14px;

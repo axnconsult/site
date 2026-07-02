@@ -30,6 +30,8 @@ Antes de escrever o prompt, extraia do documento:
 
 Se o usuário fornecer feedback sobre uma versão anterior, incorpore os ajustes mantendo a identidade visual.
 
+Se o empreendedor fornecer direcionamento próprio (logo existente, nome do negócio, conceito ou ideia de peça), ele tem **prioridade sobre suas escolhas criativas** — construa a peça em torno do que ele já tem, mantendo a coerência com a identidade visual do planejamento.
+
 ---
 
 ## HEADLINE DA PEÇA

@@ -13,7 +13,8 @@ const { Pool } = pg;
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const publicDir = path.join(__dirname, "app");
 const port = Number(process.env.PORT || 80);
-const maxBodyBytes = Number(process.env.MAX_BODY_BYTES || 1024 * 1024);
+// 8MB: o ajuste iterativo de imagem do Módulo 4 envia a peça anterior em base64
+const maxBodyBytes = Number(process.env.MAX_BODY_BYTES || 8 * 1024 * 1024);
 
 let pool;
 let operationalTablesReady = false;

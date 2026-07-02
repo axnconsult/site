@@ -153,11 +153,18 @@ export async function streamContentGeneration({ rootDir, query, member, payload,
 }
 
 export async function generateCampaignImage({ rootDir, query, member, payload }) {
-  const { project, feedback } = payload;
+  const { project, feedback, previousImage, customBrief } = payload;
   const projectId = project?.id;
 
   if (!process.env.OPENAI_API_KEY) {
     return { ok: false, error: "openai_not_configured" };
+  }
+
+  // Ajuste iterativo: se há feedback e a imagem anterior, edita preservando a
+  // composição em vez de gerar do zero. Se a edição falhar, cai na regeneração.
+  if (feedback && previousImage) {
+    const edited = await editCampaignImage({ previousImage, feedback });
+    if (edited) return edited;
   }
 
   let strategicDoc;
@@ -177,9 +184,12 @@ export async function generateCampaignImage({ rootDir, query, member, payload })
   }
   const systemForImagePrompt = agent9Prompt + "\n\n## Planejamento estratégico\n\n" + strategicDoc;
 
-  const userMessage = feedback
+  const briefBlock = customBrief
+    ? `\n\nO empreendedor forneceu este direcionamento próprio (logo, nome, conceito ou ideia de peça) — incorpore-o com prioridade sobre suas escolhas criativas, mantendo a identidade visual do planejamento: "${customBrief}"`
+    : "";
+  const userMessage = (feedback
     ? `Gere um novo prompt de imagem incorporando este feedback: "${feedback}"`
-    : "Gere o prompt de imagem para a peça de campanha.";
+    : "Gere o prompt de imagem para a peça de campanha.") + briefBlock;
 
   let imagePrompt;
   try {
@@ -270,6 +280,51 @@ export async function generateCampaignImage({ rootDir, query, member, payload })
   }
 
   return { ok: false, error: "image_generation_failed", detail: lastDetail };
+}
+
+async function editCampaignImage({ previousImage, feedback }) {
+  const match = /^data:image\/(png|jpeg|webp);base64,(.+)$/.exec(String(previousImage || ""));
+  if (!match) return null;
+
+  const buffer = Buffer.from(match[2], "base64");
+  const primaryModel = process.env.OPENAI_IMAGE_MODEL || "gpt-image-2";
+  // dall-e-3 não suporta edição — só os modelos gpt-image
+  const seen = new Set();
+  const models = [primaryModel, "gpt-image-1"]
+    .filter((model) => model !== "dall-e-3" && !seen.has(model) && seen.add(model));
+
+  for (const model of models) {
+    try {
+      const form = new FormData();
+      form.append("model", model);
+      form.append("image", new Blob([buffer], { type: `image/${match[1]}` }), "previous.png");
+      form.append("prompt", `Apply ONLY this requested change and keep everything else in the image exactly the same (composition, people, colors, text): ${feedback}`);
+      form.append("size", "1024x1536");
+
+      const response = await fetch("https://api.openai.com/v1/images/edits", {
+        method: "POST",
+        headers: { Authorization: `Bearer ${process.env.OPENAI_API_KEY}` },
+        body: form
+      });
+
+      const data = await response.json().catch(() => ({}));
+
+      if (!response.ok) {
+        console.warn(`Image edit failed (${model})`, response.status, data.error?.message || "");
+        continue;
+      }
+
+      const item = data.data?.[0] || {};
+      const url = item.url || (item.b64_json ? `data:image/png;base64,${item.b64_json}` : "");
+      if (url) {
+        return { ok: true, url, prompt: feedback, model, edited: true };
+      }
+    } catch (error) {
+      console.warn(`Image edit request failed (${model}):`, error.message);
+    }
+  }
+
+  return null;
 }
 
 async function callOpenAIChatStream(body, onDelta, onDone) {

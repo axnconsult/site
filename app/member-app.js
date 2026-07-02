@@ -2437,13 +2437,19 @@ async function handleGenerateClick(button) {
       const feedbackInput = feedbackEl?.querySelector(".generate-feedback-input");
       const feedback = feedbackInput?.value?.trim() || "";
 
+      // Com feedback + imagem anterior, o servidor edita a peça preservando a
+      // composição (images/edits) em vez de gerar tudo do zero
+      const previous = String(contentCache[genId] || "");
+      const customBrief = document.querySelector(`#generate-brief-${genId}`)?.value?.trim() || "";
       const response = await fetch("/api/content/image", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           token: memberApp.token,
           project: memberApp.state.project,
-          feedback
+          feedback,
+          customBrief,
+          previousImage: feedback && previous.startsWith("data:") ? previous : ""
         })
       });
 
@@ -3484,6 +3490,8 @@ function buildLessonStepContent(step, lesson) {
         const cachedImg = contentCache[gen.id];
         generateHtml = `
           <div class="generate-block" data-generate-id="${escapeHtml(gen.id)}">
+            <label class="generate-brief-label" for="generate-brief-${escapeHtml(gen.id)}">Instruções personalizadas (opcional)</label>
+            <textarea class="generate-feedback-input" id="generate-brief-${escapeHtml(gen.id)}" placeholder="Se você já tem logo, nome, conceito ou uma ideia de peça, descreva aqui — o agente vai priorizar. Deixe em branco para criar do zero a partir do seu planejamento."></textarea>
             <button class="button button-primary btn-generate" type="button"
               data-generate-id="${escapeHtml(gen.id)}"
               data-generate-type="image"
