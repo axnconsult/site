@@ -1482,7 +1482,7 @@ volumes:
         heading: "2. Crie o link de pagamento do seu produto",
         body: `<p>Nas duas plataformas o caminho é parecido — você cadastra o produto com preço e recebe um <strong>link de checkout</strong> pronto (o comprador paga numa página da própria plataforma, sem código):</p>
 <ul>
-  <li><strong>Stripe:</strong> Dashboard → <strong>Payment Links</strong> → Create payment link → cadastre produto e preço → copie o link.</li>
+  <li><strong>Stripe:</strong> Dashboard → <strong>Payment Links</strong> → Create payment link → cadastre produto e preço → copie o link. <strong>Atenção:</strong> confira que o Dashboard está em modo <strong>produção</strong> (chave "Test mode" desligada) — link de teste começa com <code>buy.stripe.com/test_</code> e não processa vendas reais.</li>
   <li><strong>Mercado Pago:</strong> Seu negócio → <strong>Link de pagamento</strong> → crie o link com o valor do seu produto → copie o link.</li>
 </ul>
 <p>Cole o link abaixo:</p>`,
@@ -1512,18 +1512,20 @@ volumes:
     objective: "Colar o PRD no Claude, acompanhar a construcao e validar o site publicado.",
     tutorial: [
       {
-        heading: "1. Cole o PRD no Claude",
-        body: `<p>Abra o app do Claude na pasta do projeto (etapa anterior) e cole o PRD completo que você copiou.</p>
-<p>O Claude vai construir o site e publicar na sua VPS. Durante o processo, ele pode pedir:</p>
-<ul>
-  <li>A <strong>senha root da VPS</strong> — está no seu gerenciador de senhas (módulo 3)</li>
-  <li>Confirmações antes de executar comandos — leia e aprove</li>
-</ul>
-<p>Acompanhe a conversa. Se ele travar ou der erro, copie a mensagem e cole aqui no assistente da etapa que eu ajudo.</p>`
+        heading: "1. Confira o DNS antes de começar",
+        body: `<p>Na <a href="https://dash.cloudflare.com" target="_blank" rel="noopener">Cloudflare</a>, confirme que existem registros <strong>A</strong> para a raiz (<code>@</code>) e para <code>www</code> apontando para <code>{{serverIp}}</code>, ambos <strong>DNS only</strong> (nuvem cinza). Se faltar algum, crie agora.</p>
+<p>Sem esses dois registros, o certificado de segurança (HTTPS) do site falha na publicação — conferir antes evita retrabalho.</p>`
       },
       {
-        heading: "2. Confira o DNS",
-        body: `<p>Na <a href="https://dash.cloudflare.com" target="_blank" rel="noopener">Cloudflare</a>, confirme que existem registros <strong>A</strong> para a raiz (<code>@</code>) e para <code>www</code> apontando para <code>{{serverIp}}</code>, ambos <strong>DNS only</strong>. Se você criou o registro curinga (<code>*</code>) no módulo 3, o <code>www</code> já está coberto.</p>`
+        heading: "2. Cole o PRD no Claude",
+        body: `<p>Abra o app do Claude na pasta do projeto (etapa anterior) e cole o PRD completo que você copiou.</p>
+<p>O Claude vai construir o site e publicar na sua VPS. Durante o processo, é normal ele pedir algumas coisas:</p>
+<ul>
+  <li>Uma <strong>janela de administrador do Windows (UAC)</strong> pode aparecer quando ele instalar as ferramentas de conexão — clique em <strong>Sim</strong></li>
+  <li>A <strong>senha root da VPS</strong> — está no seu gerenciador de senhas (módulo 3)</li>
+  <li>Confirmações antes de executar comandos no servidor — leia e aprove</li>
+</ul>
+<p>Acompanhe a conversa. Se algo ficar parado por mais de 5 minutos sem novidade, ou der erro, copie a mensagem e cole aqui no assistente da etapa que eu ajudo.</p>`
       },
       {
         heading: "3. Valide o site no ar",

@@ -55,22 +55,26 @@ Entregue SOMENTE o PRD, sem nenhuma introdução ou comentário seu. O PRD deve 
 **3. Identidade visual** — paleta exata com hex, tipografia (Google Fonts), tom de voz para os textos (tudo da Seção 6 do planejamento). A página deve parecer profissional e coerente com a peça de campanha.
 
 **4. Integrações** — inclua estes valores exatos fornecidos pelo sistema:
-   - **Botão de compra**: abre o link de pagamento em nova aba (link exato fornecido)
+   - **Botão de compra**: abre o link de pagamento em nova aba (link exato fornecido). Se o link contiver `/test_` (modo de teste do Stripe), instrua o Claude a avisar o usuário com destaque: o site vai ao ar com um checkout de teste que NÃO processa vendas reais — trocar pelo link de produção antes de divulgar (basta editar e reenviar o index.html).
    - **Formulário de interesse**: POST via fetch para `https://workflows.DOMINIO/webhook/leads` (substitua DOMINIO pelo domínio real) com os campos em JSON; mostre mensagem de sucesso genérica ao enviar. IMPORTANTE: avise o usuário que este endpoint será ativado no módulo 6 do curso — o formulário deve estar pronto, mas ainda não registra leads.
    - **Pixels**: peça ao usuário o arquivo de texto com os códigos do Google Tag e do Meta Pixel (está na pasta do projeto); insira ambos no `<head>`. Se o usuário não tiver, siga sem pixels e avise.
 
-**5. Publicação na VPS** — instruções exatas para o Claude executar:
+**5. Pré-checagens (ANTES de qualquer alteração no servidor)** — instruções exatas para o Claude executar:
+   - **DNS primeiro**: verifique com `nslookup` (ou `Resolve-DnsName` no Windows) se `DOMINIO` e `www.DOMINIO` resolvem para o IP da VPS. Se algum não resolver, PARE e instrua o usuário a criar na Cloudflare os registros A faltantes (`@` e `www` → IP, modo **DNS only**), aguarde a propagação (verifique de novo) e só então prossiga. Sem esse DNS, o certificado SSL vai falhar no final.
+   - **SSH não interativo (Windows)**: o OpenSSH do Windows não aceita senha de forma não interativa. Instale as ferramentas PuTTY (`winget install PuTTY.PuTTY`) — avise o usuário ANTES que vai aparecer uma janela de administrador (UAC) para ele aprovar. Depois, capture a chave do host UMA vez de forma não interativa (ex: `echo y | plink -ssh root@IP "exit"`) e use **`-batch` em TODOS os comandos plink/pscp seguintes**. NUNCA deixe um comando SSH aguardando confirmação interativa — ele trava para sempre sem mostrar nada ao usuário.
    - Peça ao usuário a senha root da VPS (está no gerenciador de senhas dele; o IP está no documento de infra da pasta)
+
+**6. Publicação na VPS** — instruções exatas para o Claude executar:
    - A VPS roda Docker Swarm com Traefik (network `network_swarm_public`, certresolver `letsencryptresolver`) — a mesma infra dos serviços existentes
    - Crie no servidor a pasta `/opt/stacks/site-negocio/html`, envie os arquivos do site via scp
    - Crie `/opt/stacks/site-negocio/stack.yml` com um serviço `nginx:alpine` montando o html como volume bind, conectado à `network_swarm_public`, com labels Traefik: `` Host(`DOMINIO`) || Host(`www.DOMINIO`) ``, entrypoint `websecure`, certresolver `letsencryptresolver`, porta 80
    - Faça o deploy: `docker stack deploy -c /opt/stacks/site-negocio/stack.yml site_negocio`
    - **REGRA CRÍTICA**: NÃO altere, reinicie ou remova nenhuma stack ou serviço existente (traefik, portainer, postgres, n8n, evolution, chatwoot, axon-site). Apenas crie a stack nova.
 
-**6. Validação** — o Claude deve:
+**7. Validação** — o Claude deve:
    - Verificar `docker service ls` mostrando o serviço novo com replica 1/1
    - Testar `curl -I https://DOMINIO` esperando HTTP 200 (aguardar ~2 min pela emissão do certificado SSL se necessário)
-   - Lembrar o usuário de conferir na Cloudflare os registros A da raiz (`@`) e `www` apontando para o IP da VPS, em modo DNS only
+   - **Se o certificado não sair em ~3 minutos**: conferir o DNS de novo; se o DNS acabou de ser corrigido, forçar nova tentativa de emissão com `docker service update --force site_negocio_site` (afeta apenas o serviço do site)
    - Pedir para o usuário abrir o site no navegador e no celular e confirmar visual, botão de compra e formulário
 
 ---
