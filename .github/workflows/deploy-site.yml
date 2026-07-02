@@ -51,6 +51,16 @@ jobs:
           mkdir -p ~/.ssh
           echo "$VPS_SSH_KEY" > ~/.ssh/deploy_key
           chmod 600 ~/.ssh/deploy_key
-          ssh-keyscan -H -T 10 "$VPS_HOST" >> ~/.ssh/known_hosts
-          ssh -o ConnectTimeout=10 -i ~/.ssh/deploy_key "root@$VPS_HOST" \
-            "docker service update --image ghcr.io/axnconsult/site:sha-${{ github.sha }} axon-site_axon_site"
+          # VPS oscila às vezes — tenta até 3 vezes com timeout maior
+          for attempt in 1 2 3; do
+            ssh-keyscan -H -T 30 "$VPS_HOST" >> ~/.ssh/known_hosts 2>/dev/null || true
+            if ssh -o ConnectTimeout=30 -o StrictHostKeyChecking=accept-new -i ~/.ssh/deploy_key "root@$VPS_HOST" \
+              "docker service update --image ghcr.io/axnconsult/site:sha-${{ github.sha }} axon-site_axon_site"; then
+              echo "Deploy OK na tentativa $attempt"
+              exit 0
+            fi
+            echo "Tentativa $attempt falhou — aguardando 20s..."
+            sleep 20
+          done
+          echo "Deploy falhou após 3 tentativas"
+          exit 1

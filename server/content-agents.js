@@ -123,6 +123,21 @@ export async function streamContentGeneration({ rootDir, query, member, payload,
       strategicDoc,
       gradeSection
     ].join("\n");
+  } else if (agentType === "site_prd") {
+    promptFile = "10 - AXN _ PRD do Site.md";
+    systemAddendum = [
+      "",
+      "## Dados do projeto (use exatamente estes valores no PRD)",
+      "",
+      `- Domínio: ${project?.domain || "NAO_INFORMADO"}`,
+      `- IP da VPS: ${project?.serverIp || "NAO_INFORMADO"}`,
+      `- Plataforma de pagamento: ${project?.paymentPlatform || "NAO_INFORMADO"}`,
+      `- Link de pagamento (checkout): ${project?.paymentLink || "NAO_INFORMADO"}`,
+      "",
+      "## Planejamento estratégico do empreendimento",
+      "",
+      strategicDoc
+    ].join("\n");
   } else {
     onDelta("Tipo de agente inválido.");
     onDone({ ok: false, error: "invalid_agent_type" });
@@ -146,7 +161,7 @@ export async function streamContentGeneration({ rootDir, query, member, payload,
       { role: "system", content: systemPrompt },
       { role: "user", content: "Pode gerar." }
     ],
-    max_tokens: 4000
+    max_tokens: 8000
   };
 
   await callOpenAIChatStream(openaiRequest, onDelta, onDone);

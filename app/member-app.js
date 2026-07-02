@@ -51,6 +51,18 @@ const COURSE_MODULES = [
   {
     id: "module-5",
     number: 5,
+    title: "Site e Checkout",
+    summary: "Instale o Claude, gere o PRD do seu site com um agente e publique a pagina com formulario de leads e checkout na sua VPS.",
+    result: "Site no ar recebendo leads e vendas",
+    stages: [
+      ["Instalar o Claude", "Crie a conta na Anthropic, instale o app e prepare a pasta do projeto com seus documentos.", "technical", null, ["claude-setup"]],
+      ["Pagamento e PRD do site", "Escolha a plataforma de pagamento, crie o link de checkout e gere o PRD personalizado do seu site.", "technical", null, ["site-prd"]],
+      ["Publicar e validar", "Cole o PRD no Claude, acompanhe a construcao e a publicacao do site na sua VPS.", "technical", null, ["site-deploy"]]
+    ]
+  },
+  {
+    id: "module-6",
+    number: 6,
     title: "Operacao Assistida",
     summary: "Transforme IA em apoio operacional para CRM, rotina, decisao, tarefas e atendimento.",
     result: "Operacao assistida em funcionamento",
@@ -1407,17 +1419,127 @@ volumes:
       },
       {
         heading: "2. Gerar peca de campanha",
-        body: `<p>Clique para gerar. O processo leva cerca de 20 segundos.</p>`,
+        body: `<p>Clique para gerar. A criação leva de 1 a 2 minutos — aguarde na página.</p>`,
         generate: {
           id: "campanha_image",
           type: "image",
           label: "Gerar peca de campanha",
-          loadingMessage: "Criando sua peca... isso leva cerca de 20 segundos."
+          loadingMessage: "Criando sua peca... isso leva de 1 a 2 minutos. Pode deixar a pagina aberta e aguardar."
         }
       }
     ],
     validation: "Peca aprovada e baixada.",
     done: "Peca de campanha criada e aprovada."
+  },
+
+  // ─── Módulo 5 — Site e Checkout ─────────────────────────────────────────────
+
+  {
+    id: "claude-setup",
+    title: "Instalar o Claude",
+    objective: "Criar a conta na Anthropic, instalar o app Claude e preparar a pasta do projeto.",
+    tutorial: [
+      {
+        heading: "1. Crie sua conta na Anthropic",
+        body: `<p>Acesse <a href="https://claude.ai" target="_blank" rel="noopener">claude.ai</a> e crie uma conta (pode usar o login do Google).</p>
+<p>Assine o plano <strong>Pro</strong> em <strong>Settings → Billing</strong> (~US$20/mês). É ele que dá acesso ao Claude Code, o modo do Claude que escreve e executa código no seu computador — seu "desenvolvedor contratado" deste módulo.</p>`
+      },
+      {
+        heading: "2. Instale o app no computador",
+        body: `<p>Baixe o app do Claude para desktop em <a href="https://claude.ai/download" target="_blank" rel="noopener">claude.ai/download</a> (Windows ou Mac), instale e entre com a sua conta.</p>`
+      },
+      {
+        heading: "3. Prepare a pasta do projeto",
+        body: `<p>Crie uma pasta no seu computador (ex: <code>Documentos/meu-site</code>) e coloque dentro dela os arquivos que você baixou nos módulos anteriores:</p>
+<ul>
+  <li><strong>Planejamento estratégico</strong> (.md — módulo 2)</li>
+  <li><strong>Documento da infraestrutura</strong> (.md — módulo 3)</li>
+  <li><strong>Peça de campanha</strong> (.png — módulo 4)</li>
+  <li><strong>Pixels</strong> — o arquivo de texto com os códigos do Google Tag e Meta Pixel (módulo 3)</li>
+</ul>
+<p>No app do Claude, abra essa pasta como projeto. Assim ele enxerga todos os seus documentos ao construir o site.</p>`
+      }
+    ],
+    validation: "App do Claude instalado, logado, e pasta do projeto com os 4 arquivos.",
+    done: "Claude pronto para trabalhar com os documentos do seu negocio."
+  },
+  {
+    id: "site-prd",
+    title: "Pagamento e PRD",
+    objective: "Escolher a plataforma de pagamento, criar o link de checkout e gerar o PRD do site.",
+    tutorial: [
+      {
+        heading: "1. Escolha a plataforma de pagamento",
+        body: `<p>Responda uma pergunta: <strong>você pretende vender para fora do Brasil?</strong></p>
+<ul>
+  <li><strong>Sim</strong> → use a <a href="https://stripe.com/br" target="_blank" rel="noopener">Stripe</a> — a melhor para moedas e cartões internacionais.</li>
+  <li><strong>Não</strong> → use o <a href="https://www.mercadopago.com.br" target="_blank" rel="noopener">Mercado Pago</a> — Pix com a menor taxa (0,99%), marca que o comprador brasileiro confia e configuração mais simples.</li>
+</ul>
+<p>Crie a conta na plataforma escolhida e complete a verificação (documentos e dados bancários).</p>`,
+        field: "paymentPlatform"
+      },
+      {
+        heading: "2. Crie o link de pagamento do seu produto",
+        body: `<p>Nas duas plataformas o caminho é parecido — você cadastra o produto com preço e recebe um <strong>link de checkout</strong> pronto (o comprador paga numa página da própria plataforma, sem código):</p>
+<ul>
+  <li><strong>Stripe:</strong> Dashboard → <strong>Payment Links</strong> → Create payment link → cadastre produto e preço → copie o link.</li>
+  <li><strong>Mercado Pago:</strong> Seu negócio → <strong>Link de pagamento</strong> → crie o link com o valor do seu produto → copie o link.</li>
+</ul>
+<p>Cole o link abaixo:</p>`,
+        field: "paymentLink"
+      },
+      {
+        heading: "3. Gere o PRD do seu site",
+        body: `<p>O agente vai ler seu planejamento estratégico e montar o <strong>PRD</strong> — o prompt completo que você vai colar no Claude para ele construir e publicar o site: textos da página, identidade visual, formulário de interesse, botão de checkout e instruções técnicas de publicação na sua VPS.</p>`,
+        generate: {
+          id: "site_prd",
+          type: "text",
+          label: "Gerar PRD do site",
+          loadingMessage: "Montando o PRD do seu site... isso leva cerca de 1 minuto."
+        }
+      }
+    ],
+    validation: "Conta de pagamento ativa, link de checkout criado e PRD gerado.",
+    done: "PRD pronto para colar no Claude.",
+    fields: [
+      { key: "paymentPlatform", label: "Plataforma de pagamento", placeholder: "Stripe ou Mercado Pago", inline: true },
+      { key: "paymentLink", label: "Link de pagamento (checkout)", placeholder: "https://...", inline: true }
+    ]
+  },
+  {
+    id: "site-deploy",
+    title: "Publicar e validar",
+    objective: "Colar o PRD no Claude, acompanhar a construcao e validar o site publicado.",
+    tutorial: [
+      {
+        heading: "1. Cole o PRD no Claude",
+        body: `<p>Abra o app do Claude na pasta do projeto (etapa anterior) e cole o PRD completo que você copiou.</p>
+<p>O Claude vai construir o site e publicar na sua VPS. Durante o processo, ele pode pedir:</p>
+<ul>
+  <li>A <strong>senha root da VPS</strong> — está no seu gerenciador de senhas (módulo 3)</li>
+  <li>Confirmações antes de executar comandos — leia e aprove</li>
+</ul>
+<p>Acompanhe a conversa. Se ele travar ou der erro, copie a mensagem e cole aqui no assistente da etapa que eu ajudo.</p>`
+      },
+      {
+        heading: "2. Confira o DNS",
+        body: `<p>Na <a href="https://dash.cloudflare.com" target="_blank" rel="noopener">Cloudflare</a>, confirme que existem registros <strong>A</strong> para a raiz (<code>@</code>) e para <code>www</code> apontando para <code>{{serverIp}}</code>, ambos <strong>DNS only</strong>. Se você criou o registro curinga (<code>*</code>) no módulo 3, o <code>www</code> já está coberto.</p>`
+      },
+      {
+        heading: "3. Valide o site no ar",
+        body: `<p>Checklist final — abra <a href="https://{{domain}}" target="_blank" rel="noopener">https://{{domain}}</a> e confirme:</p>
+<ul>
+  <li>A página carrega com cadeado (HTTPS) e o visual segue sua identidade</li>
+  <li>O site abre bem no celular</li>
+  <li>O <strong>botão de compra</strong> abre o checkout da plataforma de pagamento</li>
+  <li>O <strong>formulário de interesse</strong> aparece (ele será ativado de verdade no módulo 6, quando conectarmos o n8n)</li>
+  <li>Os pixels disparam — teste com as extensões <strong>Meta Pixel Helper</strong> e <strong>Tag Assistant</strong> no Chrome</li>
+</ul>
+<p>Quer mudar algo no site depois? É só abrir o Claude na mesma pasta e pedir com suas palavras. O site é seu, o desenvolvedor também. 😉</p>`
+      }
+    ],
+    validation: "Site abrindo em https com checkout funcional e formulario visivel.",
+    done: "Site publicado, recebendo visitantes e pronto para vender."
   }
 ];
 
@@ -1434,7 +1556,9 @@ const DEFAULT_MEMBER_STATE = {
     evolutionApiKey: "",
     chatwootSecretKey: "",
     n8nEncryptionKey: "",
-    n8nRunnersAuthToken: ""
+    n8nRunnersAuthToken: "",
+    paymentPlatform: "",
+    paymentLink: ""
   },
   currentStep: "domain",
   currentModule: "module-1",
@@ -1994,7 +2118,7 @@ function renderLessonDetail(module, index) {
   document.querySelector("#previous-stage").disabled = index === 0;
   document.querySelector("#next-stage").textContent = index === module.stages.length - 1 ? "Concluir modulo" : "Avancar";
 
-  const isModule3 = module.id === "module-3" || module.id === "module-4";
+  const isModule3 = isWizardModule(module);
   document.querySelector("#stage-video-placeholder")?.classList.toggle("hidden", isModule3);
   // No Módulo 3 a navegação fica entre as etapas e o assistente (via CSS order)
   document.querySelector(".stage-layout")?.classList.toggle("is-wizard", isModule3);
@@ -2064,6 +2188,11 @@ function fillTemplate(template) {
     .replaceAll("{{chatwootSecretKey}}", project.chatwootSecretKey || "CHAVE_SECRETA_64_CHARS_AQUI")
     .replaceAll("{{n8nEncryptionKey}}", project.n8nEncryptionKey || "{{n8nEncryptionKey}}")
     .replaceAll("{{n8nRunnersAuthToken}}", project.n8nRunnersAuthToken || "{{n8nRunnersAuthToken}}");
+}
+
+// Módulos com layout de wizard técnico (passos guiados + assistente técnico)
+function isWizardModule(module) {
+  return ["module-3", "module-4", "module-5"].includes(module?.id);
 }
 
 function currentModule() {
@@ -2510,6 +2639,34 @@ function renderGenerateResult(genId) {
       const link = document.createElement("a");
       link.href = url;
       link.download = "grade-postagens-28-dias.csv";
+      document.body.appendChild(link);
+      link.click();
+      link.remove();
+      URL.revokeObjectURL(url);
+    });
+  } else if (genId === "site_prd") {
+    // PRD do site: copiar para colar no Claude + download de backup
+    resultEl.innerHTML = `
+      <p><strong>PRD pronto.</strong> Copie e cole no Claude (na pasta do projeto que você preparou). Guarde também uma cópia com seus documentos.</p>
+      <div class="generate-actions">
+        <button class="button button-primary" type="button" data-copy-prd>Copiar PRD</button>
+        <button class="button button-secondary" type="button" data-download-prd>Baixar (.md)</button>
+      </div>`;
+    resultEl.querySelector("[data-copy-prd]")?.addEventListener("click", async (event) => {
+      const btn = event.currentTarget;
+      try {
+        await navigator.clipboard?.writeText(contentCache[genId] || "");
+        const label = btn.textContent;
+        btn.textContent = "Copiado!";
+        setTimeout(() => { btn.textContent = label; }, 1800);
+      } catch { /* clipboard indisponivel */ }
+    });
+    resultEl.querySelector("[data-download-prd]")?.addEventListener("click", () => {
+      const blob = new Blob([contentCache[genId] || ""], { type: "text/markdown;charset=utf-8" });
+      const url = URL.createObjectURL(blob);
+      const link = document.createElement("a");
+      link.href = url;
+      link.download = "prd-site.md";
       document.body.appendChild(link);
       link.click();
       link.remove();
@@ -3571,7 +3728,7 @@ function buildLessonStepContent(step, lesson) {
 }
 
 function buildStageContent(stage, module) {
-  if (module.id === "module-3" || module.id === "module-4") {
+  if (isWizardModule(module)) {
     return `
       <div class="wizard-layout">
         <nav class="wizard-steps" id="lesson-steps"></nav>
@@ -3783,7 +3940,7 @@ function ensureAssistantThread(module, lesson) {
     const agentId = lesson[3] || agentIdForStageKey(key);
     opening = MODULE1_AGENT_OPENINGS[agentId]
       || `Vamos trabalhar a etapa "${lesson[0]}". Pode começar.`;
-  } else if (module.id === "module-3" || module.id === "module-4") {
+  } else if (isWizardModule(module)) {
     const steps = getLessonSteps(lesson);
     const first = steps[0];
     opening = first
@@ -3836,7 +3993,7 @@ async function requestLessonAgentAnswer(module, stage, input, thread = null) {
     thread: thread || memberApp.state.assistantThreads[key] || []
   };
 
-  if (module.id === "module-3" || module.id === "module-4") {
+  if (isWizardModule(module)) {
     const steps = getLessonSteps(stage);
     const activeStep = steps.find((s) => s.id === memberApp.state.currentLessonStep) || steps[0];
     if (activeStep) {
