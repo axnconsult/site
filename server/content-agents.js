@@ -138,6 +138,31 @@ export async function streamContentGeneration({ rootDir, query, member, payload,
       "",
       strategicDoc
     ].join("\n");
+  } else if (agentType === "atendimento_prompt") {
+    promptFile = "11 - AXN _ Agente de Atendimento.md";
+    systemAddendum = [
+      "",
+      "## Dados do projeto (use exatamente estes valores)",
+      "",
+      `- Site do negócio (direcione interessados para cá): https://${project?.domain || "NAO_INFORMADO"}`,
+      "",
+      "## Planejamento estratégico do empreendimento",
+      "",
+      strategicDoc
+    ].join("\n");
+  } else if (agentType === "painel_prd") {
+    promptFile = "12 - AXN _ PRD do Painel.md";
+    systemAddendum = [
+      "",
+      "## Dados do projeto (use exatamente estes valores no PRD)",
+      "",
+      `- Domínio: ${project?.domain || "NAO_INFORMADO"}`,
+      `- IP da VPS: ${project?.serverIp || "NAO_INFORMADO"}`,
+      "",
+      "## Planejamento estratégico do empreendimento",
+      "",
+      strategicDoc
+    ].join("\n");
   } else {
     onDelta("Tipo de agente inválido.");
     onDone({ ok: false, error: "invalid_agent_type" });

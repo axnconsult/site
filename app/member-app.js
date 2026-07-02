@@ -64,15 +64,13 @@ const COURSE_MODULES = [
     id: "module-6",
     number: 6,
     title: "Operacao Assistida",
-    summary: "Transforme IA em apoio operacional para CRM, rotina, decisao, tarefas e atendimento.",
-    result: "Operacao assistida em funcionamento",
+    summary: "Conecte o WhatsApp ao atendimento automatico, registre os leads do site e ganhe um Conselho de IA para decidir com dados.",
+    result: "Atendimento automatico no ar e Conselho de IA acompanhando o negocio",
     stages: [
-      ["CRM e leads", "Configure Chatwoot como CRM leve e conecte o registro automatico de leads via n8n.", "technical", null, ["crm"]],
-      ["Agentes basicos", "Configure os primeiros agentes de apoio operacional.", "Defina funcao, limite, entrada e entrega de cada agente para manter utilidade e controle."],
-      ["Calendario do gestor", "Crie uma rotina assistida para prioridades e agenda.", "Organize compromissos, revisoes e proximas acoes para reduzir dispersao."],
-      ["Apoio a decisao", "Use IA para comparar caminhos e preparar decisoes.", "Estruture perguntas, criterios e blocos de transferencia para decidir com mais clareza."],
-      ["Rotina e tarefas", "Conecte tarefas recorrentes ao acompanhamento operacional.", "Transforme o planejamento em rotina acompanhada pelo sistema e pelo assistente."],
-      ["Atendimento basico", "Prepare o primeiro apoio de atendimento ao cliente.", "Monte respostas, limites e encaminhamentos para apoiar sem perder controle humano."]
+      ["Conectar o WhatsApp", "Crie a instancia na Evolution API, escaneie o QR code e integre ao Chatwoot.", "technical", null, ["whatsapp-connect"]],
+      ["Leads do site", "Ative o webhook que registra os leads do formulario do site no seu banco e organize o funil no Chatwoot.", "technical", null, ["leads-webhook", "crm"]],
+      ["Agente de atendimento", "Gere o prompt personalizado do seu atendente de IA e ative o fluxo que responde o WhatsApp.", "technical", null, ["atendimento-agente"]],
+      ["Painel e Conselho de IA", "Publique o painel de gestao no seu dominio com dashboard de leads e o Conselho de 3 especialistas.", "technical", null, ["painel-conselho"]]
     ]
   }
 ];
@@ -1038,187 +1036,6 @@ networks:
     done: "Credenciais de OpenAI e Anthropic ativas no n8n."
   },
   {
-    id: "atendimento",
-    title: "Atendimento automatico",
-    objective: "Subir Evolution API e Chatwoot em um clique, conectar WhatsApp e configurar o agente de atendimento no n8n.",
-    tutorial: [
-      {
-        heading: "1. DNS (Opcional)",
-        body: `<p>Se você configurou o registro curinga (<code>*</code>) no Módulo 3, pode pular esta etapa.</p>
-<p>Caso contrário, acesse a Cloudflare e adicione dois registros A para o IP da sua VPS:</p>
-<table style="width:100%;border-collapse:collapse;font-size:0.85rem">
-  <tr style="text-align:left"><th>Type</th><th>Name</th><th>IPv4 address</th><th>Proxy status</th></tr>
-  <tr><td>A</td><td><code>evo</code></td><td><code>{{serverIp}}</code></td><td>DNS only</td></tr>
-  <tr><td>A</td><td><code>chat</code></td><td><code>{{serverIp}}</code></td><td>DNS only</td></tr>
-</table>
-<p style="margin-top:8px">Mantenha <strong>DNS only</strong> — o Traefik precisa resolver o certificado HTTPS diretamente.</p>`
-      },
-      {
-        heading: "2. Executar script de Auto-Implementação",
-        body: `<p>Vamos automatizar a criação de volumes, banco de dados, arquivos de stack e inicialização dos serviços.</p>
-<p>Conecte-se ao SSH da sua VPS e execute o comando abaixo (ele contém suas credenciais auto-geradas e seguras):</p>`,
-        command: `cat << 'EOF' > deploy-atendimento.sh
-#!/bin/bash
-set -e
-
-# Configurações do seu projeto
-DOMAIN="{{domain}}"
-POSTGRES_PASS="{{postgresPassword}}"
-EVO_KEY="{{evolutionApiKey}}"
-CHATWOOT_SECRET="{{chatwootSecretKey}}"
-
-echo "🚀 Iniciando auto-implementação..."
-
-# 1. Volumes
-echo "📦 Criando volumes Docker..."
-docker volume create evolution_instances || true
-docker volume create redis_chatwoot_data || true
-
-# 2. Banco de dados
-echo "🗄️ Criando banco 'chatwoot' no Postgres..."
-POSTGRES_CONTAINER=$(docker ps -q -f name=postgres || docker ps -q -f name=axon_postgres)
-if [ -z "$POSTGRES_CONTAINER" ]; then
-  echo "❌ ERRO: Container Postgres não encontrado."
-  exit 1
-fi
-docker exec -t $POSTGRES_CONTAINER psql -U postgres -c "CREATE DATABASE chatwoot;" || true
-docker exec -t $POSTGRES_CONTAINER psql -U postgres -c "GRANT ALL PRIVILEGES ON DATABASE chatwoot TO axon_app;" || true
-
-# 3. Stack Evolution
-echo "📝 Criando stack do Evolution API..."
-mkdir -p /opt/stacks/evolution
-cat << 'STACK_EOF' > /opt/stacks/evolution/stack.yml
-version: "3.7"
-services:
-  evolution:
-    image: evoapicloud/evolution-api:v2.3.7
-    environment:
-      - SERVER_URL=https://evo.DOMAIN_PLACEHOLDER
-      - AUTHENTICATION_API_KEY=EVO_KEY_PLACEHOLDER
-      - DATABASE_ENABLED=true
-      - DATABASE_PROVIDER=postgresql
-      - DATABASE_CONNECTION_URI=postgresql://axon_app:POSTGRES_PASS_PLACEHOLDER@axon_postgres_axon_postgres:5432/evolution
-      - DATABASE_URL=postgresql://axon_app:POSTGRES_PASS_PLACEHOLDER@axon_postgres_axon_postgres:5432/evolution
-      - REDIS_ENABLED=true
-      - REDIS_URI=redis://chatwoot_redis-chatwoot:6379
-      - CACHE_REDIS_ENABLED=true
-      - CACHE_REDIS_URI=redis://chatwoot_redis-chatwoot:6379
-      - CACHE_REDIS_PREFIX_KEY=evolution
-      - CACHE_REDIS_SAVE_INSTANCES=true
-      - CACHE_LOCAL_ENABLED=false
-      - LOG_LEVEL=ERROR
-      - DEL_INSTANCE=false
-    volumes:
-      - evolution_instances:/evolution/instances
-    networks:
-      - network_swarm_public
-    deploy:
-      mode: replicated
-      replicas: 1
-      labels:
-        - "traefik.enable=true"
-        - "traefik.docker.network=network_swarm_public"
-        - "traefik.http.routers.evolution.rule=Host(\`evo.DOMAIN_PLACEHOLDER\`)"
-        - "traefik.http.routers.evolution.entrypoints=websecure"
-        - "traefik.http.routers.evolution.tls=true"
-        - "traefik.http.routers.evolution.tls.certresolver=letsencryptresolver"
-        - "traefik.http.routers.evolution.middlewares=evolution-ws"
-        - "traefik.http.services.evolution.loadbalancer.server.port=8080"
-        - "traefik.http.routers.evolution-http.rule=Host(\`evo.DOMAIN_PLACEHOLDER\`)"
-        - "traefik.http.routers.evolution-http.entrypoints=web"
-        - "traefik.http.routers.evolution-http.middlewares=evolution-redirect"
-        - "traefik.http.middlewares.evolution-redirect.redirectscheme.scheme=https"
-        - "traefik.http.middlewares.evolution-redirect.redirectscheme.permanent=true"
-        - "traefik.http.middlewares.evolution-ws.headers.customrequestheaders.Upgrade=websocket"
-        - "traefik.http.middlewares.evolution-ws.headers.customrequestheaders.Connection=Upgrade"
-networks:
-  network_swarm_public:
-    external: true
-    name: network_swarm_public
-volumes:
-  evolution_instances:
-    external: true
-    name: evolution_instances
-STACK_EOF
-
-sed -i "s/DOMAIN_PLACEHOLDER/$DOMAIN/g" /opt/stacks/evolution/stack.yml
-sed -i "s/EVO_KEY_PLACEHOLDER/$EVO_KEY/g" /opt/stacks/evolution/stack.yml
-sed -i "s/POSTGRES_PASS_PLACEHOLDER/$POSTGRES_PASS/g" /opt/stacks/evolution/stack.yml
-
-# 4. Stack Chatwoot
-echo "📝 Criando stack do Chatwoot..."
-mkdir -p /opt/stacks/chatwoot
-cat << 'STACK_EOF' > /opt/stacks/chatwoot/stack.yml
-version: "3.7"
-services:
-  redis-chatwoot:
-    image: redis:7-alpine
-    volumes:
-      - redis_chatwoot_data:/data
-    networks:
-      - network_swarm_public
-    deploy:
-      mode: replicated
-      replicas: 1
-  chatwoot-web:
-    image: chatwoot/chatwoot:v3.11.0
-    environment:
-      - SECRET_KEY_BASE=CHATWOOT_SECRET_PLACEHOLDER
-      - FRONTEND_URL=https://chat.DOMAIN_PLACEHOLDER
-      - DEFAULT_LOCALE=pt_BR
-      - RAILS_ENV=production
-      - RAILS_LOG_TO_STDOUT=true
-      - REDIS_URL=redis://redis-chatwoot:6379
-      - POSTGRES_HOST=axon_postgres_axon_postgres
-      - POSTGRES_PORT=5432
-      - POSTGRES_DATABASE=chatwoot
-      - POSTGRES_USERNAME=axon_app
-      - POSTGRES_PASSWORD=POSTGRES_PASS_PLACEHOLDER
-    command: bundle exec rails s -p 3000 -b 0.0.0.0
-    networks:
-      - network_swarm_public
-    deploy:
-      mode: replicated
-      replicas: 1
-      labels:
-        - "traefik.enable=true"
-        - "traefik.docker.network=network_swarm_public"
-        - "traefik.http.routers.chatwoot.rule=Host(\`chat.DOMAIN_PLACEHOLDER\`)"
-        - "traefik.http.routers.chatwoot.entrypoints=websecure"
-        - "traefik.http.routers.chatwoot.tls.certresolver=letsencryptresolver"
-        - "traefik.http.services.chatwoot.loadbalancer.server.port=3000"
-  chatwoot-worker:
-    image: chatwoot/chatwoot:v3.11.0
-    environment:
-      - SECRET_KEY_BASE=CHATWOOT_SECRET_PLACEHOLDER
-      - FRONTEND_URL=https://chat.DOMAIN_PLACEHOLDER
-      - RAILS_ENV=production
-      - REDIS_URL=redis://redis-chatwoot:6379
-      - POSTGRES_HOST=axon_postgres_axon_postgres
-      - POSTGRES_PORT=5432
-      - POSTGRES_DATABASE=chatwoot
-      - POSTGRES_USERNAME=axon_app
-      - POSTGRES_PASSWORD=POSTGRES_PASS_PLACEHOLDER
-    command: bundle exec sidekiq -C config/sidekiq.yml
-    networks:
-      - network_swarm_public
-    deploy:
-      mode: replicated
-      replicas: 1
-
-networks:
-  network_swarm_public:
-    external: true
-    name: network_swarm_public
-
-volumes:
-  redis_chatwoot_data:
-    external: true
-    name: redis_chatwoot_data`
-      }
-    ]
-  },
-  {
     id: "midia-paga",
     title: "Pixels e midia paga",
     objective: "Criar contas no Google Ads e Meta Ads e copiar os pixels de rastreamento para instalar no site.",
@@ -1542,6 +1359,185 @@ volumes:
     ],
     validation: "Site abrindo em https com checkout funcional e formulario visivel.",
     done: "Site publicado, recebendo visitantes e pronto para vender."
+  },
+
+  // ─── Módulo 6 — Operação Assistida ──────────────────────────────────────────
+
+  {
+    id: "whatsapp-connect",
+    title: "Conectar o WhatsApp",
+    objective: "Criar a instancia na Evolution API, conectar o numero via QR code e integrar ao Chatwoot.",
+    tutorial: [
+      {
+        heading: "1. Crie sua conta no Chatwoot",
+        body: `<p>Acesse <a href="https://chat.{{domain}}" target="_blank" rel="noopener">chat.{{domain}}</a> e crie a conta de administrador (nome, e-mail, senha e nome da empresa). Guarde a senha no seu gerenciador.</p>
+<p>É aqui que todas as conversas do WhatsApp vão aparecer organizadas.</p>`
+      },
+      {
+        heading: "2. Copie o token e o ID da conta do Chatwoot",
+        body: `<p>Dois dados para a integração:</p>
+<ul>
+  <li><strong>Token:</strong> no Chatwoot, clique no seu avatar → <strong>Configurações do perfil</strong> → role até <strong>Token de acesso</strong> e copie.</li>
+  <li><strong>ID da conta:</strong> é o número que aparece na URL depois de <code>/accounts/</code> (ex: <code>chat.{{domain}}/app/accounts/<strong>1</strong>/...</code> → ID é <code>1</code>).</li>
+</ul>`
+      },
+      {
+        heading: "3. Crie a instância na Evolution",
+        body: `<p>Acesse <a href="https://evo.{{domain}}/manager" target="_blank" rel="noopener">evo.{{domain}}/manager</a> e entre com a chave da API:</p>
+<p><code>{{evolutionApiKey}}</code></p>
+<ol>
+  <li>Clique em <strong>Instance +</strong> (criar instância).</li>
+  <li>Nome da instância: <strong>atendimento</strong> — use exatamente esse nome, minúsculo; o fluxo de automação depende dele.</li>
+  <li>Channel: <strong>Baileys</strong>. Salve.</li>
+</ol>`
+      },
+      {
+        heading: "4. Ative a integração com o Chatwoot",
+        body: `<p>Ainda no manager, abra a instância <strong>atendimento</strong> → aba/menu <strong>Chatwoot</strong> e preencha:</p>
+<ul>
+  <li><strong>Enabled:</strong> ativado</li>
+  <li><strong>URL:</strong> <code>https://chat.{{domain}}</code> (sem barra no final)</li>
+  <li><strong>Account ID:</strong> o número do passo 2</li>
+  <li><strong>Token:</strong> o token do passo 2</li>
+  <li><strong>Sign messages:</strong> desativado · <strong>Reopen conversation:</strong> ativado · <strong>Conversation pending:</strong> desativado</li>
+</ul>
+<p>Salve. A Evolution cria automaticamente uma caixa de entrada no Chatwoot para o WhatsApp.</p>`
+      },
+      {
+        heading: "5. Conecte o número via QR code",
+        body: `<p>Na instância <strong>atendimento</strong>, clique em <strong>Connect / Get QR Code</strong>.</p>
+<ol>
+  <li>No celular com o número do negócio: WhatsApp → <strong>Configurações → Dispositivos conectados → Conectar dispositivo</strong>.</li>
+  <li>Escaneie o QR da tela. O status da instância muda para <strong>open</strong> (conectado).</li>
+</ol>
+<p><strong>Teste:</strong> peça para alguém mandar uma mensagem para o número. Ela deve aparecer no Chatwoot em <strong>Conversas</strong>.</p>`
+      }
+    ],
+    validation: "Instancia 'atendimento' com status open e mensagem de teste aparecendo no Chatwoot.",
+    done: "WhatsApp conectado e conversas espelhando no Chatwoot."
+  },
+  {
+    id: "leads-webhook",
+    title: "Leads do site",
+    objective: "Criar o banco de leads e ativar o webhook que registra o formulario do site.",
+    tutorial: [
+      {
+        heading: "1. Crie o banco de dados do negócio",
+        body: `<p>Conecte no SSH da VPS (como no módulo 3) e rode o comando abaixo — ele cria o banco <code>negocio</code>, onde seus leads e dados de gestão vão morar:</p>`,
+        command: `docker exec -t $(docker ps -q -f name=axon_postgres) psql -U postgres -c "CREATE DATABASE negocio OWNER axon_app;"`
+      },
+      {
+        heading: "2. Crie a credencial do Postgres no n8n",
+        body: `<p>No n8n (<a href="https://workflows.{{domain}}" target="_blank" rel="noopener">workflows.{{domain}}</a>): <strong>Credentials → Add credential → Postgres</strong> e preencha:</p>
+<ul>
+  <li><strong>Host:</strong> <code>axon_postgres_axon_postgres</code></li>
+  <li><strong>Database:</strong> <code>negocio</code></li>
+  <li><strong>User:</strong> <code>axon_app</code></li>
+  <li><strong>Password:</strong> <code>{{postgresPassword}}</code></li>
+  <li><strong>Port:</strong> <code>5432</code> · <strong>SSL:</strong> disable</li>
+</ul>
+<p>Salve com o nome <strong>Postgres negocio</strong>.</p>`
+      },
+      {
+        heading: "3. Importe o fluxo de leads",
+        body: `<p>Baixe o fluxo pronto e importe no n8n em <strong>Workflows → Add workflow → ⋮ (menu) → Import from file</strong>:</p>
+<p><button class="button button-primary" type="button" id="download-n8n-leads">Baixar fluxo de leads (.json)</button></p>
+<p>Depois de importar, abra o nó <strong>Salvar lead</strong> e selecione a credencial <strong>Postgres negocio</strong>.</p>`
+      },
+      {
+        heading: "4. ATIVE o workflow (importante!)",
+        body: `<p>No topo do editor do workflow, ligue a chave <strong>Active</strong> (Inactive → Active).</p>
+<p><strong>Pegadinha clássica do n8n:</strong> sem ativar, o webhook só funciona no modo de teste (URL de teste, que muda toda hora). O formulário do seu site usa a URL de <strong>produção</strong> — que só existe com o workflow ATIVO.</p>`
+      },
+      {
+        heading: "5. Teste com o formulário do site",
+        body: `<p>Abra <a href="https://{{domain}}" target="_blank" rel="noopener">https://{{domain}}</a>, preencha o formulário de interesse e envie.</p>
+<p>No n8n, abra <strong>Executions</strong> do workflow: deve aparecer uma execução verde. Pronto — cada lead do site agora fica registrado no seu banco.</p>`
+      }
+    ],
+    validation: "Envio do formulario do site gerar execucao verde no n8n.",
+    done: "Leads do site registrados automaticamente no banco."
+  },
+  {
+    id: "atendimento-agente",
+    title: "Agente de atendimento",
+    objective: "Gerar o prompt personalizado do atendente de IA e ativar o fluxo que responde o WhatsApp.",
+    tutorial: [
+      {
+        heading: "1. Gere o prompt do seu atendente",
+        body: `<p>O agente lê o seu planejamento estratégico e escreve as instruções do atendente de IA: tom da sua marca, conhecimento do produto e da oferta, respostas às objeções mais comuns — e a missão de direcionar o interessado para o seu site.</p>`,
+        generate: {
+          id: "atendimento_prompt",
+          type: "text",
+          label: "Gerar prompt do atendente",
+          loadingMessage: "Escrevendo as instrucoes do seu atendente..."
+        }
+      },
+      {
+        heading: "2. Baixe e importe o fluxo de atendimento",
+        body: `<p>Baixe o fluxo — o prompt gerado acima já vai embutido nele:</p>
+<p><button class="button button-primary" type="button" id="download-n8n-atendimento">Baixar fluxo de atendimento (.json)</button></p>
+<p>Importe no n8n (<strong>Import from file</strong>) e abra o nó <strong>Agente IA</strong>: selecione a credencial <strong>OpenAI</strong> que você criou no módulo 3.</p>`
+      },
+      {
+        heading: "3. Aponte a Evolution para o fluxo",
+        body: `<p>No manager da Evolution (<a href="https://evo.{{domain}}/manager" target="_blank" rel="noopener">evo.{{domain}}/manager</a>), abra a instância <strong>atendimento</strong> → <strong>Webhook</strong> (em Events/Integrations) e configure:</p>
+<ul>
+  <li><strong>Enabled:</strong> ativado</li>
+  <li><strong>URL:</strong> <code>https://workflows.{{domain}}/webhook/atendimento</code></li>
+  <li><strong>Events:</strong> marque apenas <code>MESSAGES_UPSERT</code></li>
+</ul>
+<p>Salve.</p>`
+      },
+      {
+        heading: "4. ATIVE o workflow e teste",
+        body: `<p>No n8n, ligue a chave <strong>Active</strong> do workflow de atendimento (mesma pegadinha da etapa anterior — sem ativar, nada acontece).</p>
+<p><strong>Teste de verdade:</strong> peça para alguém (de outro número) mandar uma mensagem tipo "Oi, quero saber mais". Em segundos deve chegar a resposta do atendente — e a conversa inteira aparece registrada no Chatwoot.</p>
+<p>Quando você quiser assumir uma conversa, é só responder pelo Chatwoot.</p>`
+      }
+    ],
+    validation: "Mensagem de teste respondida pela IA e conversa registrada no Chatwoot.",
+    done: "Atendente de IA respondendo o WhatsApp do negocio."
+  },
+  {
+    id: "painel-conselho",
+    title: "Painel e Conselho de IA",
+    objective: "Ativar os fluxos de dados e publicar o painel de gestao com o Conselho de IA no seu dominio.",
+    tutorial: [
+      {
+        heading: "1. Importe e ative os dois fluxos do painel",
+        body: `<p>Baixe, importe no n8n e <strong>ative</strong> os dois fluxos (em ambos, selecione a credencial <strong>Postgres negocio</strong> nos nós de banco; no fluxo do Conselho, selecione também a credencial <strong>OpenAI</strong> no nó de IA):</p>
+<p><button class="button button-primary" type="button" id="download-n8n-metricas">Baixar fluxo de metricas (.json)</button></p>
+<p><button class="button button-primary" type="button" id="download-n8n-conselho">Baixar fluxo do Conselho (.json)</button></p>
+<p>O primeiro alimenta o dashboard; o segundo é o Conselho de IA — três especialistas (administração, marketing e vendas) que analisam seus dados e fecham uma recomendação.</p>`
+      },
+      {
+        heading: "2. Gere o PRD do painel",
+        body: `<p>Como no módulo 5: o agente monta o PRD do seu painel de gestão — página protegida por senha em <code>gestao.{{domain}}</code> com os números do negócio e o chat do Conselho.</p>`,
+        generate: {
+          id: "painel_prd",
+          type: "text",
+          label: "Gerar PRD do painel",
+          loadingMessage: "Montando o PRD do seu painel de gestao..."
+        }
+      },
+      {
+        heading: "3. Cole no Claude e acompanhe",
+        body: `<p>Abra o app do Claude na pasta do projeto (a mesma do módulo 5) e cole o PRD.</p>
+<p>O Claude vai verificar os fluxos, pedir a senha root da VPS, pedir para você escolher <strong>usuário e senha do painel</strong>, construir a página e publicar. Se algo ficar parado por mais de 5 minutos ou der erro, cole a mensagem aqui no assistente.</p>`
+      },
+      {
+        heading: "4. Conheça seu Conselho",
+        body: `<p>Abra <a href="https://gestao.{{domain}}" target="_blank" rel="noopener">https://gestao.{{domain}}</a>, entre com o usuário e senha que você escolheu e confirme:</p>
+<ul>
+  <li>Os números de leads carregam no dashboard</li>
+  <li>O chat responde — experimente: <em>"Com os dados que temos até aqui, onde devo focar minha energia esta semana?"</em></li>
+</ul>
+<p>🎓 <strong>Jornada completa:</strong> estratégia validada, infraestrutura própria, conteúdo programado, site vendendo, atendimento automático e um conselho de especialistas de plantão. Agora é operar, medir e crescer.</p>`
+      }
+    ],
+    validation: "Painel abrindo com login, metricas carregando e Conselho respondendo.",
+    done: "Painel de gestao no ar com o Conselho de IA ativo."
   }
 ];
 
@@ -2194,7 +2190,7 @@ function fillTemplate(template) {
 
 // Módulos com layout de wizard técnico (passos guiados + assistente técnico)
 function isWizardModule(module) {
-  return ["module-3", "module-4", "module-5"].includes(module?.id);
+  return ["module-3", "module-4", "module-5", "module-6"].includes(module?.id);
 }
 
 function currentModule() {
@@ -2419,16 +2415,24 @@ function renderLessonStage(lesson, steps) {
     } catch { /* silencioso */ }
   });
 
-  document.querySelector("#download-n8n-atendimento")?.addEventListener("click", () => {
-    const blob = new Blob([buildAtendimentoWorkflowJson()], { type: "application/json;charset=utf-8" });
-    const url = URL.createObjectURL(blob);
-    const link = document.createElement("a");
-    link.href = url;
-    link.download = "agente-atendimento.json";
-    document.body.appendChild(link);
-    link.click();
-    link.remove();
-    URL.revokeObjectURL(url);
+  const workflowDownloads = [
+    ["#download-n8n-atendimento", buildAtendimentoWorkflowJson, "agente-atendimento.json"],
+    ["#download-n8n-leads", buildLeadsWorkflowJson, "leads-do-site.json"],
+    ["#download-n8n-metricas", buildMetricsWorkflowJson, "painel-metricas.json"],
+    ["#download-n8n-conselho", buildConselhoWorkflowJson, "conselho-de-ia.json"]
+  ];
+  workflowDownloads.forEach(([selector, builder, filename]) => {
+    document.querySelector(selector)?.addEventListener("click", () => {
+      const blob = new Blob([builder()], { type: "application/json;charset=utf-8" });
+      const url = URL.createObjectURL(blob);
+      const link = document.createElement("a");
+      link.href = url;
+      link.download = filename;
+      document.body.appendChild(link);
+      link.click();
+      link.remove();
+      URL.revokeObjectURL(url);
+    });
   });
 
   // Botões de geração de conteúdo (Módulo 4)
@@ -2646,8 +2650,25 @@ function renderGenerateResult(genId) {
       link.remove();
       URL.revokeObjectURL(url);
     });
-  } else if (genId === "site_prd") {
-    // PRD do site: copiar para colar no Claude + download de backup
+  } else if (genId === "atendimento_prompt") {
+    // Prompt do atendente: embutido automaticamente no download do workflow
+    resultEl.innerHTML = `
+      <p><strong>Prompt do atendente pronto.</strong> Ele será embutido automaticamente no fluxo de atendimento que você vai baixar no próximo passo — nada para copiar.</p>
+      <div class="generate-actions">
+        <button class="button button-secondary" type="button" data-copy-prd>Ver / copiar o prompt (opcional)</button>
+      </div>`;
+    resultEl.querySelector("[data-copy-prd]")?.addEventListener("click", async (event) => {
+      const btn = event.currentTarget;
+      try {
+        await navigator.clipboard?.writeText(contentCache[genId] || "");
+        const label = btn.textContent;
+        btn.textContent = "Copiado!";
+        setTimeout(() => { btn.textContent = label; }, 1800);
+      } catch { /* clipboard indisponivel */ }
+    });
+  } else if (genId === "site_prd" || genId === "painel_prd") {
+    // PRD (site ou painel): copiar para colar no Claude + download de backup
+    const prdFile = genId === "painel_prd" ? "prd-painel.md" : "prd-site.md";
     resultEl.innerHTML = `
       <p><strong>PRD pronto.</strong> Copie e cole no Claude (na pasta do projeto que você preparou). Guarde também uma cópia com seus documentos.</p>
       <div class="generate-actions">
@@ -2668,7 +2689,7 @@ function renderGenerateResult(genId) {
       const url = URL.createObjectURL(blob);
       const link = document.createElement("a");
       link.href = url;
-      link.download = "prd-site.md";
+      link.download = prdFile;
       document.body.appendChild(link);
       link.click();
       link.remove();
@@ -3451,6 +3472,9 @@ echo "  Se aparecer timeout: docker service update --force portainer_portainer"
 
 function buildAtendimentoWorkflowJson() {
   const domain = memberApp.state.project.domain || "seudominio.com.br";
+  // Prompt personalizado gerado pelo Agente 11 nesta sessão; fallback genérico
+  const systemPrompt = contentCache.atendimento_prompt
+    || `Voce e o agente de atendimento do negocio. Responda de forma direta, simpatica e objetiva, em mensagens curtas de WhatsApp. Direcione interessados para https://${domain}. Se o cliente pedir para falar com humano, confirme a transferencia e pare de responder.`;
   const workflow = {
     name: "Agente de Atendimento",
     nodes: [
@@ -3504,7 +3528,7 @@ function buildAtendimentoWorkflowJson() {
             values: [
               {
                 role: "system",
-                content: "Voce e o agente de atendimento do negocio. Responda de forma direta, simpatica e objetiva. Se o cliente pedir para falar com humano, confirme a transferencia."
+                content: systemPrompt
               },
               {
                 role: "user",
@@ -3551,6 +3575,244 @@ function buildAtendimentoWorkflowJson() {
       "Webhook Evolution": { main: [[{ node: "Filtra mensagem recebida", type: "main", index: 0 }]] },
       "Filtra mensagem recebida": { main: [[{ node: "Agente IA", type: "main", index: 0 }]] },
       "Agente IA": { main: [[{ node: "Responder via Evolution API", type: "main", index: 0 }]] }
+    },
+    pinData: {},
+    settings: { executionOrder: "v1" }
+  };
+  return JSON.stringify(workflow, null, 2);
+}
+
+// Webhook /webhook/leads — contrato com o formulário do site (Módulo 5)
+function buildLeadsWorkflowJson() {
+  const workflow = {
+    name: "Leads do Site",
+    nodes: [
+      {
+        parameters: {
+          httpMethod: "POST",
+          path: "leads",
+          responseMode: "onReceived",
+          options: { allowedOrigins: "*" }
+        },
+        id: "webhook-leads",
+        name: "Webhook Leads",
+        type: "n8n-nodes-base.webhook",
+        typeVersion: 2,
+        position: [240, 300],
+        webhookId: "leads-webhook"
+      },
+      {
+        parameters: {
+          jsCode: [
+            "const b = $input.first().json.body || {};",
+            "const clean = (v) => String(v || '').trim().slice(0, 500);",
+            "const lead = { nome: clean(b.nome), email: clean(b.email), whatsapp: clean(b.whatsapp), mensagem: clean(b.mensagem) };",
+            "if (!lead.nome && !lead.email && !lead.whatsapp) { return []; }",
+            "return [{ json: lead }];"
+          ].join("\n")
+        },
+        id: "valida-lead",
+        name: "Valida lead",
+        type: "n8n-nodes-base.code",
+        typeVersion: 2,
+        position: [460, 300]
+      },
+      {
+        parameters: {
+          operation: "executeQuery",
+          query: [
+            "create table if not exists site_leads (",
+            "  id serial primary key,",
+            "  nome text, email text, whatsapp text, mensagem text,",
+            "  criado_em timestamptz default now()",
+            ");",
+            "insert into site_leads (nome, email, whatsapp, mensagem)",
+            "values ($1, $2, $3, $4);"
+          ].join("\n"),
+          options: {
+            queryReplacement: "={{ $json.nome }},{{ $json.email }},{{ $json.whatsapp }},{{ $json.mensagem }}"
+          }
+        },
+        id: "salvar-lead",
+        name: "Salvar lead",
+        type: "n8n-nodes-base.postgres",
+        typeVersion: 2.4,
+        position: [680, 300],
+        credentials: {
+          postgres: { id: "SUBSTITUA_PELO_ID_DA_CREDENCIAL", name: "Postgres negocio" }
+        }
+      }
+    ],
+    connections: {
+      "Webhook Leads": { main: [[{ node: "Valida lead", type: "main", index: 0 }]] },
+      "Valida lead": { main: [[{ node: "Salvar lead", type: "main", index: 0 }]] }
+    },
+    pinData: {},
+    settings: { executionOrder: "v1" }
+  };
+  return JSON.stringify(workflow, null, 2);
+}
+
+// Webhook GET /webhook/painel-metricas — alimenta o dashboard do painel de gestão
+function buildMetricsWorkflowJson() {
+  const workflow = {
+    name: "Painel - Metricas",
+    nodes: [
+      {
+        parameters: {
+          httpMethod: "GET",
+          path: "painel-metricas",
+          responseMode: "lastNode",
+          options: { allowedOrigins: "*" }
+        },
+        id: "webhook-metricas",
+        name: "Webhook Metricas",
+        type: "n8n-nodes-base.webhook",
+        typeVersion: 2,
+        position: [240, 300],
+        webhookId: "painel-metricas-webhook"
+      },
+      {
+        parameters: {
+          operation: "executeQuery",
+          query: [
+            "select",
+            "  (select count(*) from site_leads) as total_leads,",
+            "  (select count(*) from site_leads where criado_em > now() - interval '7 days') as leads_7d,",
+            "  (select coalesce(json_agg(t), '[]'::json) from (",
+            "    select nome, email, whatsapp, mensagem, to_char(criado_em, 'DD/MM/YYYY HH24:MI') as data",
+            "    from site_leads order by criado_em desc limit 10",
+            "  ) t) as ultimos;"
+          ].join("\n"),
+          options: {}
+        },
+        id: "consulta-metricas",
+        name: "Consulta metricas",
+        type: "n8n-nodes-base.postgres",
+        typeVersion: 2.4,
+        position: [460, 300],
+        credentials: {
+          postgres: { id: "SUBSTITUA_PELO_ID_DA_CREDENCIAL", name: "Postgres negocio" }
+        }
+      }
+    ],
+    connections: {
+      "Webhook Metricas": { main: [[{ node: "Consulta metricas", type: "main", index: 0 }]] }
+    },
+    pinData: {},
+    settings: { executionOrder: "v1" }
+  };
+  return JSON.stringify(workflow, null, 2);
+}
+
+// Webhook POST /webhook/conselho — Conselho de IA (3 especialistas)
+function buildConselhoWorkflowJson() {
+  const projectName = memberApp.state.project.name || "o negócio";
+  const conselhoPrompt = [
+    `Você é o Conselho de IA de ${projectName} — três especialistas seniores que analisam o negócio e respondem juntos:`,
+    "",
+    "- **Ana (Administração)**: fluxo de caixa, precificação, capacidade de entrega, organização da operação.",
+    "- **Marcos (Marketing)**: aquisição, conteúdo, tráfego, posicionamento e conversão do site.",
+    "- **Vera (Vendas)**: funil, follow-up de leads, atendimento, fechamento e recuperação.",
+    "",
+    "O CONTEXTO ESTRATÉGICO do negócio e as MÉTRICAS atuais vêm anexados a cada pergunta. Baseie-se neles — nunca invente números.",
+    "",
+    "Formato da resposta (WhatsApp-friendly, máx. ~250 palavras):",
+    "1. Cada especialista dá sua leitura em 1-2 frases (comece com o nome).",
+    "2. **Recomendação do Conselho**: UMA ação prioritária, concreta e executável esta semana, com o porquê.",
+    "",
+    "Se os dados forem insuficientes para responder com segurança, diga o que falta medir e como coletar. Responda sempre em português, direto e sem jargões."
+  ].join("\n");
+
+  const workflow = {
+    name: "Conselho de IA",
+    nodes: [
+      {
+        parameters: {
+          httpMethod: "POST",
+          path: "conselho",
+          responseMode: "lastNode",
+          options: { allowedOrigins: "*" }
+        },
+        id: "webhook-conselho",
+        name: "Webhook Conselho",
+        type: "n8n-nodes-base.webhook",
+        typeVersion: 2,
+        position: [240, 300],
+        webhookId: "conselho-webhook"
+      },
+      {
+        parameters: {
+          operation: "executeQuery",
+          query: [
+            "select",
+            "  coalesce((select conteudo from conselho_contexto order by id desc limit 1), 'Contexto estrategico ainda nao cadastrado.') as contexto,",
+            "  (select count(*) from site_leads) as total_leads,",
+            "  (select count(*) from site_leads where criado_em > now() - interval '7 days') as leads_7d;"
+          ].join("\n"),
+          options: {}
+        },
+        id: "consulta-contexto",
+        name: "Consulta contexto",
+        type: "n8n-nodes-base.postgres",
+        typeVersion: 2.4,
+        position: [460, 300],
+        credentials: {
+          postgres: { id: "SUBSTITUA_PELO_ID_DA_CREDENCIAL", name: "Postgres negocio" }
+        }
+      },
+      {
+        parameters: {
+          resource: "chat",
+          modelId: { value: "gpt-4o" },
+          messages: {
+            values: [
+              {
+                role: "system",
+                content: conselhoPrompt
+              },
+              {
+                role: "user",
+                content: "={{ 'CONTEXTO ESTRATÉGICO:\\n' + $json.contexto + '\\n\\nMÉTRICAS ATUAIS: total de leads = ' + $json.total_leads + '; leads nos últimos 7 dias = ' + $json.leads_7d + '\\n\\nPERGUNTA DO EMPREENDEDOR:\\n' + $('Webhook Conselho').item.json.body.pergunta }}"
+              }
+            ]
+          },
+          options: {}
+        },
+        id: "conselho-ia",
+        name: "Conselho IA",
+        type: "n8n-nodes-base.openAi",
+        typeVersion: 1.8,
+        position: [680, 300],
+        credentials: {
+          openAiApi: { id: "SUBSTITUA_PELO_ID_DA_CREDENCIAL", name: "OpenAi account" }
+        }
+      },
+      {
+        parameters: {
+          assignments: {
+            assignments: [
+              {
+                id: "resposta-field",
+                name: "resposta",
+                value: "={{ $json.message.content }}",
+                type: "string"
+              }
+            ]
+          },
+          options: {}
+        },
+        id: "formata-resposta",
+        name: "Formata resposta",
+        type: "n8n-nodes-base.set",
+        typeVersion: 3.4,
+        position: [900, 300]
+      }
+    ],
+    connections: {
+      "Webhook Conselho": { main: [[{ node: "Consulta contexto", type: "main", index: 0 }]] },
+      "Consulta contexto": { main: [[{ node: "Conselho IA", type: "main", index: 0 }]] },
+      "Conselho IA": { main: [[{ node: "Formata resposta", type: "main", index: 0 }]] }
     },
     pinData: {},
     settings: { executionOrder: "v1" }
