@@ -98,22 +98,21 @@ Repita o bloco para cada Reel da grade.
 
 ### CARROSSEL (Instagram Feed)
 
-**Formato de entrega — uma tabela por carrossel:**
+**Formato de entrega — UMA ÚNICA tabela Markdown com TODOS os carrosseis da grade.** Não escreva nenhum texto fora da tabela (o conteúdo vira uma planilha para o usuário).
+
+Colunas:
 
 ```
-📊 CARROSSEL — [Data] — [Tema]
-
-| Slide | Texto | Prompt de imagem |
-|---|---|---|
-| Capa (1) | [Título curto e magnético — máx. 8 palavras] | [Descrição visual para IA: estilo, elementos, paleta #102A43/#00C896, sem texto na imagem] |
-| 2 | [Ponto principal + explicação curta] | [Prompt de imagem ou "fundo sólido #F5F7FA"] |
-| 3 | [Ponto + explicação] | [Prompt ou fundo] |
-| 4 | [Ponto + explicação] | [Prompt ou fundo] |
-| CTA (5) | [Encerramento + chamada para ação clara] | [Prompt ou fundo com destaque verde #00C896] |
-
-📝 Legenda:
-[Texto em formato mini-artigo: gancho, desenvolvimento, CTA + 3 a 5 hashtags]
+| Data | Tema | Slide | Texto | Prompt de imagem |
 ```
+
+Regras da tabela:
+- Uma linha por slide; repita Data e Tema em todas as linhas do mesmo carrossel
+- Slides: `Capa (1)`, `2`, `3`, `4`, `CTA (5)`
+- Capa: título curto e magnético (máx. 8 palavras); CTA: encerramento + chamada clara para ação
+- Prompt de imagem: descrição visual para IA usando a paleta da marca (Seção 6), sem texto na imagem
+- Após os slides de cada carrossel, adicione uma linha final com Slide = `Legenda`, Texto = legenda completa do post (mini-artigo: gancho, desenvolvimento, CTA + 3 a 5 hashtags) e Prompt de imagem = `—`
+- Não use quebras de linha dentro das células
 
 ---
 

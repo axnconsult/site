@@ -2319,6 +2319,30 @@ function renderLessonStage(lesson, steps) {
     });
   });
 
+  document.querySelectorAll(".btn-approve-image").forEach((button) => {
+    button.addEventListener("click", async () => {
+      const genId = button.dataset.generateId;
+      const imageUrl = contentCache[genId];
+      if (!imageUrl) return;
+      try {
+        // data URLs baixam direto; URLs remotas passam por blob para forçar o download
+        const href = imageUrl.startsWith("data:")
+          ? imageUrl
+          : URL.createObjectURL(await (await fetch(imageUrl)).blob());
+        const link = document.createElement("a");
+        link.href = href;
+        link.download = "peca-campanha.png";
+        document.body.appendChild(link);
+        link.click();
+        link.remove();
+        if (!imageUrl.startsWith("data:")) URL.revokeObjectURL(href);
+      } catch {
+        // fetch bloqueado por CORS — abre em nova aba para salvar manualmente
+        window.open(imageUrl, "_blank");
+      }
+    });
+  });
+
   document.querySelectorAll(".btn-regenerate").forEach((button) => {
     button.addEventListener("click", () => handleGenerateClick(button));
   });
@@ -2376,8 +2400,8 @@ async function handleGenerateClick(button) {
       // Linhas SSE podem chegar cortadas entre chunks — o resto fica no buffer
       let lineBuffer = "";
 
-      if (resultEl) resultEl.classList.remove("is-rendered");
-
+      // O texto bruto não é exibido durante o streaming — só o resultado final,
+      // renderizado. Durante a geração o usuário vê o spinner de status.
       while (true) {
         const { done, value } = await reader.read();
         if (done) break;
@@ -2390,9 +2414,7 @@ async function handleGenerateClick(button) {
           let event;
           try { event = JSON.parse(dataStr); } catch { continue; }
           if (event.type === "delta" && event.text) {
-            if (!accumulated && resultEl) resultEl.classList.remove("hidden");
             accumulated += event.text;
-            if (resultEl) resultEl.textContent = accumulated;
           } else if (event.type === "done") {
             if (event.ok === false) {
               throw new Error(errorMessageForCode(event.error || "generate_failed"));
@@ -2439,9 +2461,7 @@ async function handleGenerateClick(button) {
       contentCache[genId] = data.url;
 
       const imgEl = document.querySelector(`#generate-image-${genId}`);
-      const downloadEl = document.querySelector(`#generate-image-download-${genId}`);
       if (imgEl) imgEl.src = data.url;
-      if (downloadEl) downloadEl.href = data.url;
       if (resultEl) resultEl.classList.remove("hidden");
       if (feedbackEl) feedbackEl.classList.add("hidden");
       if (feedbackInput) feedbackInput.value = "";
@@ -2490,25 +2510,34 @@ function renderGenerateResult(genId) {
       URL.revokeObjectURL(url);
     });
   } else {
-    const downloadNames = {
-      roteiros_reels: ["roteiros-reels-shorts.md", "Baixar roteiros de Reels / Shorts (.md)"],
-      roteiros_carrossel: ["roteiros-carrossel.md", "Baixar roteiros de Carrossel (.md)"],
-      roteiros_feed: ["posts-feed.md", "Baixar posts de Feed (.md)"],
-      roteiros_stories: ["roteiros-stories.md", "Baixar roteiros de Stories (.md)"]
+    // Roteiros: tela limpa — só confirmação + botão de download
+    // (Carrossel vira planilha CSV; os demais formatos saem em .md)
+    const downloads = {
+      roteiros_reels:     { file: "roteiros-reels-shorts.md", label: "Baixar roteiros de Reels / Shorts (.md)", kind: "md", name: "Roteiros de Reels / Shorts" },
+      roteiros_carrossel: { file: "carrosseis.csv",           label: "Baixar carrosseis (.csv)",                kind: "csv", name: "Carrosseis" },
+      roteiros_feed:      { file: "posts-feed.md",            label: "Baixar posts de Feed (.md)",              kind: "md", name: "Posts de Feed" },
+      roteiros_stories:   { file: "roteiros-stories.md",      label: "Baixar roteiros de Stories (.md)",        kind: "md", name: "Roteiros de Stories" }
     };
-    const download = downloadNames[genId];
-    resultEl.innerHTML = markdownToHtml(full) + (download
-      ? `<div class="generate-actions">
-           <button class="button button-primary" type="button" data-download-text>${escapeHtml(download[1])}</button>
-           <p class="generate-note">Guarde o arquivo junto do seu planejamento — o conteúdo não fica salvo no app.</p>
-         </div>`
-      : "");
+    const download = downloads[genId];
+    if (!download) {
+      resultEl.innerHTML = markdownToHtml(full);
+      return;
+    }
+    resultEl.innerHTML = `
+      <p><strong>${escapeHtml(download.name)} prontos.</strong> Baixe o arquivo, revise e guarde junto do seu planejamento — o conteúdo não fica salvo no app.</p>
+      <div class="generate-actions">
+        <button class="button button-primary" type="button" data-download-text>${escapeHtml(download.label)}</button>
+      </div>`;
     resultEl.querySelector("[data-download-text]")?.addEventListener("click", () => {
-      const blob = new Blob([contentCache[genId] || ""], { type: "text/markdown;charset=utf-8" });
+      const raw = contentCache[genId] || "";
+      const isCsv = download.kind === "csv";
+      const content = isCsv ? gradeTableToCsv(splitGeneratedTable(raw).tableMd) : raw;
+      const mime = isCsv ? "text/csv;charset=utf-8" : "text/markdown;charset=utf-8";
+      const blob = new Blob([content], { type: mime });
       const url = URL.createObjectURL(blob);
       const link = document.createElement("a");
       link.href = url;
-      link.download = download[0];
+      link.download = download.file;
       document.body.appendChild(link);
       link.click();
       link.remove();
@@ -2539,6 +2568,7 @@ function splitGeneratedTable(text) {
 
 function gradeTableToCsv(tableMd) {
   const rows = [];
+  let headerRow = "";
   for (const line of String(tableMd || "").split("\n")) {
     if (!line.includes("|")) continue;
     // pula linha separadora do markdown (|---|---|)
@@ -2548,7 +2578,11 @@ function gradeTableToCsv(tableMd) {
       .replace(/\|$/, "")
       .split("|")
       .map((cell) => cell.trim().replace(/\*\*/g, ""));
-    rows.push(cells.map((cell) => (/[";\n]/.test(cell) ? `"${cell.replace(/"/g, '""')}"` : cell)).join(";"));
+    const row = cells.map((cell) => (/[";\n]/.test(cell) ? `"${cell.replace(/"/g, '""')}"` : cell)).join(";");
+    // se o agente emitir varias tabelas, o cabecalho repetido e descartado
+    if (!headerRow) headerRow = row;
+    else if (row === headerRow) continue;
+    rows.push(row);
   }
   // BOM para o Excel abrir acentos corretamente; ';' é o separador padrão pt-BR
   return String.fromCharCode(0xfeff) + rows.join("\r\n");
@@ -3460,7 +3494,7 @@ function buildLessonStepContent(step, lesson) {
             <div class="generate-image-result${cachedImg ? "" : " hidden"}" id="generate-result-${escapeHtml(gen.id)}">
               <img class="generated-image" id="generate-image-${escapeHtml(gen.id)}" src="${cachedImg || ""}" alt="Peca gerada" />
               <div class="generate-image-actions">
-                <a class="button button-primary" id="generate-image-download-${escapeHtml(gen.id)}" href="${cachedImg || "#"}" download="peca-campanha.png" target="_blank">Aprovar e baixar</a>
+                <button class="button button-primary btn-approve-image" type="button" data-generate-id="${escapeHtml(gen.id)}">Aprovar e baixar</button>
                 <button class="button button-secondary btn-generate-feedback" type="button" data-generate-id="${escapeHtml(gen.id)}">Quero ajustar</button>
               </div>
               <div class="generate-feedback hidden" id="generate-feedback-${escapeHtml(gen.id)}">

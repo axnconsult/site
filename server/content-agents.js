@@ -76,6 +76,12 @@ export async function streamContentGeneration({ rootDir, query, member, payload,
   }
 
   const today = new Date().toLocaleDateString("pt-BR");
+  // A grade começa na segunda-feira da semana seguinte — dá folga para o aluno
+  // terminar a implementação guiada antes do primeiro post
+  const gridStart = new Date();
+  const daysUntilNextMonday = ((8 - gridStart.getDay()) % 7) || 7;
+  gridStart.setDate(gridStart.getDate() + daysUntilNextMonday);
+  const gridStartDate = gridStart.toLocaleDateString("pt-BR");
 
   const FORMAT_MAP = {
     roteiros_reels:     "Reels / Shorts",
@@ -93,7 +99,8 @@ export async function streamContentGeneration({ rootDir, query, member, payload,
       "",
       "## Contexto de execução",
       "",
-      `Data de início da grade: ${today}`,
+      `Hoje é ${today}.`,
+      `Data de início da grade: ${gridStartDate} (segunda-feira). O primeiro dia da grade é essa data, e os 28 dias correm a partir dela.`,
       "",
       "## Planejamento estratégico do empreendimento",
       "",
@@ -209,15 +216,16 @@ export async function generateCampaignImage({ rootDir, query, member, payload })
     return { ok: false, error: "image_prompt_empty" };
   }
 
-  // gpt-image-1 é o modelo atual (retrato 1024x1536, retorna b64);
-  // dall-e-3 fica como fallback para contas sem acesso ao novo modelo
-  const primaryModel = process.env.OPENAI_IMAGE_MODEL || "gpt-image-1";
-  const attempts = primaryModel === "dall-e-3"
-    ? [{ model: "dall-e-3", size: "1024x1792", response_format: "url" }]
-    : [
-        { model: primaryModel, size: "1024x1536" },
-        { model: "dall-e-3", size: "1024x1792", response_format: "url" }
-      ];
+  // gpt-image-2 é o modelo atual (abr/2026); cadeia de fallback para contas
+  // sem acesso: gpt-image-2 → gpt-image-1 → dall-e-3
+  const primaryModel = process.env.OPENAI_IMAGE_MODEL || "gpt-image-2";
+  const configFor = (model) => model === "dall-e-3"
+    ? { model, size: "1024x1792", response_format: "url" }
+    : { model, size: "1024x1536" };
+  const seen = new Set();
+  const attempts = [primaryModel, "gpt-image-1", "dall-e-3"]
+    .filter((model) => !seen.has(model) && seen.add(model))
+    .map(configFor);
 
   let lastDetail = "";
 

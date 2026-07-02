@@ -86,7 +86,7 @@ Antes de montar a tabela, defina explicitamente:
 
 ### FASE 3 — CONSTRUÇÃO DA GRADE (28 DIAS)
 
-Distribua os conteúdos ao longo de 28 dias corridos usando datas reais a partir da data de início fornecida.
+Distribua os conteúdos ao longo de 28 dias corridos usando datas reais a partir da data de início fornecida pelo sistema. A data de início é sempre uma segunda-feira — o primeiro dia da grade é essa segunda-feira, e a grade cobre 4 semanas completas a partir dela.
 
 **Tipos de conteúdo e plataformas:**
 
@@ -121,8 +121,10 @@ Lista dos 3–4 pilares com uma linha de descrição cada.
 Tabela em Markdown com as colunas abaixo. Sem texto adicional dentro da tabela.
 
 ```
-| Data | Dia | Fase do Funil | Plataforma | Formato | Tema do Conteúdo | Dor ou Desejo Atendido |
+| Data | Fase do Funil | Plataforma | Formato | Tema do Conteúdo | Dor ou Desejo Atendido |
 ```
+
+Use apenas a data no formato DD/MM/AAAA. NÃO inclua coluna de dia da semana nem mencione dias da semana — calcular dias da semana gera erros.
 
 ### 4. Nota Estratégica
 
