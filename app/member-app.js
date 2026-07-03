@@ -3364,6 +3364,8 @@ services:
       - CACHE_REDIS_PREFIX_KEY=evolution
       - CACHE_REDIS_SAVE_INSTANCES=true
       - CACHE_LOCAL_ENABLED=false
+      - CHATWOOT_ENABLED=true
+      - CHATWOOT_MESSAGE_READ=true
       - LOG_LEVEL=ERROR
       - DEL_INSTANCE=false
     volumes:
