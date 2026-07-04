@@ -1092,61 +1092,44 @@ networks:
   },
   {
     id: "crm",
-    title: "CRM e leads",
-    objective: "Configurar Chatwoot como CRM leve, criar pipeline de contatos e conectar o n8n para registrar automaticamente novos leads do atendimento.",
+    title: "Funil no Chatwoot",
+    objective: "Organizar o Chatwoot como um CRM leve: etiquetas de funil e campos de contato para acompanhar cada lead.",
     tutorial: [
       {
-        heading: "1. Configure o pipeline no Chatwoot",
-        body: `<p>No Chatwoot, acesse <strong>Configurações → Labels</strong> e crie etiquetas para as fases do funil:</p>
+        heading: "1. Crie as etiquetas do funil",
+        body: `<p>No Chatwoot, acesse <strong>Configurações → Marcadores → Adicionar marcador</strong> e crie uma etiqueta para cada fase do funil:</p>
 <ul>
-  <li><code>novo-lead</code></li>
-  <li><code>em-contato</code></li>
-  <li><code>proposta-enviada</code></li>
-  <li><code>fechado</code></li>
-  <li><code>perdido</code></li>
+  <li><code>novo-lead</code> — chegou agora, ainda não foi atendido</li>
+  <li><code>em-contato</code> — conversa em andamento</li>
+  <li><code>proposta-enviada</code> — já recebeu preço/oferta</li>
+  <li><code>fechado</code> — comprou 🎉</li>
+  <li><code>perdido</code> — não avançou</li>
 </ul>
-<p>Cada conversa pode receber uma etiqueta que representa o estágio do lead. Avance manualmente conforme o lead progride no funil.</p>`
+<p>Essas etiquetas são o seu funil de vendas dentro do Chatwoot.</p>`
       },
       {
-        heading: "2. Configure campos de contato",
-        body: `<p>No Chatwoot, acesse <strong>Configurações → Atributos personalizados → Contato</strong>. Crie os atributos que o agente vai coletar:</p>
+        heading: "2. Crie os campos de contato",
+        body: `<p>No Chatwoot, acesse <strong>Configurações → Atributos personalizados → Contato</strong> e clique em <strong>Adicionar atributo personalizado</strong>. Em <strong>"Aplica-se a"</strong>, selecione <strong>Contact</strong> (não Conversation) e crie estes três, tipo <em>Text</em>:</p>
 <ul>
-  <li><strong>Empresa</strong> (tipo: texto)</li>
-  <li><strong>Interesse</strong> (tipo: texto)</li>
-  <li><strong>Canal de origem</strong> (tipo: texto)</li>
+  <li><strong>Empresa</strong></li>
+  <li><strong>Interesse</strong></li>
+  <li><strong>Canal de origem</strong></li>
 </ul>
-<p>Esses campos aparecem no perfil do contato e podem ser preenchidos via API pelo n8n automaticamente.</p>`
+<p>Eles aparecem no perfil de cada pessoa e ficam guardados para sempre — quando o mesmo lead voltar a falar com você, a informação continua lá.</p>`
       },
       {
-        heading: "3. Configure o webhook do Chatwoot no n8n",
-        body: `<p>No Chatwoot, acesse <strong>Configurações → Integrações → Webhooks → Adicionar</strong>. Crie um webhook com:</p>
-<ul>
-  <li><strong>URL:</strong> a URL do nó Webhook do n8n que você vai criar.</li>
-  <li><strong>Evento:</strong> marque <code>conversation_created</code>.</li>
-</ul>
-<p>No n8n, crie um workflow com um nó <strong>Webhook</strong> (método POST) e copie a URL gerada de volta para o campo no Chatwoot.</p>`
-      },
-      {
-        heading: "4. Registre o lead e aplique a etiqueta via n8n",
-        body: `<p>No workflow do n8n, após o Webhook, adicione dois nós <strong>HTTP Request</strong> em sequência:</p>
+        heading: "3. Use o funil no dia a dia",
+        body: `<p>Quando uma conversa nova chega no Chatwoot (do WhatsApp ou anotada de um lead do site), você trabalha o lead assim:</p>
 <ol>
-  <li><strong>Atualiza atributos do contato</strong> — preenche empresa, interesse e canal de origem com os dados coletados pelo agente.</li>
-  <li><strong>Aplica etiqueta novo-lead</strong> — marca a conversa no funil:</li>
-</ol>`,
-        command: `POST https://chat.{{domain}}/api/v1/accounts/1/conversations/ID_CONVERSA/labels\n{ "labels": ["novo-lead"] }`
-      },
-      {
-        heading: "5. Valide o fluxo",
-        body: `<p>Envie uma mensagem de teste para o WhatsApp conectado. Verifique:</p>
-<ul>
-  <li>A conversa aparece no Chatwoot com a etiqueta <code>novo-lead</code>.</li>
-  <li>O contato tem os atributos preenchidos.</li>
-  <li>O agente respondeu automaticamente.</li>
-</ul>`
+  <li>Abra a conversa e, no painel da direita, aplique a etiqueta <code>novo-lead</code>.</li>
+  <li>Preencha o que souber nos campos <strong>Empresa</strong>, <strong>Interesse</strong> e <strong>Canal de origem</strong>.</li>
+  <li>Conforme o lead avança, troque a etiqueta (<code>em-contato</code> → <code>proposta-enviada</code> → <code>fechado</code> ou <code>perdido</code>).</li>
+</ol>
+<p>Simples e visual: a qualquer momento você filtra por etiqueta e vê quantos leads estão em cada fase. É o seu CRM funcionando, sem planilha.</p>`
       }
     ],
-    validation: "Um lead de teste aparecer no Chatwoot com etiqueta novo-lead e atributos preenchidos.",
-    done: "Pipeline de leads ativo e registro automatico funcionando via n8n."
+    validation: "Etiquetas do funil e os tres campos de contato criados no Chatwoot.",
+    done: "Chatwoot organizado como CRM leve, pronto para acompanhar os leads."
   },
 
   // ─── Módulo 4 — Presença Comercial ──────────────────────────────────────────
@@ -1401,7 +1384,8 @@ networks:
   <li><strong>Token:</strong> o token do passo 2</li>
   <li><strong>Sign messages:</strong> desativado · <strong>Reopen conversation:</strong> ativado · <strong>Conversation pending:</strong> desativado</li>
 </ul>
-<p>Salve. A Evolution cria automaticamente uma caixa de entrada no Chatwoot para o WhatsApp.</p>`
+<p>Salve. A Evolution cria automaticamente uma caixa de entrada no Chatwoot para o WhatsApp.</p>
+<p>Aproveite e ajuste também em <strong>Configurações → Comportamento</strong> da instância: ative <strong>Ignorar Grupos</strong> (senão o atendente de IA vai responder em grupos!) e, se quiser, <strong>Rejeitar Chamadas</strong> com uma mensagem educada e <strong>Sempre Online</strong>. Deixe <strong>Sincronizar Histórico Completo</strong> desligado.</p>`
       },
       {
         heading: "5. Conecte o número via QR code",
