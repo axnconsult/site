@@ -1370,7 +1370,7 @@ networks:
 <p><code>{{evolutionApiKey}}</code></p>
 <ol>
   <li>Clique em <strong>Instance +</strong> (criar instância).</li>
-  <li>Nome da instância: <strong>atendimento</strong> — use exatamente esse nome, minúsculo; o fluxo de automação depende dele.</li>
+  <li>Nome da instância: <strong>atendimento</strong> (sugestão — o fluxo de automação funciona com qualquer nome).</li>
   <li>Channel: <strong>Baileys</strong>. Salve.</li>
 </ol>`
       },
@@ -3527,7 +3527,8 @@ function buildAtendimentoWorkflowJson() {
       {
         parameters: {
           method: "POST",
-          url: `https://evo.${domain}/message/sendText/atendimento`,
+          // O nome da instância vem do próprio webhook — evita erro de maiúscula/minúscula
+          url: `=https://evo.${domain}/message/sendText/{{ $('Webhook Evolution').item.json.body.instance }}`,
           sendHeaders: true,
           headerParameters: {
             parameters: [{ name: "apikey", value: memberApp.state.project.evolutionApiKey || "CHAVE_EVOLUTION_AQUI" }]
