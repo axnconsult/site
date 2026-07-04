@@ -1449,7 +1449,8 @@ networks:
     tutorial: [
       {
         heading: "1. Gere o prompt do seu atendente",
-        body: `<p>O agente lê o seu planejamento estratégico e escreve as instruções do atendente de IA: tom da sua marca, conhecimento do produto e da oferta, respostas às objeções mais comuns — e a missão de direcionar o interessado para o seu site.</p>`,
+        body: `<p>O agente lê o seu planejamento estratégico e escreve as instruções do atendente de IA: tom da sua marca, conhecimento do produto e da oferta, respostas às objeções mais comuns — e a missão de direcionar o interessado para o seu site.</p>
+<p>Depois de gerar, o texto fica <strong>editável</strong> — ajuste o que quiser antes de seguir.</p>`,
         generate: {
           id: "atendimento_prompt",
           type: "text",
@@ -2635,21 +2636,18 @@ function renderGenerateResult(genId) {
       URL.revokeObjectURL(url);
     });
   } else if (genId === "atendimento_prompt") {
-    // Prompt do atendente: embutido automaticamente no download do workflow
+    // Prompt do atendente: editável — a versão do campo é embutida no download do fluxo
     resultEl.innerHTML = `
-      <p><strong>Prompt do atendente pronto.</strong> Ele será embutido automaticamente no fluxo de atendimento que você vai baixar no próximo passo — nada para copiar.</p>
-      <div class="generate-actions">
-        <button class="button button-secondary" type="button" data-copy-prd>Ver / copiar o prompt (opcional)</button>
-      </div>`;
-    resultEl.querySelector("[data-copy-prd]")?.addEventListener("click", async (event) => {
-      const btn = event.currentTarget;
-      try {
-        await navigator.clipboard?.writeText(contentCache[genId] || "");
-        const label = btn.textContent;
-        btn.textContent = "Copiado!";
-        setTimeout(() => { btn.textContent = label; }, 1800);
-      } catch { /* clipboard indisponivel */ }
-    });
+      <p><strong>Prompt do atendente pronto.</strong> Revise e ajuste à vontade no campo abaixo — o texto que estiver aqui é o que será embutido no fluxo de atendimento que você baixa no próximo passo.</p>
+      <textarea class="generate-feedback-input generate-prompt-editor"></textarea>
+      <p class="generate-note">Quiser mudar depois de importar? No n8n, abra o nó <strong>Agente IA</strong> — o prompt fica no campo da mensagem <em>system</em>, editável a qualquer momento.</p>`;
+    const editor = resultEl.querySelector(".generate-prompt-editor");
+    if (editor) {
+      editor.value = full;
+      editor.addEventListener("input", () => {
+        contentCache[genId] = editor.value;
+      });
+    }
   } else if (genId === "site_prd" || genId === "painel_prd") {
     // PRD (site ou painel): copiar para colar no Claude + download de backup
     const prdFile = genId === "painel_prd" ? "prd-painel.md" : "prd-site.md";
@@ -3508,25 +3506,18 @@ function buildAtendimentoWorkflowJson() {
       },
       {
         parameters: {
-          resource: "chat",
-          modelId: { value: "gpt-4o-mini" },
+          modelId: { __rl: true, value: "gpt-4o-mini", mode: "list", cachedResultName: "gpt-4o-mini" },
           messages: {
             values: [
-              {
-                role: "system",
-                content: systemPrompt
-              },
-              {
-                role: "user",
-                content: "={{ $json.body.data.message.conversation }}"
-              }
+              { content: systemPrompt, role: "system" },
+              { content: "={{ $json.body.data.message.conversation }}", role: "user" }
             ]
           },
           options: {}
         },
         id: "agente-ia",
         name: "Agente IA",
-        type: "n8n-nodes-base.openAi",
+        type: "@n8n/n8n-nodes-langchain.openAi",
         typeVersion: 1.8,
         position: [680, 220],
         credentials: {
@@ -3749,25 +3740,18 @@ function buildConselhoWorkflowJson() {
       },
       {
         parameters: {
-          resource: "chat",
-          modelId: { value: "gpt-4o" },
+          modelId: { __rl: true, value: "gpt-4o", mode: "list", cachedResultName: "gpt-4o" },
           messages: {
             values: [
-              {
-                role: "system",
-                content: conselhoPrompt
-              },
-              {
-                role: "user",
-                content: "={{ 'CONTEXTO ESTRATÉGICO:\\n' + $json.contexto + '\\n\\nMÉTRICAS ATUAIS: total de leads = ' + $json.total_leads + '; leads nos últimos 7 dias = ' + $json.leads_7d + '\\n\\nPERGUNTA DO EMPREENDEDOR:\\n' + $('Webhook Conselho').item.json.body.pergunta }}"
-              }
+              { content: conselhoPrompt, role: "system" },
+              { content: "={{ 'CONTEXTO ESTRATÉGICO:\\n' + $json.contexto + '\\n\\nMÉTRICAS ATUAIS: total de leads = ' + $json.total_leads + '; leads nos últimos 7 dias = ' + $json.leads_7d + '\\n\\nPERGUNTA DO EMPREENDEDOR:\\n' + $('Webhook Conselho').item.json.body.pergunta }}", role: "user" }
             ]
           },
           options: {}
         },
         id: "conselho-ia",
         name: "Conselho IA",
-        type: "n8n-nodes-base.openAi",
+        type: "@n8n/n8n-nodes-langchain.openAi",
         typeVersion: 1.8,
         position: [680, 300],
         credentials: {

@@ -2099,6 +2099,13 @@ button:focus {
   margin-bottom: -4px;
 }
 
+.generate-prompt-editor {
+  min-height: 280px;
+  font-size: 0.82rem;
+  line-height: 1.5;
+  margin: 10px 0;
+}
+
 .generate-image-result {
   display: grid;
   gap: 14px;
