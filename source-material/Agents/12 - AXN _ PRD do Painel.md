@@ -31,7 +31,9 @@ Entregue SOMENTE o PRD em português, sem introdução ou comentário. Estrutura
 **Abertura** — o Claude vai construir e publicar o painel de gestão do negócio; os documentos estão na pasta do projeto; confirmar com o usuário antes de cada comando que altere o servidor.
 
 **1. Pré-checagens (ANTES de qualquer alteração)**
-   - Testar os webhooks: `curl https://workflows.DOMINIO/webhook/painel-metricas` deve responder JSON; se falhar, PARE e instrua o usuário a ativar os workflows no n8n (etapa anterior do curso)
+   - Testar o webhook de métricas: `curl https://workflows.DOMINIO/webhook/painel-metricas` deve responder JSON
+   - Testar o webhook do Conselho — ele é POST (um GET devolve 404 mesmo ativo): `curl -X POST -H "Content-Type: application/json" -d '{"pergunta":"teste"}' https://workflows.DOMINIO/webhook/conselho` deve responder JSON com o campo `resposta` (pode levar 10–30s)
+   - Se qualquer um falhar, PARE e instrua o usuário a ativar os workflows no n8n (etapa anterior do curso)
    - DNS: verificar com `nslookup` se `gestao.DOMINIO` resolve para o IP da VPS; se não, instruir o usuário a criar o registro A na Cloudflare (`gestao` → IP, DNS only) — se houver curinga `*`, já está coberto
    - SSH não interativo no Windows: instalar PuTTY via winget (avisar antes sobre a janela UAC), capturar a chave do host uma vez de forma não interativa (`echo y | plink ...`) e usar `-batch` em TODOS os comandos seguintes; NUNCA deixar um comando SSH aguardando confirmação interativa
    - Pedir a senha root da VPS (gerenciador de senhas do usuário; IP no documento de infra da pasta)

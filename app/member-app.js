@@ -3655,6 +3655,7 @@ function buildMetricsWorkflowJson() {
         parameters: {
           operation: "executeQuery",
           query: [
+            "create table if not exists site_leads (id serial primary key, nome text, email text, whatsapp text, mensagem text, criado_em timestamptz default now());",
             "select",
             "  (select count(*) from site_leads) as total_leads,",
             "  (select count(*) from site_leads where criado_em > now() - interval '7 days') as leads_7d,",
@@ -3724,6 +3725,8 @@ function buildConselhoWorkflowJson() {
         parameters: {
           operation: "executeQuery",
           query: [
+            "create table if not exists site_leads (id serial primary key, nome text, email text, whatsapp text, mensagem text, criado_em timestamptz default now());",
+            "create table if not exists conselho_contexto (id serial primary key, conteudo text, criado_em timestamptz default now());",
             "select",
             "  coalesce((select conteudo from conselho_contexto order by id desc limit 1), 'Contexto estrategico ainda nao cadastrado.') as contexto,",
             "  (select count(*) from site_leads) as total_leads,",
