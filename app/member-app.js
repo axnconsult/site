@@ -1408,7 +1408,7 @@ networks:
       {
         heading: "1. Crie o banco de dados do negócio",
         body: `<p>Conecte no SSH da VPS (como no módulo 3) e rode o comando abaixo — ele cria o banco <code>negocio</code>, onde seus leads e dados de gestão vão morar:</p>`,
-        command: `docker exec -t $(docker ps -q -f name=axon_postgres) psql -U postgres -c "CREATE DATABASE negocio OWNER axon_app;"`
+        command: `docker exec -t $(docker ps -q -f name=axon_postgres) sh -c 'psql -U "\${POSTGRES_USER:-postgres}" -c "CREATE DATABASE negocio OWNER axon_app;"'`
       },
       {
         heading: "2. Crie a credencial do Postgres no n8n",
@@ -1491,7 +1491,8 @@ networks:
     tutorial: [
       {
         heading: "1. Importe e ative os dois fluxos do painel",
-        body: `<p>Baixe, importe no n8n e <strong>ative</strong> os dois fluxos (em ambos, selecione a credencial <strong>Postgres negocio</strong> nos nós de banco; no fluxo do Conselho, selecione também a credencial <strong>OpenAI</strong> no nó de IA):</p>
+        body: `<p><strong>Pré-requisito:</strong> estes fluxos usam a credencial <strong>Postgres negocio</strong>, criada na etapa "Leads do site" (passo 2), e a credencial <strong>OpenAI</strong> do módulo 3. Se ainda não completou a etapa de leads, volte lá primeiro.</p>
+<p>Baixe, importe no n8n e <strong>ative</strong> os dois fluxos (em ambos, selecione a credencial <strong>Postgres negocio</strong> nos nós de banco; no fluxo do Conselho, selecione também a credencial <strong>OpenAI</strong> no nó de IA):</p>
 <p><button class="button button-primary" type="button" id="download-n8n-metricas">Baixar fluxo de metricas (.json)</button></p>
 <p><button class="button button-primary" type="button" id="download-n8n-conselho">Baixar fluxo do Conselho (.json)</button></p>
 <p>O primeiro alimenta o dashboard; o segundo é o Conselho de IA — três especialistas (administração, marketing e vendas) que analisam seus dados e fecham uma recomendação.</p>`
