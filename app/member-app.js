@@ -68,7 +68,7 @@ const COURSE_MODULES = [
     result: "Atendimento automatico no ar e Conselho de IA acompanhando o negocio",
     stages: [
       ["Conectar o WhatsApp", "Crie a instancia na Evolution API, escaneie o QR code e integre ao Chatwoot.", "technical", null, ["whatsapp-connect"]],
-      ["Leads do site", "Ative o webhook que registra os leads do formulario do site no seu banco e organize o funil no Chatwoot.", "technical", null, ["leads-webhook", "crm"]],
+      ["Leads e vendas do site", "Ative os webhooks que registram leads do formulario e vendas do checkout no seu banco.", "technical", null, ["leads-webhook", "crm"]],
       ["Agente de atendimento", "Gere o prompt personalizado do seu atendente de IA e ative o fluxo que responde o WhatsApp.", "technical", null, ["atendimento-agente"]],
       ["Painel e Conselho de IA", "Publique o painel de gestao no seu dominio com dashboard de leads e o Conselho de 3 especialistas.", "technical", null, ["painel-conselho"]]
     ]
@@ -1285,6 +1285,7 @@ networks:
   <li><strong>Stripe:</strong> Dashboard → <strong>Payment Links</strong> → Create payment link → cadastre produto e preço → copie o link. <strong>Atenção:</strong> confira que o Dashboard está em modo <strong>produção</strong> (chave "Test mode" desligada) — link de teste começa com <code>buy.stripe.com/test_</code> e não processa vendas reais.</li>
   <li><strong>Mercado Pago:</strong> Seu negócio → <strong>Link de pagamento</strong> → crie o link com o valor do seu produto → copie o link.</li>
 </ul>
+<p>💡 No módulo 6, as vendas deste link serão conectadas automaticamente ao seu painel de gestão.</p>
 <p>Cole o link abaixo:</p>`,
         field: "paymentLink"
       },
@@ -1358,11 +1359,17 @@ networks:
       },
       {
         heading: "2. Copie o token e o ID da conta do Chatwoot",
-        body: `<p>Dois dados para a integração:</p>
+        body: `<p>Dois dados para a integração — cole-os nos campos abaixo (o app usa nos fluxos de automação):</p>
 <ul>
   <li><strong>Token:</strong> no Chatwoot, clique no seu avatar → <strong>Configurações do perfil</strong> → role até <strong>Token de acesso</strong> e copie.</li>
   <li><strong>ID da conta:</strong> é o número que aparece na URL depois de <code>/accounts/</code> (ex: <code>chat.{{domain}}/app/accounts/<strong>1</strong>/...</code> → ID é <code>1</code>).</li>
-</ul>`
+</ul>`,
+        field: "chatwootAccountId"
+      },
+      {
+        heading: "2b. Token de acesso",
+        body: `<p>Cole o token copiado do seu perfil:</p>`,
+        field: "chatwootToken"
       },
       {
         heading: "3. Crie a instância na Evolution",
@@ -1398,7 +1405,11 @@ networks:
       }
     ],
     validation: "Instancia 'atendimento' com status open e mensagem de teste aparecendo no Chatwoot.",
-    done: "WhatsApp conectado e conversas espelhando no Chatwoot."
+    done: "WhatsApp conectado e conversas espelhando no Chatwoot.",
+    fields: [
+      { key: "chatwootAccountId", label: "ID da conta do Chatwoot", placeholder: "1", inline: true },
+      { key: "chatwootToken", label: "Token de acesso do Chatwoot", placeholder: "cole o token do seu perfil", inline: true }
+    ]
   },
   {
     id: "leads-webhook",
@@ -1437,10 +1448,29 @@ networks:
         heading: "5. Teste com o formulário do site",
         body: `<p>Abra <a href="https://{{domain}}" target="_blank" rel="noopener">https://{{domain}}</a>, preencha o formulário de interesse e envie.</p>
 <p>No n8n, abra <strong>Executions</strong> do workflow: deve aparecer uma execução verde. Pronto — cada lead do site agora fica registrado no seu banco.</p>`
+      },
+      {
+        heading: "6. Importe o fluxo de vendas (conversões)",
+        body: `<p>Agora as <strong>vendas</strong>: quando alguém paga no seu checkout, a plataforma avisa o seu n8n e a venda entra no banco — é o dado de conversão do seu painel de gestão.</p>
+<p>Baixe o fluxo da <strong>sua</strong> plataforma de pagamento (a que você escolheu no módulo 5), importe no n8n e selecione a credencial <strong>Postgres negocio</strong> no nó de banco:</p>
+<p><button class="button button-primary" type="button" id="download-n8n-vendas-stripe">Baixar fluxo de vendas — Stripe (.json)</button></p>
+<p><button class="button button-primary" type="button" id="download-n8n-vendas-mp">Baixar fluxo de vendas — Mercado Pago (.json)</button></p>
+<p><strong>Só para Mercado Pago:</strong> o fluxo também precisa de uma credencial <em>Header Auth</em> no nó "Consulta pagamento": Name = <code>Authorization</code>, Value = <code>Bearer SEU_ACCESS_TOKEN</code> (pegue o Access Token de produção em <a href="https://www.mercadopago.com.br/developers" target="_blank" rel="noopener">mercadopago.com.br/developers</a> → Suas integrações → criar aplicação → Credenciais de produção).</p>
+<p><strong>ATIVE o workflow</strong> depois de importar (mesma regra de sempre).</p>`
+      },
+      {
+        heading: "7. Aponte a plataforma para o seu n8n",
+        body: `<p>Agora avise a plataforma de pagamento para onde mandar as vendas — a URL é a mesma nas duas:</p>
+<p><code>https://workflows.{{domain}}/webhook/vendas</code></p>
+<ul>
+  <li><strong>Stripe:</strong> Dashboard → <strong>Developers → Webhooks → Add endpoint</strong> → cole a URL → em eventos, selecione <code>checkout.session.completed</code> → salve.</li>
+  <li><strong>Mercado Pago:</strong> <a href="https://www.mercadopago.com.br/developers" target="_blank" rel="noopener">developers</a> → sua aplicação → <strong>Webhooks</strong> → modo produção → cole a URL → em eventos, marque <strong>Pagamentos</strong> → salve.</li>
+</ul>
+<p><strong>Teste:</strong> faça uma compra de teste no seu checkout (na Stripe, pode usar o modo teste com o cartão <code>4242 4242 4242 4242</code> — nesse caso configure o webhook no modo teste também). A venda deve aparecer como execução verde no n8n.</p>`
       }
     ],
-    validation: "Envio do formulario do site gerar execucao verde no n8n.",
-    done: "Leads do site registrados automaticamente no banco."
+    validation: "Lead do formulario e venda de teste gerando execucoes verdes no n8n.",
+    done: "Leads e vendas registrados automaticamente no banco."
   },
   {
     id: "atendimento-agente",
@@ -1542,7 +1572,9 @@ const DEFAULT_MEMBER_STATE = {
     n8nEncryptionKey: "",
     n8nRunnersAuthToken: "",
     paymentPlatform: "",
-    paymentLink: ""
+    paymentLink: "",
+    chatwootAccountId: "",
+    chatwootToken: ""
   },
   currentStep: "domain",
   currentModule: "module-1",
@@ -2171,7 +2203,9 @@ function fillTemplate(template) {
     .replaceAll("{{evolutionApiKey}}", project.evolutionApiKey || "CHAVE_EVOLUTION_AQUI")
     .replaceAll("{{chatwootSecretKey}}", project.chatwootSecretKey || "CHAVE_SECRETA_64_CHARS_AQUI")
     .replaceAll("{{n8nEncryptionKey}}", project.n8nEncryptionKey || "{{n8nEncryptionKey}}")
-    .replaceAll("{{n8nRunnersAuthToken}}", project.n8nRunnersAuthToken || "{{n8nRunnersAuthToken}}");
+    .replaceAll("{{n8nRunnersAuthToken}}", project.n8nRunnersAuthToken || "{{n8nRunnersAuthToken}}")
+    .replaceAll("{{chatwootAccountId}}", project.chatwootAccountId || "1")
+    .replaceAll("{{chatwootToken}}", project.chatwootToken || "COLE_SEU_TOKEN_CHATWOOT");
 }
 
 // Módulos com layout de wizard técnico (passos guiados + assistente técnico)
@@ -2404,6 +2438,8 @@ function renderLessonStage(lesson, steps) {
   const workflowDownloads = [
     ["#download-n8n-atendimento", buildAtendimentoWorkflowJson, "agente-atendimento.json"],
     ["#download-n8n-leads", buildLeadsWorkflowJson, "leads-do-site.json"],
+    ["#download-n8n-vendas-stripe", buildVendasStripeWorkflowJson, "vendas-stripe.json"],
+    ["#download-n8n-vendas-mp", buildVendasMPWorkflowJson, "vendas-mercadopago.json"],
     ["#download-n8n-metricas", buildMetricsWorkflowJson, "painel-metricas.json"],
     ["#download-n8n-conselho", buildConselhoWorkflowJson, "conselho-de-ia.json"]
   ];
@@ -3507,11 +3543,71 @@ function buildAtendimentoWorkflowJson() {
       },
       {
         parameters: {
+          method: "GET",
+          url: `https://chat.${domain}/api/v1/accounts/${memberApp.state.project.chatwootAccountId || "1"}/conversations?status=open&assignee_type=assigned`,
+          sendHeaders: true,
+          headerParameters: {
+            parameters: [{ name: "api_access_token", value: memberApp.state.project.chatwootToken || "COLE_SEU_TOKEN_CHATWOOT" }]
+          },
+          options: {}
+        },
+        id: "consulta-atribuidas",
+        name: "Consulta atribuidas no Chatwoot",
+        type: "n8n-nodes-base.httpRequest",
+        typeVersion: 4.2,
+        position: [640, 220],
+        onError: "continueRegularOutput"
+      },
+      {
+        parameters: {
+          jsCode: [
+            "// Se a conversa deste numero esta atribuida a um humano no Chatwoot, o bot cala.",
+            "const payload = $('Webhook Evolution').item.json.body;",
+            "const numero = String(payload?.data?.key?.remoteJid || '').split('@')[0].replace(/\\D/g, '');",
+            "const sufixo = numero.slice(-8);",
+            "const conversas = $json?.data?.payload || [];",
+            "const atribuida = sufixo.length >= 8 && conversas.some((c) => {",
+            "  const tel = String(c?.meta?.sender?.phone_number || '').replace(/\\D/g, '');",
+            "  return tel && tel.slice(-8) === sufixo;",
+            "});",
+            "return [{ json: { atribuida } }];"
+          ].join("\n")
+        },
+        id: "verifica-atribuicao",
+        name: "Humano assumiu?",
+        type: "n8n-nodes-base.code",
+        typeVersion: 2,
+        position: [820, 220]
+      },
+      {
+        parameters: {
+          conditions: {
+            options: { caseSensitive: true, leftValue: "", typeValidation: "strict" },
+            conditions: [
+              {
+                id: "cond-nao-atribuida",
+                leftValue: "={{ $json.atribuida }}",
+                rightValue: false,
+                operator: { type: "boolean", operation: "false" }
+              }
+            ],
+            combinator: "and"
+          },
+          options: {}
+        },
+        id: "filtra-atribuicao",
+        name: "Bot pode responder",
+        type: "n8n-nodes-base.if",
+        typeVersion: 2,
+        position: [1000, 220]
+      },
+      {
+        parameters: {
           modelId: { __rl: true, value: "gpt-4o-mini", mode: "list", cachedResultName: "gpt-4o-mini" },
           messages: {
             values: [
               { content: systemPrompt, role: "system" },
-              { content: "={{ $json.body.data.message.conversation }}", role: "user" }
+              { content: "={{ $('Webhook Evolution').item.json.body.data.message.conversation }}", role: "user" }
             ]
           },
           options: {}
@@ -3520,7 +3616,7 @@ function buildAtendimentoWorkflowJson() {
         name: "Agente IA",
         type: "@n8n/n8n-nodes-langchain.openAi",
         typeVersion: 1.8,
-        position: [680, 220],
+        position: [1180, 220],
         credentials: {
           openAiApi: { id: "SUBSTITUA_PELO_ID_DA_CREDENCIAL", name: "OpenAi account" }
         }
@@ -3552,7 +3648,10 @@ function buildAtendimentoWorkflowJson() {
     ],
     connections: {
       "Webhook Evolution": { main: [[{ node: "Filtra mensagem recebida", type: "main", index: 0 }]] },
-      "Filtra mensagem recebida": { main: [[{ node: "Agente IA", type: "main", index: 0 }]] },
+      "Filtra mensagem recebida": { main: [[{ node: "Consulta atribuidas no Chatwoot", type: "main", index: 0 }]] },
+      "Consulta atribuidas no Chatwoot": { main: [[{ node: "Humano assumiu?", type: "main", index: 0 }]] },
+      "Humano assumiu?": { main: [[{ node: "Bot pode responder", type: "main", index: 0 }]] },
+      "Bot pode responder": { main: [[{ node: "Agente IA", type: "main", index: 0 }]] },
       "Agente IA": { main: [[{ node: "Responder via Evolution API", type: "main", index: 0 }]] }
     },
     pinData: {},
@@ -3632,6 +3731,197 @@ function buildLeadsWorkflowJson() {
   return JSON.stringify(workflow, null, 2);
 }
 
+// Tabela de conversões (compartilhada pelos fluxos de vendas)
+const CONVERSOES_DDL = "create table if not exists conversoes (id serial primary key, plataforma text, valor numeric, moeda text, email text, nome text, referencia text, criado_em timestamptz default now());";
+
+// Webhook POST /webhook/vendas — checkout do Stripe (checkout.session.completed)
+function buildVendasStripeWorkflowJson() {
+  const workflow = {
+    name: "Vendas - Stripe",
+    nodes: [
+      {
+        parameters: {
+          httpMethod: "POST",
+          path: "vendas",
+          responseMode: "onReceived",
+          options: { allowedOrigins: "*" }
+        },
+        id: "webhook-vendas",
+        name: "Webhook Vendas",
+        type: "n8n-nodes-base.webhook",
+        typeVersion: 2,
+        position: [240, 300],
+        webhookId: "vendas-webhook"
+      },
+      {
+        parameters: {
+          jsCode: [
+            "const evt = $input.first().json.body || {};",
+            "const obj = (evt.data && evt.data.object) || {};",
+            "// So registra checkout concluido",
+            "if (evt.type !== 'checkout.session.completed') { return []; }",
+            "const cents = Number(obj.amount_total || 0);",
+            "const det = obj.customer_details || {};",
+            "return [{ json: {",
+            "  plataforma: 'stripe',",
+            "  valor: cents / 100,",
+            "  moeda: String(obj.currency || 'brl').toUpperCase(),",
+            "  email: det.email || obj.customer_email || '',",
+            "  nome: det.name || '',",
+            "  referencia: String(obj.id || '')",
+            "} }];"
+          ].join("\n")
+        },
+        id: "extrai-venda",
+        name: "Extrai venda",
+        type: "n8n-nodes-base.code",
+        typeVersion: 2,
+        position: [460, 300]
+      },
+      {
+        parameters: {
+          operation: "executeQuery",
+          query: [
+            CONVERSOES_DDL,
+            "insert into conversoes (plataforma, valor, moeda, email, nome, referencia)",
+            "values ($1, $2, $3, $4, $5, $6);"
+          ].join("\n"),
+          options: {
+            queryReplacement: "={{ $json.plataforma }},{{ $json.valor }},{{ $json.moeda }},{{ $json.email }},{{ $json.nome }},{{ $json.referencia }}"
+          }
+        },
+        id: "salvar-venda",
+        name: "Salvar venda",
+        type: "n8n-nodes-base.postgres",
+        typeVersion: 2.4,
+        position: [680, 300],
+        credentials: {
+          postgres: { id: "SUBSTITUA_PELO_ID_DA_CREDENCIAL", name: "Postgres negocio" }
+        }
+      }
+    ],
+    connections: {
+      "Webhook Vendas": { main: [[{ node: "Extrai venda", type: "main", index: 0 }]] },
+      "Extrai venda": { main: [[{ node: "Salvar venda", type: "main", index: 0 }]] }
+    },
+    pinData: {},
+    settings: { executionOrder: "v1" }
+  };
+  return JSON.stringify(workflow, null, 2);
+}
+
+// Webhook POST /webhook/vendas — notificação do Mercado Pago (consulta a API p/ confirmar)
+function buildVendasMPWorkflowJson() {
+  const workflow = {
+    name: "Vendas - Mercado Pago",
+    nodes: [
+      {
+        parameters: {
+          httpMethod: "POST",
+          path: "vendas",
+          responseMode: "onReceived",
+          options: { allowedOrigins: "*" }
+        },
+        id: "webhook-vendas",
+        name: "Webhook Vendas",
+        type: "n8n-nodes-base.webhook",
+        typeVersion: 2,
+        position: [240, 300],
+        webhookId: "vendas-webhook"
+      },
+      {
+        parameters: {
+          jsCode: [
+            "const b = $input.first().json.body || {};",
+            "const q = $input.first().json.query || {};",
+            "const tipo = b.type || b.topic || q.topic || q.type || '';",
+            "// A notificacao de pagamento traz o id do pagamento em data.id",
+            "let id = (b.data && b.data.id) || q['data.id'] || q.id || b.resource || '';",
+            "id = String(id).replace(/\\D/g, '');",
+            "if (String(tipo).indexOf('payment') === -1 || !id) { return []; }",
+            "return [{ json: { paymentId: id } }];"
+          ].join("\n")
+        },
+        id: "extrai-id",
+        name: "Extrai id do pagamento",
+        type: "n8n-nodes-base.code",
+        typeVersion: 2,
+        position: [460, 300]
+      },
+      {
+        parameters: {
+          method: "GET",
+          url: "=https://api.mercadopago.com/v1/payments/{{ $json.paymentId }}",
+          authentication: "genericCredentialType",
+          genericAuthType: "httpHeaderAuth",
+          options: {}
+        },
+        id: "consulta-pagamento",
+        name: "Consulta pagamento",
+        type: "n8n-nodes-base.httpRequest",
+        typeVersion: 4.2,
+        position: [680, 300],
+        credentials: {
+          httpHeaderAuth: { id: "SUBSTITUA_PELO_ID_DA_CREDENCIAL", name: "Mercado Pago" }
+        }
+      },
+      {
+        parameters: {
+          jsCode: [
+            "const p = $input.first().json || {};",
+            "// So registra pagamento aprovado",
+            "if (p.status !== 'approved') { return []; }",
+            "const payer = p.payer || {};",
+            "return [{ json: {",
+            "  plataforma: 'mercadopago',",
+            "  valor: Number(p.transaction_amount || 0),",
+            "  moeda: String(p.currency_id || 'BRL'),",
+            "  email: payer.email || '',",
+            "  nome: payer.first_name || '',",
+            "  referencia: String(p.id || '')",
+            "} }];"
+          ].join("\n")
+        },
+        id: "filtra-aprovado",
+        name: "Filtra aprovado",
+        type: "n8n-nodes-base.code",
+        typeVersion: 2,
+        position: [900, 300]
+      },
+      {
+        parameters: {
+          operation: "executeQuery",
+          query: [
+            CONVERSOES_DDL,
+            "insert into conversoes (plataforma, valor, moeda, email, nome, referencia)",
+            "values ($1, $2, $3, $4, $5, $6);"
+          ].join("\n"),
+          options: {
+            queryReplacement: "={{ $json.plataforma }},{{ $json.valor }},{{ $json.moeda }},{{ $json.email }},{{ $json.nome }},{{ $json.referencia }}"
+          }
+        },
+        id: "salvar-venda",
+        name: "Salvar venda",
+        type: "n8n-nodes-base.postgres",
+        typeVersion: 2.4,
+        position: [1120, 300],
+        credentials: {
+          postgres: { id: "SUBSTITUA_PELO_ID_DA_CREDENCIAL", name: "Postgres negocio" }
+        }
+      }
+    ],
+    connections: {
+      "Webhook Vendas": { main: [[{ node: "Extrai id do pagamento", type: "main", index: 0 }]] },
+      "Extrai id do pagamento": { main: [[{ node: "Consulta pagamento", type: "main", index: 0 }]] },
+      "Consulta pagamento": { main: [[{ node: "Filtra aprovado", type: "main", index: 0 }]] },
+      "Filtra aprovado": { main: [[{ node: "Salvar venda", type: "main", index: 0 }]] }
+    },
+    pinData: {},
+    settings: { executionOrder: "v1" }
+  };
+  return JSON.stringify(workflow, null, 2);
+}
+
 // Webhook GET /webhook/painel-metricas — alimenta o dashboard do painel de gestão
 function buildMetricsWorkflowJson() {
   const workflow = {
@@ -3656,9 +3946,11 @@ function buildMetricsWorkflowJson() {
           operation: "executeQuery",
           query: [
             "create table if not exists site_leads (id serial primary key, nome text, email text, whatsapp text, mensagem text, criado_em timestamptz default now());",
+            CONVERSOES_DDL,
             "select",
             "  (select count(*) from site_leads) as total_leads,",
             "  (select count(*) from site_leads where criado_em > now() - interval '7 days') as leads_7d,",
+            "  (select count(*) from conversoes where criado_em > now() - interval '7 days') as conversoes_7d,",
             "  (select coalesce(json_agg(t), '[]'::json) from (",
             "    select nome, email, whatsapp, mensagem, to_char(criado_em, 'DD/MM/YYYY HH24:MI') as data",
             "    from site_leads order by criado_em desc limit 10",
@@ -3685,24 +3977,41 @@ function buildMetricsWorkflowJson() {
   return JSON.stringify(workflow, null, 2);
 }
 
-// Webhook POST /webhook/conselho — Conselho de IA (3 especialistas)
+// DDL das tabelas de conversas do Conselho (usado em várias queries)
+const CONSELHO_DDL = [
+  "create table if not exists conselho_contexto (id serial primary key, conteudo text, criado_em timestamptz default now());",
+  "create table if not exists conselho_conversas (id serial primary key, titulo text, criado_em timestamptz default now(), atualizado_em timestamptz default now());",
+  "create table if not exists conselho_mensagens (id serial primary key, conversa_id int, papel text, conteudo text, criado_em timestamptz default now());",
+  "create table if not exists site_leads (id serial primary key, nome text, email text, whatsapp text, mensagem text, criado_em timestamptz default now());",
+  CONVERSOES_DDL
+].join("\n");
+
+// Webhook POST /webhook/conselho — Conselho de IA persistente (roteador por action)
+// actions: listar (conversas) · carregar (mensagens de uma conversa) · perguntar (default)
 function buildConselhoWorkflowJson() {
   const projectName = memberApp.state.project.name || "o negócio";
-  const conselhoPrompt = [
-    `Você é o Conselho de IA de ${projectName} — três especialistas seniores que analisam o negócio e respondem juntos:`,
+
+  // Prompt do Conselho embutido no nó Code "Monta mensagens" (linhas de um array JS)
+  const promptLines = [
+    `Você é o Conselho de IA de ${projectName} — três especialistas seniores:`,
+    "- Ana (Administração): fluxo de caixa, precificação, capacidade de entrega, organização da operação.",
+    "- Marcos (Marketing): aquisição, conteúdo, tráfego, posicionamento e conversão.",
+    "- Vera (Vendas): funil, follow-up de leads, atendimento, fechamento e recuperação.",
     "",
-    "- **Ana (Administração)**: fluxo de caixa, precificação, capacidade de entrega, organização da operação.",
-    "- **Marcos (Marketing)**: aquisição, conteúdo, tráfego, posicionamento e conversão do site.",
-    "- **Vera (Vendas)**: funil, follow-up de leads, atendimento, fechamento e recuperação.",
+    "QUEM RESPONDE:",
+    "- Se a pergunta cita um ou mais especialistas pelo nome (Ana, Marcos, Vera), APENAS os citados respondem.",
+    "- Se nenhum nome é citado, os três respondem.",
+    "- A linha 'Recomendação do Conselho' só aparece quando os três participam OU quando o usuário pede uma recomendação/decisão. Com um ou dois especialistas, encerre sem essa linha.",
     "",
-    "O CONTEXTO ESTRATÉGICO do negócio e as MÉTRICAS atuais vêm anexados a cada pergunta. Baseie-se neles — nunca invente números.",
+    "Baseie-se no CONTEXTO ESTRATÉGICO e nas MÉTRICAS fornecidas — nunca invente números. Use o histórico da conversa para dar continuidade.",
     "",
-    "Formato da resposta (WhatsApp-friendly, máx. ~250 palavras):",
-    "1. Cada especialista dá sua leitura em 1-2 frases (comece com o nome).",
-    "2. **Recomendação do Conselho**: UMA ação prioritária, concreta e executável esta semana, com o porquê.",
-    "",
-    "Se os dados forem insuficientes para responder com segurança, diga o que falta medir e como coletar. Responda sempre em português, direto e sem jargões."
-  ].join("\n");
+    "Formato (WhatsApp-friendly, máx ~250 palavras): cada especialista que responde começa com o nome em negrito e escreve 1-3 frases. Quando aplicável, feche com '**Recomendação do Conselho**: UMA ação prioritária e executável, com o porquê.'",
+    "Se faltar dado, diga o que medir e como coletar. Português, direto, sem jargões."
+  ];
+  // Serializa as linhas do prompt como um array JS literal para dentro do jsCode
+  const promptJsArray = JSON.stringify(promptLines);
+
+  const pgCred = { postgres: { id: "SUBSTITUA_PELO_ID_DA_CREDENCIAL", name: "Postgres negocio" } };
 
   const workflow = {
     name: "Conselho de IA",
@@ -3718,76 +4027,242 @@ function buildConselhoWorkflowJson() {
         name: "Webhook Conselho",
         type: "n8n-nodes-base.webhook",
         typeVersion: 2,
-        position: [240, 300],
+        position: [200, 400],
         webhookId: "conselho-webhook"
+      },
+      {
+        parameters: {
+          rules: {
+            values: [
+              {
+                conditions: {
+                  options: { caseSensitive: true, leftValue: "", typeValidation: "loose" },
+                  conditions: [{ leftValue: "={{ $json.body.action }}", rightValue: "listar", operator: { type: "string", operation: "equals" } }],
+                  combinator: "and"
+                },
+                renameOutput: true,
+                outputKey: "listar"
+              },
+              {
+                conditions: {
+                  options: { caseSensitive: true, leftValue: "", typeValidation: "loose" },
+                  conditions: [{ leftValue: "={{ $json.body.action }}", rightValue: "carregar", operator: { type: "string", operation: "equals" } }],
+                  combinator: "and"
+                },
+                renameOutput: true,
+                outputKey: "carregar"
+              }
+            ]
+          },
+          options: { fallbackOutput: "extra", renameFallbackOutput: "perguntar" }
+        },
+        id: "roteia-acao",
+        name: "Roteia acao",
+        type: "n8n-nodes-base.switch",
+        typeVersion: 3.2,
+        position: [420, 400]
+      },
+      // ── Branch listar ──────────────────────────────────────────────
+      {
+        parameters: {
+          operation: "executeQuery",
+          query: [
+            CONSELHO_DDL,
+            "select coalesce(json_agg(json_build_object('id', id, 'titulo', titulo, 'atualizado_em', to_char(atualizado_em,'DD/MM HH24:MI')) order by atualizado_em desc), '[]'::json) as conversas from conselho_conversas;"
+          ].join("\n"),
+          options: {}
+        },
+        id: "lista-conversas",
+        name: "Lista conversas",
+        type: "n8n-nodes-base.postgres",
+        typeVersion: 2.4,
+        position: [660, 220],
+        credentials: pgCred
+      },
+      // ── Branch carregar ────────────────────────────────────────────
+      {
+        parameters: {
+          operation: "executeQuery",
+          query: [
+            CONSELHO_DDL,
+            "select coalesce(json_agg(json_build_object('papel', papel, 'conteudo', conteudo) order by id), '[]'::json) as mensagens from conselho_mensagens where conversa_id = $1;"
+          ].join("\n"),
+          options: { queryReplacement: "={{ $json.body.conversation_id }}" }
+        },
+        id: "carrega-mensagens",
+        name: "Carrega mensagens",
+        type: "n8n-nodes-base.postgres",
+        typeVersion: 2.4,
+        position: [660, 400],
+        credentials: pgCred
+      },
+      // ── Branch perguntar ───────────────────────────────────────────
+      {
+        parameters: {
+          jsCode: [
+            "const b = $input.first().json.body || {};",
+            "const pergunta = String(b.pergunta || '').trim();",
+            "const conversaId = Number(b.conversation_id || 0) || 0;",
+            "const titulo = pergunta.slice(0, 48) || 'Nova conversa';",
+            "return [{ json: { pergunta, conversaId, titulo } }];"
+          ].join("\n")
+        },
+        id: "prep-pergunta",
+        name: "Prep pergunta",
+        type: "n8n-nodes-base.code",
+        typeVersion: 2,
+        position: [660, 600]
       },
       {
         parameters: {
           operation: "executeQuery",
           query: [
-            "create table if not exists site_leads (id serial primary key, nome text, email text, whatsapp text, mensagem text, criado_em timestamptz default now());",
-            "create table if not exists conselho_contexto (id serial primary key, conteudo text, criado_em timestamptz default now());",
-            "select",
-            "  coalesce((select conteudo from conselho_contexto order by id desc limit 1), 'Contexto estrategico ainda nao cadastrado.') as contexto,",
-            "  (select count(*) from site_leads) as total_leads,",
-            "  (select count(*) from site_leads where criado_em > now() - interval '7 days') as leads_7d;"
+            CONSELHO_DDL,
+            "with nova as (",
+            "  insert into conselho_conversas (titulo) select $1 where $2 = 0 returning id",
+            "), cid as (",
+            "  select coalesce((select id from nova), $2) as id",
+            "), ins as (",
+            "  insert into conselho_mensagens (conversa_id, papel, conteudo) select id, 'user', $3 from cid",
+            ")",
+            "select id as conversa_id from cid;"
           ].join("\n"),
-          options: {}
+          options: { queryReplacement: "={{ $json.titulo }},{{ $json.conversaId }},{{ $json.pergunta }}" }
         },
-        id: "consulta-contexto",
-        name: "Consulta contexto",
+        id: "abre-conversa",
+        name: "Abre conversa e salva pergunta",
         type: "n8n-nodes-base.postgres",
         typeVersion: 2.4,
-        position: [460, 300],
-        credentials: {
-          postgres: { id: "SUBSTITUA_PELO_ID_DA_CREDENCIAL", name: "Postgres negocio" }
-        }
+        position: [880, 600],
+        credentials: pgCred
       },
       {
         parameters: {
-          modelId: { __rl: true, value: "gpt-4o", mode: "list", cachedResultName: "gpt-4o" },
-          messages: {
-            values: [
-              { content: conselhoPrompt, role: "system" },
-              { content: "={{ 'CONTEXTO ESTRATÉGICO:\\n' + $json.contexto + '\\n\\nMÉTRICAS ATUAIS: total de leads = ' + $json.total_leads + '; leads nos últimos 7 dias = ' + $json.leads_7d + '\\n\\nPERGUNTA DO EMPREENDEDOR:\\n' + $('Webhook Conselho').item.json.body.pergunta }}", role: "user" }
-            ]
-          },
+          operation: "executeQuery",
+          query: [
+            "select",
+            "  coalesce((select conteudo from conselho_contexto order by id desc limit 1), 'Contexto estrategico ainda nao cadastrado.') as contexto,",
+            "  (select count(*) from site_leads) as total_leads,",
+            "  (select count(*) from site_leads where criado_em > now() - interval '7 days') as leads_7d,",
+            "  (select count(*) from conversoes where criado_em > now() - interval '7 days') as conversoes_7d,",
+            "  coalesce((select json_agg(json_build_object('papel', papel, 'conteudo', conteudo) order by id) from conselho_mensagens where conversa_id = $1), '[]'::json) as historico;"
+          ].join("\n"),
+          options: { queryReplacement: "={{ $json.conversa_id }}" }
+        },
+        id: "carrega-contexto",
+        name: "Carrega contexto e historico",
+        type: "n8n-nodes-base.postgres",
+        typeVersion: 2.4,
+        position: [1100, 600],
+        credentials: pgCred
+      },
+      {
+        parameters: {
+          jsCode: [
+            "const d = $input.first().json;",
+            "const historico = d.historico || [];",
+            "const promptLines = " + promptJsArray + ";",
+            "const sys = promptLines.join('\\n')",
+            "  + '\\n\\n## Contexto estrategico do negocio\\n' + (d.contexto || '')",
+            "  + '\\n\\n## Metricas atuais\\n'",
+            "  + 'Leads (total): ' + d.total_leads + ' | Leads 7 dias: ' + d.leads_7d + ' | Conversoes 7 dias: ' + d.conversoes_7d;",
+            "const messages = [{ role: 'system', content: sys }];",
+            "for (const m of historico) {",
+            "  messages.push({ role: m.papel === 'assistant' ? 'assistant' : 'user', content: m.conteudo });",
+            "}",
+            "return [{ json: { model: 'gpt-4o', messages } }];"
+          ].join("\n")
+        },
+        id: "monta-mensagens",
+        name: "Monta mensagens",
+        type: "n8n-nodes-base.code",
+        typeVersion: 2,
+        position: [1320, 600]
+      },
+      {
+        parameters: {
+          method: "POST",
+          url: "https://api.openai.com/v1/chat/completions",
+          authentication: "predefinedCredentialType",
+          nodeCredentialType: "openAiApi",
+          sendBody: true,
+          specifyBody: "json",
+          jsonBody: "={{ JSON.stringify({ model: $json.model, messages: $json.messages }) }}",
           options: {}
         },
-        id: "conselho-ia",
-        name: "Conselho IA",
-        type: "@n8n/n8n-nodes-langchain.openAi",
-        typeVersion: 1.8,
-        position: [680, 300],
+        id: "openai",
+        name: "OpenAI",
+        type: "n8n-nodes-base.httpRequest",
+        typeVersion: 4.2,
+        position: [1540, 600],
         credentials: {
           openAiApi: { id: "SUBSTITUA_PELO_ID_DA_CREDENCIAL", name: "OpenAi account" }
         }
       },
       {
         parameters: {
+          jsCode: [
+            "const r = $input.first().json;",
+            "const resposta = (r.choices && r.choices[0] && r.choices[0].message && r.choices[0].message.content) || 'Nao consegui responder agora. Tente novamente.';",
+            "const conversaId = $('Abre conversa e salva pergunta').item.json.conversa_id;",
+            "return [{ json: { resposta, conversa_id: conversaId } }];"
+          ].join("\n")
+        },
+        id: "extrai-resposta",
+        name: "Extrai resposta",
+        type: "n8n-nodes-base.code",
+        typeVersion: 2,
+        position: [1760, 600]
+      },
+      {
+        parameters: {
+          operation: "executeQuery",
+          query: [
+            "insert into conselho_mensagens (conversa_id, papel, conteudo) values ($1, 'assistant', $2);",
+            "update conselho_conversas set atualizado_em = now() where id = $1;"
+          ].join("\n"),
+          options: { queryReplacement: "={{ $json.conversa_id }},{{ $json.resposta }}" }
+        },
+        id: "salva-resposta",
+        name: "Salva resposta",
+        type: "n8n-nodes-base.postgres",
+        typeVersion: 2.4,
+        position: [1980, 600],
+        credentials: pgCred
+      },
+      {
+        parameters: {
           assignments: {
             assignments: [
-              {
-                id: "resposta-field",
-                name: "resposta",
-                value: "={{ $json.message.content }}",
-                type: "string"
-              }
+              { id: "r1", name: "resposta", value: "={{ $('Extrai resposta').item.json.resposta }}", type: "string" },
+              { id: "r2", name: "conversation_id", value: "={{ $('Extrai resposta').item.json.conversa_id }}", type: "number" }
             ]
           },
           options: {}
         },
-        id: "formata-resposta",
-        name: "Formata resposta",
+        id: "responde",
+        name: "Responde",
         type: "n8n-nodes-base.set",
         typeVersion: 3.4,
-        position: [900, 300]
+        position: [2200, 600]
       }
     ],
     connections: {
-      "Webhook Conselho": { main: [[{ node: "Consulta contexto", type: "main", index: 0 }]] },
-      "Consulta contexto": { main: [[{ node: "Conselho IA", type: "main", index: 0 }]] },
-      "Conselho IA": { main: [[{ node: "Formata resposta", type: "main", index: 0 }]] }
+      "Webhook Conselho": { main: [[{ node: "Roteia acao", type: "main", index: 0 }]] },
+      "Roteia acao": {
+        main: [
+          [{ node: "Lista conversas", type: "main", index: 0 }],
+          [{ node: "Carrega mensagens", type: "main", index: 0 }],
+          [{ node: "Prep pergunta", type: "main", index: 0 }]
+        ]
+      },
+      "Prep pergunta": { main: [[{ node: "Abre conversa e salva pergunta", type: "main", index: 0 }]] },
+      "Abre conversa e salva pergunta": { main: [[{ node: "Carrega contexto e historico", type: "main", index: 0 }]] },
+      "Carrega contexto e historico": { main: [[{ node: "Monta mensagens", type: "main", index: 0 }]] },
+      "Monta mensagens": { main: [[{ node: "OpenAI", type: "main", index: 0 }]] },
+      "OpenAI": { main: [[{ node: "Extrai resposta", type: "main", index: 0 }]] },
+      "Extrai resposta": { main: [[{ node: "Salva resposta", type: "main", index: 0 }]] },
+      "Salva resposta": { main: [[{ node: "Responde", type: "main", index: 0 }]] }
     },
     pinData: {},
     settings: { executionOrder: "v1" }

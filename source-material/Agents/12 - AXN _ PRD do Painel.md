@@ -39,14 +39,21 @@ Entregue SOMENTE o PRD em português, sem introdução ou comentário. Estrutura
    - Pedir a senha root da VPS (gerenciador de senhas do usuário; IP no documento de infra da pasta)
 
 **2. O painel** — página estática (index.html + styles.css + script.js) em `gestao.DOMINIO`, mobile-first, com a identidade visual do planejamento (Seção 6 — paleta, tipografia):
-   - **Cabeçalho**: nome do negócio + "Painel de Gestão"
-   - **Cards de métricas**: total de leads, leads dos últimos 7 dias
+   - **Cabeçalho**: nome do negócio + "Painel de Gestão" + **botão de alternância de tema (claro/escuro)** no canto direito
+   - **Modo escuro**: usar CSS variables para as cores; um botão no cabeçalho alterna claro/escuro; salvar a preferência em `localStorage` e, na primeira visita, respeitar `prefers-color-scheme` do sistema
+   - **Cards de métricas** (3, lado a lado no desktop, empilhados no mobile): total de leads · leads dos últimos 7 dias · **conversões dos últimos 7 dias**
    - **Tabela**: últimos 10 leads (nome, e-mail, WhatsApp, mensagem, data)
-   - **Chat do Conselho de IA**: janela de conversa (histórico da sessão em memória, campo de texto, botão enviar); título "Conselho de IA — administração, marketing e vendas"
+   - **Conselho de IA** — layout de duas colunas (empilha no mobile):
+     - Coluna esquerda: botão **"+ Nova conversa"** e a **lista de conversas anteriores** (título + data), clicáveis
+     - Coluna direita: janela de mensagens (balões user/assistant) + campo de texto + botão enviar
+     - Título "Conselho de IA — administração · marketing · vendas"
 
-**3. Integrações** — valores exatos:
-   - Dashboard: GET `https://workflows.DOMINIO/webhook/painel-metricas` ao carregar; renderizar os cards e a tabela do JSON retornado
-   - Chat: POST `https://workflows.DOMINIO/webhook/conselho` com JSON `{ "pergunta": "..." }`; exibir o campo `resposta` do retorno; mostrar indicador de "pensando..." enquanto aguarda (a resposta leva 10–30 s)
+**3. Integrações** — valores exatos. O webhook do Conselho é um **roteador por `action`** (POST `https://workflows.DOMINIO/webhook/conselho`):
+   - Dashboard: GET `https://workflows.DOMINIO/webhook/painel-metricas` ao carregar; o JSON traz `total_leads`, `leads_7d`, `conversoes_7d` e `ultimos` (array) — renderizar os 3 cards e a tabela
+   - Listar conversas: POST `{ "action": "listar" }` → `{ "conversas": [{ id, titulo, atualizado_em }] }` (chamar ao carregar a página e após cada nova conversa)
+   - Carregar mensagens: POST `{ "action": "carregar", "conversation_id": <id> }` → `{ "mensagens": [{ papel, conteudo }] }` (papel = "user" ou "assistant")
+   - Perguntar: POST `{ "action": "perguntar", "pergunta": "...", "conversation_id": <id ou 0> }` → `{ "resposta": "...", "conversation_id": <id> }`. Use `0` para conversa nova; guarde o `conversation_id` retornado e atualize a lista. Mostrar "pensando..." enquanto aguarda (10–30 s). Renderizar `**negrito**` da resposta.
+   - "+ Nova conversa" apenas limpa a janela e zera o `conversation_id` (a conversa é criada no banco ao enviar a primeira pergunta).
 
 **4. Proteção por senha** — Traefik basicauth:
    - Pedir ao usuário para escolher um usuário e uma senha do painel
