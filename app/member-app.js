@@ -3605,7 +3605,7 @@ function buildAtendimentoWorkflowJson() {
       {
         parameters: {
           method: "GET",
-          url: `=${cwBase}/contacts/search?q={{ $('Webhook Evolution').item.json.body.data.key.remoteJid.split('@')[0].replace(/\\D/g, '') }}`,
+          url: `=${cwBase}/contacts/search?q={{ $('Webhook Evolution').first().json.body.data.key.remoteJid.split('@')[0].replace(/\\D/g, '') }}`,
           sendHeaders: true,
           headerParameters: cwHeaders,
           options: {}
@@ -3684,7 +3684,7 @@ function buildAtendimentoWorkflowJson() {
       {
         parameters: {
           jsCode: [
-            "const atual = String($('Webhook Evolution').item.json.body.data.message.conversation || '').trim();",
+            "const atual = String($('Webhook Evolution').first().json.body.data.message.conversation || '').trim();",
             "const brutas = ($input.first().json && $input.first().json.payload) || [];",
             "const hist = brutas",
             "  .filter((m) => !m.private && m.content && (m.message_type === 0 || m.message_type === 1))",
@@ -3694,7 +3694,7 @@ function buildAtendimentoWorkflowJson() {
             "if (hist.length && hist[hist.length - 1].role === 'user' && hist[hist.length - 1].content.trim() === atual) hist.pop();",
             "const system = " + JSON.stringify(systemPrompt) + ";",
             "const messages = [{ role: 'system', content: system }, ...hist, { role: 'user', content: atual }];",
-            "return [{ json: { messages, conversaId: $('Escolhe conversa').item.json.conversaId } }];"
+            "return [{ json: { messages, conversaId: $('Escolhe conversa').first().json.conversaId } }];"
           ].join("\n")
         },
         id: "monta-mensagens",
@@ -3735,7 +3735,7 @@ function buildAtendimentoWorkflowJson() {
             "let resposta = bruto; let transferir = false;",
             "try { const p = JSON.parse(bruto); resposta = String(p.resposta || bruto); transferir = Boolean(p.transferir); } catch {}",
             "if (!resposta) { resposta = 'Recebi sua mensagem! Ja te respondo.'; }",
-            "return [{ json: { resposta, transferir, conversaId: $('Monta mensagens').item.json.conversaId } }];"
+            "return [{ json: { resposta, transferir, conversaId: $('Monta mensagens').first().json.conversaId } }];"
           ].join("\n")
         },
         id: "interpreta",
@@ -3747,7 +3747,7 @@ function buildAtendimentoWorkflowJson() {
       {
         parameters: {
           method: "POST",
-          url: `=https://evo.${domain}/message/sendText/{{ $('Webhook Evolution').item.json.body.instance }}`,
+          url: `=https://evo.${domain}/message/sendText/{{ $('Webhook Evolution').first().json.body.instance }}`,
           sendHeaders: true,
           headerParameters: {
             parameters: [{ name: "apikey", value: evoKey }]
@@ -3755,7 +3755,7 @@ function buildAtendimentoWorkflowJson() {
           sendBody: true,
           bodyParameters: {
             parameters: [
-              { name: "number", value: "={{ $('Webhook Evolution').item.json.body.data.key.remoteJid }}" },
+              { name: "number", value: "={{ $('Webhook Evolution').first().json.body.data.key.remoteJid }}" },
               { name: "text", value: "={{ $json.resposta }}" }
             ]
           },
@@ -3772,8 +3772,8 @@ function buildAtendimentoWorkflowJson() {
           conditions: {
             options: { caseSensitive: true, leftValue: "", typeValidation: "strict" },
             conditions: [
-              { id: "cond-transferir", leftValue: "={{ $('Interpreta resposta').item.json.transferir }}", rightValue: true, operator: { type: "boolean", operation: "true" } },
-              { id: "cond-tem-conversa", leftValue: "={{ $('Interpreta resposta').item.json.conversaId }}", rightValue: 0, operator: { type: "number", operation: "gt" } }
+              { id: "cond-transferir", leftValue: "={{ $('Interpreta resposta').first().json.transferir }}", rightValue: true, operator: { type: "boolean", operation: "true" } },
+              { id: "cond-tem-conversa", leftValue: "={{ $('Interpreta resposta').first().json.conversaId }}", rightValue: 0, operator: { type: "number", operation: "gt" } }
             ],
             combinator: "and"
           },
@@ -3805,7 +3805,7 @@ function buildAtendimentoWorkflowJson() {
           jsCode: [
             "const todos = $input.all().map((i) => i.json);",
             "const primeiro = todos.find((a) => a && a.id);",
-            "return [{ json: { assigneeId: primeiro ? primeiro.id : 1, conversaId: $('Interpreta resposta').item.json.conversaId } }];"
+            "return [{ json: { assigneeId: primeiro ? primeiro.id : 1, conversaId: $('Interpreta resposta').first().json.conversaId } }];"
           ].join("\n")
         },
         id: "escolhe-agente",
@@ -4406,7 +4406,7 @@ function buildConselhoWorkflowJson() {
             "  .flatMap((item) => item.content || [])",
             "  .map((c) => c.text || '')",
             "  .join('').trim()) || 'Nao consegui responder agora. Tente novamente.';",
-            "const conversaId = $('Abre conversa e salva pergunta').item.json.conversa_id;",
+            "const conversaId = $('Abre conversa e salva pergunta').first().json.conversa_id;",
             "return [{ json: { resposta, conversa_id: conversaId } }];"
           ].join("\n")
         },
@@ -4436,8 +4436,8 @@ function buildConselhoWorkflowJson() {
         parameters: {
           assignments: {
             assignments: [
-              { id: "r1", name: "resposta", value: "={{ $('Extrai resposta').item.json.resposta }}", type: "string" },
-              { id: "r2", name: "conversation_id", value: "={{ $('Extrai resposta').item.json.conversa_id }}", type: "number" }
+              { id: "r1", name: "resposta", value: "={{ $('Extrai resposta').first().json.resposta }}", type: "string" },
+              { id: "r2", name: "conversation_id", value: "={{ $('Extrai resposta').first().json.conversa_id }}", type: "number" }
             ]
           },
           options: {}
