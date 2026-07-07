@@ -1495,7 +1495,12 @@ networks:
         heading: "2. Baixe e importe o fluxo de atendimento",
         body: `<p>Baixe o fluxo — o prompt gerado acima já vai embutido nele:</p>
 <p><button class="button button-primary" type="button" id="download-n8n-atendimento">Baixar fluxo de atendimento (.json)</button></p>
-<p>Importe no n8n (<strong>Import from file</strong>) e abra o nó <strong>Agente IA</strong>: selecione a credencial <strong>OpenAI</strong> que você criou no módulo 3.</p>`
+<p>Importe no n8n (<strong>Import from file</strong>) e selecione as credenciais:</p>
+<ul>
+  <li>Nó <strong>Agente IA</strong> → credencial <strong>OpenAI</strong> (módulo 3)</li>
+  <li>Nó <strong>Dedup mensagem</strong> → credencial <strong>Postgres negocio</strong> (etapa anterior)</li>
+</ul>
+<p>O atendente responde com memória da conversa, e quando o cliente pede humano, parceria ou desconto, ele <strong>transfere de verdade</strong>: atribui a conversa a você no Chatwoot (que te notifica) e para de responder sozinho.</p>`
       },
       {
         heading: "3. Aponte a Evolution para o fluxo",
@@ -1510,8 +1515,9 @@ networks:
       {
         heading: "4. ATIVE o workflow e teste",
         body: `<p>No n8n, ligue a chave <strong>Active</strong> do workflow de atendimento (mesma pegadinha da etapa anterior — sem ativar, nada acontece).</p>
-<p><strong>Teste de verdade:</strong> peça para alguém (de outro número) mandar uma mensagem tipo "Oi, quero saber mais". Em segundos deve chegar a resposta do atendente — e a conversa inteira aparece registrada no Chatwoot.</p>
-<p>Quando você quiser assumir uma conversa, é só responder pelo Chatwoot.</p>`
+<p><strong>Teste 1 — atendimento:</strong> peça para alguém (de outro número) mandar "Oi, quero saber mais". Em segundos chega a resposta do atendente — e a conversa aparece no Chatwoot.</p>
+<p><strong>Teste 2 — transferência:</strong> na mesma conversa, mande "quero falar com um humano". O atendente confirma, e no Chatwoot a conversa aparece <strong>atribuída a você</strong> — a partir daí o bot fica em silêncio e a conversa é sua.</p>
+<p><strong>Para devolver a conversa ao bot:</strong> remova a atribuição no Chatwoot (Agente atribuído → Nenhum).</p>`
       }
     ],
     validation: "Mensagem de teste respondida pela IA e conversa registrada no Chatwoot.",
@@ -3496,11 +3502,37 @@ echo "  Se aparecer timeout: docker service update --force portainer_portainer"
 `;
 }
 
+
+// Webhook POST /webhook/atendimento — atendente de IA no WhatsApp (v3)
+// Responde na hora (onReceived), deduplica por id de mensagem, lê o histórico
+// da conversa no Chatwoot, responde em JSON {resposta, transferir} e, quando
+// transferir=true, atribui a conversa a um humano via API (que também cala o bot).
 function buildAtendimentoWorkflowJson() {
   const domain = memberApp.state.project.domain || "seudominio.com.br";
-  // Prompt personalizado gerado pelo Agente 11 nesta sessão; fallback genérico
-  const systemPrompt = contentCache.atendimento_prompt
-    || `Voce e o agente de atendimento do negocio. Responda de forma direta, simpatica e objetiva, em mensagens curtas de WhatsApp. Direcione interessados para https://${domain}. Se o cliente pedir para falar com humano, confirme a transferencia e pare de responder.`;
+  const evoKey = memberApp.state.project.evolutionApiKey || "CHAVE_EVOLUTION_AQUI";
+  const cwAccount = memberApp.state.project.chatwootAccountId || "1";
+  const cwToken = memberApp.state.project.chatwootToken || "COLE_SEU_TOKEN_CHATWOOT";
+  const cwBase = `https://chat.${domain}/api/v1/accounts/${cwAccount}`;
+
+  const customPrompt = contentCache.atendimento_prompt
+    || `Voce e o atendente de IA do negocio. Responda de forma direta, simpatica e objetiva, em mensagens curtas de WhatsApp. Direcione interessados para https://${domain}.`;
+
+  // Contrato fixo anexado a qualquer prompt personalizado — garante o JSON e a transferência
+  const systemPrompt = [
+    customPrompt,
+    "",
+    "## CONTRATO DE RESPOSTA (OBRIGATORIO)",
+    "Responda SEMPRE com um JSON valido, sem nenhum texto fora dele:",
+    '{"resposta": "sua mensagem para o cliente", "transferir": true ou false}',
+    "",
+    "Defina transferir=true quando o cliente: pedir para falar com humano/pessoa/atendente; propuser parceria; quiser negociar desconto ou condicoes; fizer reclamacao ou pedir reembolso; ou trouxer assunto fora do escopo do atendimento.",
+    "Quando transferir=true, a resposta deve dizer que o responsavel foi avisado e vai assumir esta conversa em breve — sem inventar nomes de pessoas nem prazos.",
+    "Nos demais casos, transferir=false. Nunca invente nomes, precos ou dados que nao estejam nas suas instrucoes."
+  ].join("\n");
+
+  const cwHeaders = { parameters: [{ name: "api_access_token", value: cwToken }] };
+  const pgCred = { postgres: { id: "SUBSTITUA_PELO_ID_DA_CREDENCIAL", name: "Postgres negocio" } };
+
   const workflow = {
     name: "Agente de Atendimento",
     nodes: [
@@ -3508,14 +3540,14 @@ function buildAtendimentoWorkflowJson() {
         parameters: {
           httpMethod: "POST",
           path: "atendimento",
-          responseMode: "lastNode",
+          responseMode: "onReceived",
           options: {}
         },
         id: "webhook-evolution",
         name: "Webhook Evolution",
         type: "n8n-nodes-base.webhook",
         typeVersion: 2,
-        position: [240, 300],
+        position: [200, 300],
         webhookId: "atendimento-webhook"
       },
       {
@@ -3523,18 +3555,9 @@ function buildAtendimentoWorkflowJson() {
           conditions: {
             options: { caseSensitive: true, leftValue: "", typeValidation: "strict" },
             conditions: [
-              {
-                id: "cond-event",
-                leftValue: "={{ $json.body.event }}",
-                rightValue: "messages.upsert",
-                operator: { type: "string", operation: "equals" }
-              },
-              {
-                id: "cond-from-me",
-                leftValue: "={{ $json.body.data.key.fromMe }}",
-                rightValue: false,
-                operator: { type: "boolean", operation: "false" }
-              }
+              { id: "cond-event", leftValue: "={{ $json.body.event }}", rightValue: "messages.upsert", operator: { type: "string", operation: "equals" } },
+              { id: "cond-from-me", leftValue: "={{ $json.body.data.key.fromMe }}", rightValue: false, operator: { type: "boolean", operation: "false" } },
+              { id: "cond-texto", leftValue: "={{ ($json.body.data.message && $json.body.data.message.conversation) || '' }}", rightValue: "", operator: { type: "string", operation: "notEquals" } }
             ],
             combinator: "and"
           },
@@ -3544,102 +3567,191 @@ function buildAtendimentoWorkflowJson() {
         name: "Filtra mensagem recebida",
         type: "n8n-nodes-base.if",
         typeVersion: 2,
-        position: [460, 300]
+        position: [400, 300]
+      },
+      {
+        parameters: {
+          operation: "executeQuery",
+          query: [
+            "create table if not exists bot_mensagens (id text primary key, criado_em timestamptz default now());",
+            "insert into bot_mensagens (id) values ($1) on conflict do nothing returning id;"
+          ].join("\n"),
+          options: { queryReplacement: "={{ $json.body.data.key.id }}" }
+        },
+        id: "dedup",
+        name: "Dedup mensagem",
+        type: "n8n-nodes-base.postgres",
+        typeVersion: 2.4,
+        position: [600, 220],
+        credentials: pgCred
+      },
+      {
+        parameters: {
+          conditions: {
+            options: { caseSensitive: true, leftValue: "", typeValidation: "loose" },
+            conditions: [
+              { id: "cond-nova", leftValue: "={{ $json.id }}", rightValue: "", operator: { type: "string", operation: "notEquals" } }
+            ],
+            combinator: "and"
+          },
+          options: {}
+        },
+        id: "e-nova",
+        name: "Mensagem inedita?",
+        type: "n8n-nodes-base.if",
+        typeVersion: 2,
+        position: [800, 220]
       },
       {
         parameters: {
           method: "GET",
-          url: `https://chat.${domain}/api/v1/accounts/${memberApp.state.project.chatwootAccountId || "1"}/conversations?status=open&assignee_type=assigned`,
+          url: `=${cwBase}/contacts/search?q={{ $('Webhook Evolution').item.json.body.data.key.remoteJid.split('@')[0].replace(/\\D/g, '') }}`,
           sendHeaders: true,
-          headerParameters: {
-            parameters: [{ name: "api_access_token", value: memberApp.state.project.chatwootToken || "COLE_SEU_TOKEN_CHATWOOT" }]
-          },
+          headerParameters: cwHeaders,
           options: {}
         },
-        id: "consulta-atribuidas",
-        name: "Consulta atribuidas no Chatwoot",
+        id: "busca-contato",
+        name: "Busca contato no Chatwoot",
         type: "n8n-nodes-base.httpRequest",
         typeVersion: 4.2,
-        position: [640, 220],
+        position: [1000, 220],
+        onError: "continueRegularOutput"
+      },
+      {
+        parameters: {
+          method: "GET",
+          url: `=${cwBase}/contacts/{{ ($json.payload && $json.payload[0] && $json.payload[0].id) || 0 }}/conversations`,
+          sendHeaders: true,
+          headerParameters: cwHeaders,
+          options: {}
+        },
+        id: "busca-conversas",
+        name: "Busca conversas do contato",
+        type: "n8n-nodes-base.httpRequest",
+        typeVersion: 4.2,
+        position: [1200, 220],
         onError: "continueRegularOutput"
       },
       {
         parameters: {
           jsCode: [
-            "// Se a conversa deste numero esta atribuida a um humano no Chatwoot, o bot cala.",
-            "const payload = $('Webhook Evolution').item.json.body;",
-            "const numero = String(payload?.data?.key?.remoteJid || '').split('@')[0].replace(/\\D/g, '');",
-            "const sufixo = numero.slice(-8);",
-            "const conversas = $json?.data?.payload || [];",
-            "const atribuida = sufixo.length >= 8 && conversas.some((c) => {",
-            "  const tel = String(c?.meta?.sender?.phone_number || '').replace(/\\D/g, '');",
-            "  return tel && tel.slice(-8) === sufixo;",
-            "});",
-            "return [{ json: { atribuida } }];"
+            "// Escolhe a conversa mais recente e verifica se um humano assumiu",
+            "const convs = ($input.first().json && $input.first().json.payload) || [];",
+            "let conv = null;",
+            "for (const c of convs) { if (!conv || Number(c.id) > Number(conv.id)) conv = c; }",
+            "const assignee = conv && conv.meta && conv.meta.assignee;",
+            "return [{ json: { conversaId: conv ? conv.id : 0, humanoAssumiu: Boolean(assignee) } }];"
           ].join("\n")
         },
-        id: "verifica-atribuicao",
-        name: "Humano assumiu?",
+        id: "escolhe-conversa",
+        name: "Escolhe conversa",
         type: "n8n-nodes-base.code",
         typeVersion: 2,
-        position: [820, 220]
+        position: [1400, 220]
       },
       {
         parameters: {
           conditions: {
             options: { caseSensitive: true, leftValue: "", typeValidation: "strict" },
             conditions: [
-              {
-                id: "cond-nao-atribuida",
-                leftValue: "={{ $json.atribuida }}",
-                rightValue: false,
-                operator: { type: "boolean", operation: "false" }
-              }
+              { id: "cond-livre", leftValue: "={{ $json.humanoAssumiu }}", rightValue: false, operator: { type: "boolean", operation: "false" } }
             ],
             combinator: "and"
           },
           options: {}
         },
-        id: "filtra-atribuicao",
+        id: "bot-pode",
         name: "Bot pode responder",
         type: "n8n-nodes-base.if",
         typeVersion: 2,
-        position: [1000, 220]
+        position: [1600, 220]
       },
       {
         parameters: {
-          modelId: { __rl: true, value: "gpt-4o-mini", mode: "list", cachedResultName: "gpt-4o-mini" },
-          messages: {
-            values: [
-              { content: systemPrompt, role: "system" },
-              { content: "={{ $('Webhook Evolution').item.json.body.data.message.conversation }}", role: "user" }
-            ]
-          },
+          method: "GET",
+          url: `=${cwBase}/conversations/{{ $json.conversaId }}/messages`,
+          sendHeaders: true,
+          headerParameters: cwHeaders,
+          options: {}
+        },
+        id: "busca-historico",
+        name: "Busca historico",
+        type: "n8n-nodes-base.httpRequest",
+        typeVersion: 4.2,
+        position: [1800, 220],
+        onError: "continueRegularOutput"
+      },
+      {
+        parameters: {
+          jsCode: [
+            "const atual = String($('Webhook Evolution').item.json.body.data.message.conversation || '').trim();",
+            "const brutas = ($input.first().json && $input.first().json.payload) || [];",
+            "const hist = brutas",
+            "  .filter((m) => !m.private && m.content && (m.message_type === 0 || m.message_type === 1))",
+            "  .slice(-10)",
+            "  .map((m) => ({ role: m.message_type === 0 ? 'user' : 'assistant', content: String(m.content) }));",
+            "// Evita duplicar a mensagem atual se o espelhamento do Chatwoot ja a registrou",
+            "if (hist.length && hist[hist.length - 1].role === 'user' && hist[hist.length - 1].content.trim() === atual) hist.pop();",
+            "const system = " + JSON.stringify(systemPrompt) + ";",
+            "const messages = [{ role: 'system', content: system }, ...hist, { role: 'user', content: atual }];",
+            "return [{ json: { messages, conversaId: $('Escolhe conversa').item.json.conversaId } }];"
+          ].join("\n")
+        },
+        id: "monta-mensagens",
+        name: "Monta mensagens",
+        type: "n8n-nodes-base.code",
+        typeVersion: 2,
+        position: [2000, 220]
+      },
+      {
+        parameters: {
+          method: "POST",
+          url: "https://api.openai.com/v1/chat/completions",
+          authentication: "predefinedCredentialType",
+          nodeCredentialType: "openAiApi",
+          sendBody: true,
+          specifyBody: "json",
+          jsonBody: "={{ JSON.stringify({ model: 'gpt-4o-mini', response_format: { type: 'json_object' }, messages: $json.messages }) }}",
           options: {}
         },
         id: "agente-ia",
         name: "Agente IA",
-        type: "@n8n/n8n-nodes-langchain.openAi",
-        typeVersion: 1.8,
-        position: [1180, 220],
+        type: "n8n-nodes-base.httpRequest",
+        typeVersion: 4.2,
+        position: [2200, 220],
         credentials: {
           openAiApi: { id: "SUBSTITUA_PELO_ID_DA_CREDENCIAL", name: "OpenAi account" }
         }
       },
       {
         parameters: {
+          jsCode: [
+            "const bruto = ($input.first().json.choices && $input.first().json.choices[0] && $input.first().json.choices[0].message && $input.first().json.choices[0].message.content) || '';",
+            "let resposta = bruto; let transferir = false;",
+            "try { const p = JSON.parse(bruto); resposta = String(p.resposta || bruto); transferir = Boolean(p.transferir); } catch {}",
+            "if (!resposta) { resposta = 'Recebi sua mensagem! Ja te respondo.'; }",
+            "return [{ json: { resposta, transferir, conversaId: $('Monta mensagens').item.json.conversaId } }];"
+          ].join("\n")
+        },
+        id: "interpreta",
+        name: "Interpreta resposta",
+        type: "n8n-nodes-base.code",
+        typeVersion: 2,
+        position: [2400, 220]
+      },
+      {
+        parameters: {
           method: "POST",
-          // O nome da instância vem do próprio webhook — evita erro de maiúscula/minúscula
           url: `=https://evo.${domain}/message/sendText/{{ $('Webhook Evolution').item.json.body.instance }}`,
           sendHeaders: true,
           headerParameters: {
-            parameters: [{ name: "apikey", value: memberApp.state.project.evolutionApiKey || "CHAVE_EVOLUTION_AQUI" }]
+            parameters: [{ name: "apikey", value: evoKey }]
           },
           sendBody: true,
           bodyParameters: {
             parameters: [
               { name: "number", value: "={{ $('Webhook Evolution').item.json.body.data.key.remoteJid }}" },
-              { name: "text", value: "={{ $json.message.content }}" }
+              { name: "text", value: "={{ $json.resposta }}" }
             ]
           },
           options: {}
@@ -3648,16 +3760,92 @@ function buildAtendimentoWorkflowJson() {
         name: "Responder via Evolution API",
         type: "n8n-nodes-base.httpRequest",
         typeVersion: 4.2,
-        position: [900, 220]
+        position: [2600, 220]
+      },
+      {
+        parameters: {
+          conditions: {
+            options: { caseSensitive: true, leftValue: "", typeValidation: "strict" },
+            conditions: [
+              { id: "cond-transferir", leftValue: "={{ $('Interpreta resposta').item.json.transferir }}", rightValue: true, operator: { type: "boolean", operation: "true" } },
+              { id: "cond-tem-conversa", leftValue: "={{ $('Interpreta resposta').item.json.conversaId }}", rightValue: 0, operator: { type: "number", operation: "gt" } }
+            ],
+            combinator: "and"
+          },
+          options: {}
+        },
+        id: "deve-transferir",
+        name: "Deve transferir?",
+        type: "n8n-nodes-base.if",
+        typeVersion: 2,
+        position: [2800, 220]
+      },
+      {
+        parameters: {
+          method: "GET",
+          url: `${cwBase}/agents`,
+          sendHeaders: true,
+          headerParameters: cwHeaders,
+          options: {}
+        },
+        id: "busca-agentes",
+        name: "Busca agentes",
+        type: "n8n-nodes-base.httpRequest",
+        typeVersion: 4.2,
+        position: [3000, 140],
+        onError: "continueRegularOutput"
+      },
+      {
+        parameters: {
+          jsCode: [
+            "const todos = $input.all().map((i) => i.json);",
+            "const primeiro = todos.find((a) => a && a.id);",
+            "return [{ json: { assigneeId: primeiro ? primeiro.id : 1, conversaId: $('Interpreta resposta').item.json.conversaId } }];"
+          ].join("\n")
+        },
+        id: "escolhe-agente",
+        name: "Escolhe agente humano",
+        type: "n8n-nodes-base.code",
+        typeVersion: 2,
+        position: [3200, 140]
+      },
+      {
+        parameters: {
+          method: "POST",
+          url: `=${cwBase}/conversations/{{ $json.conversaId }}/assignments`,
+          sendHeaders: true,
+          headerParameters: cwHeaders,
+          sendBody: true,
+          bodyParameters: {
+            parameters: [{ name: "assignee_id", value: "={{ $json.assigneeId }}" }]
+          },
+          options: {}
+        },
+        id: "atribui-humano",
+        name: "Atribui ao humano",
+        type: "n8n-nodes-base.httpRequest",
+        typeVersion: 4.2,
+        position: [3400, 140],
+        onError: "continueRegularOutput"
       }
     ],
     connections: {
       "Webhook Evolution": { main: [[{ node: "Filtra mensagem recebida", type: "main", index: 0 }]] },
-      "Filtra mensagem recebida": { main: [[{ node: "Consulta atribuidas no Chatwoot", type: "main", index: 0 }]] },
-      "Consulta atribuidas no Chatwoot": { main: [[{ node: "Humano assumiu?", type: "main", index: 0 }]] },
-      "Humano assumiu?": { main: [[{ node: "Bot pode responder", type: "main", index: 0 }]] },
-      "Bot pode responder": { main: [[{ node: "Agente IA", type: "main", index: 0 }]] },
-      "Agente IA": { main: [[{ node: "Responder via Evolution API", type: "main", index: 0 }]] }
+      "Filtra mensagem recebida": { main: [[{ node: "Dedup mensagem", type: "main", index: 0 }]] },
+      "Dedup mensagem": { main: [[{ node: "Mensagem inedita?", type: "main", index: 0 }]] },
+      "Mensagem inedita?": { main: [[{ node: "Busca contato no Chatwoot", type: "main", index: 0 }]] },
+      "Busca contato no Chatwoot": { main: [[{ node: "Busca conversas do contato", type: "main", index: 0 }]] },
+      "Busca conversas do contato": { main: [[{ node: "Escolhe conversa", type: "main", index: 0 }]] },
+      "Escolhe conversa": { main: [[{ node: "Bot pode responder", type: "main", index: 0 }]] },
+      "Bot pode responder": { main: [[{ node: "Busca historico", type: "main", index: 0 }]] },
+      "Busca historico": { main: [[{ node: "Monta mensagens", type: "main", index: 0 }]] },
+      "Monta mensagens": { main: [[{ node: "Agente IA", type: "main", index: 0 }]] },
+      "Agente IA": { main: [[{ node: "Interpreta resposta", type: "main", index: 0 }]] },
+      "Interpreta resposta": { main: [[{ node: "Responder via Evolution API", type: "main", index: 0 }]] },
+      "Responder via Evolution API": { main: [[{ node: "Deve transferir?", type: "main", index: 0 }]] },
+      "Deve transferir?": { main: [[{ node: "Busca agentes", type: "main", index: 0 }]] },
+      "Busca agentes": { main: [[{ node: "Escolhe agente humano", type: "main", index: 0 }]] },
+      "Escolhe agente humano": { main: [[{ node: "Atribui ao humano", type: "main", index: 0 }]] }
     },
     pinData: {},
     settings: { executionOrder: "v1" }

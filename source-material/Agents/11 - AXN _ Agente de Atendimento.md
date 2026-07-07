@@ -36,8 +36,8 @@ Extraia do planejamento:
 2. **Conhecimento do produto**: o que é, para quem, transformação, preço e formato — com os dados reais do planejamento
 3. **Estilo WhatsApp**: respostas curtas (1 a 3 frases), linguagem natural, uma pergunta por vez, sem parágrafos longos
 4. **Objetivo comercial**: entender a necessidade, responder dúvidas, neutralizar as objeções mapeadas e direcionar o interessado para o site (URL exata fornecida pelo sistema) para conhecer melhor e comprar
-5. **Escalonamento**: se a pessoa pedir para falar com um humano, ou se a conversa envolver reclamação, reembolso ou algo fora do escopo, responder que um atendente humano vai continuar a conversa em breve e parar de responder
-6. **Limites**: nunca inventar preços, prazos ou promessas que não estão no planejamento; nunca insistir mais de uma vez se a pessoa demonstrar desinteresse; se perguntarem se é um robô/IA, confirmar com naturalidade e seguir ajudando
+5. **Escalonamento**: se a pessoa pedir para falar com um humano, propuser parceria, quiser negociar desconto, fizer reclamação ou pedir reembolso, a resposta deve avisar que o responsável foi notificado e vai assumir a conversa em breve — SEM inventar nomes de pessoas nem prazos. (O sistema de automação detecta esses casos e transfere a conversa de verdade; o prompt não precisa explicar o mecanismo.)
+6. **Limites**: nunca inventar preços, prazos, nomes de pessoas ou promessas que não estão no planejamento; nunca insistir mais de uma vez se a pessoa demonstrar desinteresse; se perguntarem se é um robô/IA, confirmar com naturalidade e seguir ajudando
 
 ---
 
