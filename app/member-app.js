@@ -3706,12 +3706,12 @@ function buildAtendimentoWorkflowJson() {
       {
         parameters: {
           method: "POST",
-          url: "https://api.openai.com/v1/chat/completions",
+          url: "https://api.openai.com/v1/responses",
           authentication: "predefinedCredentialType",
           nodeCredentialType: "openAiApi",
           sendBody: true,
           specifyBody: "json",
-          jsonBody: "={{ JSON.stringify({ model: 'gpt-4o-mini', response_format: { type: 'json_object' }, messages: $json.messages }) }}",
+          jsonBody: "={{ JSON.stringify({ model: 'gpt-4o-mini', input: $json.messages, text: { format: { type: 'json_schema', name: 'atendimento', strict: true, schema: { type: 'object', additionalProperties: false, required: ['resposta', 'transferir'], properties: { resposta: { type: 'string' }, transferir: { type: 'boolean' } } } } } }) }}",
           options: {}
         },
         id: "agente-ia",
@@ -3726,7 +3726,12 @@ function buildAtendimentoWorkflowJson() {
       {
         parameters: {
           jsCode: [
-            "const bruto = ($input.first().json.choices && $input.first().json.choices[0] && $input.first().json.choices[0].message && $input.first().json.choices[0].message.content) || '';",
+            "// Extrai o texto da Responses API (itens type=message > content > text)",
+            "const r = $input.first().json;",
+            "const bruto = (r.output || [])",
+            "  .flatMap((item) => item.content || [])",
+            "  .map((c) => c.text || '')",
+            "  .join('').trim();",
             "let resposta = bruto; let transferir = false;",
             "try { const p = JSON.parse(bruto); resposta = String(p.resposta || bruto); transferir = Boolean(p.transferir); } catch {}",
             "if (!resposta) { resposta = 'Recebi sua mensagem! Ja te respondo.'; }",
@@ -4375,12 +4380,12 @@ function buildConselhoWorkflowJson() {
       {
         parameters: {
           method: "POST",
-          url: "https://api.openai.com/v1/chat/completions",
+          url: "https://api.openai.com/v1/responses",
           authentication: "predefinedCredentialType",
           nodeCredentialType: "openAiApi",
           sendBody: true,
           specifyBody: "json",
-          jsonBody: "={{ JSON.stringify({ model: $json.model, messages: $json.messages }) }}",
+          jsonBody: "={{ JSON.stringify({ model: $json.model, input: $json.messages }) }}",
           options: {}
         },
         id: "openai",
@@ -4395,8 +4400,12 @@ function buildConselhoWorkflowJson() {
       {
         parameters: {
           jsCode: [
+            "// Extrai o texto da Responses API (itens type=message > content > text)",
             "const r = $input.first().json;",
-            "const resposta = (r.choices && r.choices[0] && r.choices[0].message && r.choices[0].message.content) || 'Nao consegui responder agora. Tente novamente.';",
+            "const resposta = ((r.output || [])",
+            "  .flatMap((item) => item.content || [])",
+            "  .map((c) => c.text || '')",
+            "  .join('').trim()) || 'Nao consegui responder agora. Tente novamente.';",
             "const conversaId = $('Abre conversa e salva pergunta').item.json.conversa_id;",
             "return [{ json: { resposta, conversa_id: conversaId } }];"
           ].join("\n")
