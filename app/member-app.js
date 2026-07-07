@@ -682,6 +682,7 @@ services:
       - N8N_LOG_LEVEL=info
       - GENERIC_TIMEZONE=America/Sao_Paulo
       - N8N_ENFORCE_SETTINGS_FILE_PERMISSIONS=true
+      - N8N_RUNNERS_ENABLED=true
       - N8N_RUNNERS_MODE=external
       - N8N_RUNNERS_BROKER_LISTEN_ADDRESS=0.0.0.0
       - N8N_RUNNERS_AUTH_TOKEN={{n8nRunnersAuthToken}}
@@ -776,6 +777,7 @@ services:
       - N8N_LOG_LEVEL=info
       - GENERIC_TIMEZONE=America/Sao_Paulo
       - N8N_ENFORCE_SETTINGS_FILE_PERMISSIONS=true
+      - N8N_RUNNERS_ENABLED=true
       - N8N_RUNNERS_MODE=external
       - N8N_RUNNERS_AUTH_TOKEN={{n8nRunnersAuthToken}}
       - N8N_NATIVE_PYTHON_RUNNER=true
@@ -855,6 +857,7 @@ services:
       - N8N_LOG_LEVEL=info
       - GENERIC_TIMEZONE=America/Sao_Paulo
       - N8N_ENFORCE_SETTINGS_FILE_PERMISSIONS=true
+      - N8N_RUNNERS_ENABLED=true
       - N8N_RUNNERS_MODE=external
       - N8N_RUNNERS_BROKER_LISTEN_ADDRESS=0.0.0.0
       - N8N_RUNNERS_AUTH_TOKEN={{n8nRunnersAuthToken}}
@@ -3072,6 +3075,7 @@ services:
       - N8N_LOG_LEVEL=info
       - GENERIC_TIMEZONE=America/Sao_Paulo
       - N8N_ENFORCE_SETTINGS_FILE_PERMISSIONS=true
+      - N8N_RUNNERS_ENABLED=true
       - N8N_RUNNERS_MODE=external
       - N8N_RUNNERS_BROKER_LISTEN_ADDRESS=0.0.0.0
       - N8N_RUNNERS_AUTH_TOKEN=__N8N_TOKEN__
@@ -3223,6 +3227,7 @@ services:
       - N8N_PAYLOAD_SIZE_MAX=16
       - N8N_LOG_LEVEL=info
       - GENERIC_TIMEZONE=America/Sao_Paulo
+      - N8N_RUNNERS_ENABLED=true
       - N8N_RUNNERS_MODE=external
       - N8N_RUNNERS_BROKER_LISTEN_ADDRESS=0.0.0.0
       - N8N_RUNNERS_AUTH_TOKEN=__N8N_TOKEN__
