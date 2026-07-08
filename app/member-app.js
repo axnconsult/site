@@ -45,7 +45,8 @@ const COURSE_MODULES = [
     stages: [
       ["Estrategia de divulgacao", "Agentes leem seu planejamento e geram uma grade estrategica de 28 dias.", "technical", null, ["grade-postagens"]],
       ["Roteiros e textos", "Agente converte a grade em roteiros prontos para producao por formato.", "technical", null, ["roteiros-textos"]],
-      ["Peca de campanha", "IA gera a primeira arte visual de divulgacao para aprovacao.", "technical", null, ["peca-campanha"]]
+      ["Peca de campanha", "IA gera a primeira arte visual de divulgacao para aprovacao.", "technical", null, ["peca-campanha"]],
+      ["Fabrica de Videos — setup", "Crie sua conta HeyGen, escolha apresentador e voz, e valide a configuracao.", "technical", null, ["heygen-setup"]]
     ]
   },
   {
@@ -1233,6 +1234,75 @@ networks:
     ],
     validation: "Peca aprovada e baixada.",
     done: "Peca de campanha criada e aprovada."
+  },
+  {
+    id: "heygen-setup",
+    title: "Fabrica de Videos — setup",
+    objective: "Criar sua conta no HeyGen, escolher o apresentador virtual e a voz dos seus videos, e validar tudo com um video de teste.",
+    tutorial: [
+      {
+        heading: "1. O que e a Fabrica de Videos",
+        body: `<p>A Fabrica de Videos transforma os roteiros gerados nas etapas anteriores em <strong>videos prontos para Reels e Shorts</strong> — com um apresentador virtual, voz em portugues e legenda automatica.</p>
+<p>Quem gera os videos e o <strong>HeyGen</strong>, um servico especializado em video com IA. Nesta etapa voce cria sua conta la e escolhe o apresentador e a voz. <strong>Custo transparente:</strong> cada video de ~20 segundos custa cerca de <strong>US$ 1</strong> (cobrado pelo HeyGen, direto na sua conta — sem intermediarios).</p>`
+      },
+      {
+        heading: "2. Crie sua conta no HeyGen",
+        body: `<p>Acesse <a href="https://app.heygen.com" target="_blank" rel="noopener">app.heygen.com</a> e crie uma conta gratuita (pode usar o e-mail do seu negocio). <strong>Nao precisa assinar nenhum plano</strong> — os videos da Fabrica sao pagos por uso, via API.</p>`
+      },
+      {
+        heading: "3. Ative o credito de API e copie sua chave",
+        body: `<p>No HeyGen, abra as configuracoes da conta e procure a area de <strong>API</strong>:</p>
+<p>1. Em <strong>Billing / API</strong>, adicione credito inicial (minimo US$ 5 — rende cerca de 5 videos).<br>
+2. Em <strong>Settings → API</strong>, copie o seu <strong>API Token</strong> (comeca com letras e numeros longos).</p>
+<p>Cole a chave abaixo. Ela fica salva <strong>apenas neste navegador</strong> — nao enviamos sua chave para o nosso banco de dados.</p>`,
+        field: "heygenApiKey"
+      },
+      {
+        heading: "4. Escolha seu apresentador virtual",
+        body: `<p>Na barra lateral do HeyGen, abra <strong>Avatars</strong> e navegue pela biblioteca publica. Escolha o apresentador com a cara do seu negocio (ha centenas — formais, casuais, jovens, maduros).</p>
+<p>Ao abrir a pagina do avatar escolhido, olhe a <strong>barra de endereco do navegador</strong>: o codigo do avatar e o trecho de letras e numeros depois de <code>avatars/</code>. Copie e cole abaixo — no proximo passo o app confere se esta certo.</p>`,
+        field: "heygenAvatarId"
+      },
+      {
+        heading: "5. Escolha a voz do seu apresentador",
+        body: `<p>Selecionamos vozes em portugues do Brasil que funcionam bem com os roteiros da Fabrica. Clique para ouvir e marque a sua preferida:</p>
+<div class="wizard-data-fields heygen-voice-list">
+  <div class="wizard-data-field"><label><input type="radio" name="heygenVoice" data-project-field="heygenVoiceId" value="94ec497104a04c87904a8aa138d6e46c"> Sofia — feminina, natural</label><audio controls preload="none" src="https://resource.heygen.ai/text_to_speech/ZSSfa8Hoy3vNvwMyE47P99.mp3"></audio></div>
+  <div class="wizard-data-field"><label><input type="radio" name="heygenVoice" data-project-field="heygenVoiceId" value="6c0a95599317428a8151293305deceba"> Ana — feminina, simpatica</label><audio controls preload="none" src="https://resource2.heygen.ai/text_to_speech/21e28514b7994f46b907b74914a3ca6e/6c0a95599317428a8151293305deceba/id=4df9deb9-463b-45ec-9640-00935f7bddd6.wav"></audio></div>
+  <div class="wizard-data-field"><label><input type="radio" name="heygenVoice" data-project-field="heygenVoiceId" value="15ea92317dfe4abc858b08be62bd8e93"> Ricardo — masculina, calma</label><audio controls preload="none" src="https://static.heygen.ai/voice_preview/47d1469c5c434e6ab153fe69904687ac.wav"></audio></div>
+  <div class="wizard-data-field"><label><input type="radio" name="heygenVoice" data-project-field="heygenVoiceId" value="cfdb383951144f56a5198869636ccd17"> Antonio — masculina, natural</label><audio controls preload="none" src="https://static.heygen.ai/voice_preview/82871b89da0d42f0bc9c64681f00ae48.wav"></audio></div>
+</div>`
+      },
+      {
+        heading: "6. Valide a configuracao",
+        body: `<p>Clique para conferir se a chave e o apresentador estao corretos (nao gasta credito):</p>
+<div class="generate-block">
+  <button class="button button-primary" type="button" id="btn-heygen-validate">Validar configuracao</button>
+  <div class="generate-status hidden" id="heygen-validate-status"></div>
+  <div class="generate-image-result hidden" id="heygen-validate-result">
+    <img class="generated-image" id="heygen-avatar-thumb" src="" alt="Apresentador escolhido" />
+    <p id="heygen-validate-name"></p>
+  </div>
+</div>`
+      },
+      {
+        heading: "7. Gere um video de teste (opcional)",
+        body: `<p>Para ver seu apresentador falando, gere um video curto de teste. <strong>Custa cerca de US$ 0,35</strong> do seu credito HeyGen e leva 1 a 2 minutos.</p>
+<div class="generate-block">
+  <button class="button button-secondary" type="button" id="btn-heygen-test">Gerar video de teste</button>
+  <div class="generate-status hidden" id="heygen-test-status"></div>
+  <div class="generate-image-result hidden" id="heygen-test-result">
+    <video controls playsinline style="max-width: 260px; border-radius: 12px;" id="heygen-test-video"></video>
+  </div>
+</div>`
+      }
+    ],
+    fields: [
+      { key: "heygenApiKey", label: "API Token do HeyGen", placeholder: "cole aqui o token copiado" },
+      { key: "heygenAvatarId", label: "Codigo do apresentador (avatar)", placeholder: "trecho apos avatars/ na URL" }
+    ],
+    validation: "Validacao da configuracao retornou o nome e a foto do apresentador.",
+    done: "Conta HeyGen configurada: apresentador e voz escolhidos e validados."
   },
 
   // ─── Módulo 5 — Site e Checkout ─────────────────────────────────────────────
@@ -2471,6 +2541,14 @@ function renderLessonStage(lesson, steps) {
     button.addEventListener("click", () => handleGenerateClick(button));
   });
 
+  // Fábrica de Vídeos (Módulo 4) — restaura a voz escolhida e liga os botões
+  const savedVoice = memberApp.state.project.heygenVoiceId || "";
+  document.querySelectorAll('input[name="heygenVoice"]').forEach((radio) => {
+    radio.checked = radio.value === savedVoice;
+  });
+  document.querySelector("#btn-heygen-validate")?.addEventListener("click", handleHeygenValidateClick);
+  document.querySelector("#btn-heygen-test")?.addEventListener("click", handleHeygenTestClick);
+
   // Reexibe conteúdo de texto já gerado nesta sessão ao voltar para a etapa
   (step.tutorial || []).forEach((block) => {
     if (block.generate?.type === "text" && contentCache[block.generate.id]) {
@@ -2646,6 +2724,148 @@ async function handleGenerateClick(button) {
   } finally {
     button.disabled = false;
     button.textContent = originalLabel;
+  }
+}
+
+// ─── Fábrica de Vídeos (Módulo 4) — setup HeyGen ────────────────────────────
+
+function heygenErrorMessage(code, detail) {
+  const messages = {
+    heygen_key_missing: "Cole o API Token do HeyGen no passo 3 antes de continuar.",
+    heygen_key_invalid: "O HeyGen nao aceitou este API Token. Confira se copiou o token completo em Settings → API.",
+    heygen_avatar_missing: "Cole o codigo do apresentador no passo 4 antes de continuar.",
+    heygen_avatar_not_found: "Nao encontrei um apresentador com esse codigo. Abra a pagina do avatar no HeyGen e copie o trecho apos avatars/ na barra de endereco.",
+    heygen_config_incomplete: "Complete os passos anteriores: API Token, apresentador e voz.",
+    heygen_unreachable: "Nao consegui falar com o HeyGen agora. Tente novamente em instantes.",
+    heygen_video_create_failed: "O HeyGen nao aceitou o pedido de video. Confira se ha credito de API na sua conta (Billing → API).",
+    heygen_status_failed: "Nao consegui consultar o andamento do video. Tente novamente.",
+    auth_failed: "Sua sessao expirou. Entre novamente para continuar."
+  };
+  const base = messages[code] || "Algo deu errado na comunicacao com o HeyGen. Tente novamente.";
+  return detail ? `${base} (${detail})` : base;
+}
+
+async function postHeygen(path, body) {
+  const response = await fetch(path, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ token: memberApp.token, ...body })
+  });
+  if (response.status === 404) {
+    throw new Error("O servidor ainda nao tem esta funcao. Atualize a stack do site (deploy da versao mais recente) e tente de novo.");
+  }
+  return response.json().catch(() => ({}));
+}
+
+async function handleHeygenValidateClick() {
+  const button = document.querySelector("#btn-heygen-validate");
+  const statusEl = document.querySelector("#heygen-validate-status");
+  const resultEl = document.querySelector("#heygen-validate-result");
+  const project = memberApp.state.project;
+
+  const showStatus = (text, kind) => {
+    if (!statusEl) return;
+    statusEl.textContent = text;
+    statusEl.className = `generate-status ${kind || ""}`.trim();
+  };
+
+  if (!project.heygenApiKey) return showStatus(heygenErrorMessage("heygen_key_missing"), "is-error");
+  if (!project.heygenAvatarId) return showStatus(heygenErrorMessage("heygen_avatar_missing"), "is-error");
+
+  button.disabled = true;
+  showStatus("Validando com o HeyGen...", "is-loading");
+  resultEl?.classList.add("hidden");
+
+  try {
+    const data = await postHeygen("/api/heygen/validate", {
+      apiKey: project.heygenApiKey,
+      avatarId: project.heygenAvatarId
+    });
+    if (!data.ok) throw new Error(heygenErrorMessage(data.error, data.detail));
+
+    // Se o aluno colou o id do grupo (da URL), o servidor resolve para o id
+    // utilizavel na geracao — atualiza o campo e o projeto com o id certo
+    if (data.avatarId && data.avatarId !== project.heygenAvatarId) {
+      project.heygenAvatarId = data.avatarId;
+      persistMemberState();
+      const input = document.querySelector('input[data-project-field="heygenAvatarId"]');
+      if (input) input.value = data.avatarId;
+    }
+
+    const thumb = document.querySelector("#heygen-avatar-thumb");
+    const nameEl = document.querySelector("#heygen-validate-name");
+    if (thumb) {
+      thumb.src = data.thumbnail || "";
+      thumb.classList.toggle("hidden", !data.thumbnail);
+    }
+    if (nameEl) {
+      const voiceChecked = document.querySelector('input[name="heygenVoice"]:checked');
+      const voiceLabel = voiceChecked ? voiceChecked.parentElement.textContent.trim() : "escolha uma voz no passo 5";
+      nameEl.textContent = `Apresentador: ${data.name} ✓ · Voz: ${voiceLabel}`;
+    }
+    resultEl?.classList.remove("hidden");
+    showStatus("Configuracao valida! Voce ja pode gerar o video de teste.");
+  } catch (error) {
+    showStatus(error.message, "is-error");
+  } finally {
+    button.disabled = false;
+  }
+}
+
+async function handleHeygenTestClick() {
+  const button = document.querySelector("#btn-heygen-test");
+  const statusEl = document.querySelector("#heygen-test-status");
+  const resultEl = document.querySelector("#heygen-test-result");
+  const project = memberApp.state.project;
+
+  const showStatus = (text, kind) => {
+    if (!statusEl) return;
+    statusEl.textContent = text;
+    statusEl.className = `generate-status ${kind || ""}`.trim();
+  };
+
+  if (!project.heygenApiKey || !project.heygenAvatarId || !project.heygenVoiceId) {
+    return showStatus(heygenErrorMessage("heygen_config_incomplete"), "is-error");
+  }
+
+  button.disabled = true;
+  resultEl?.classList.add("hidden");
+  showStatus("Pedindo o video ao HeyGen...", "is-loading");
+
+  try {
+    const created = await postHeygen("/api/heygen/test-video", {
+      apiKey: project.heygenApiKey,
+      avatarId: project.heygenAvatarId,
+      voiceId: project.heygenVoiceId
+    });
+    if (!created.ok) throw new Error(heygenErrorMessage(created.error, created.detail));
+
+    showStatus("Video em producao... leva de 1 a 2 minutos. Pode deixar a pagina aberta.", "is-loading");
+
+    // Poll a cada 10s por ate 6 minutos — render de ~20s costuma levar 1-2 min
+    let final = null;
+    for (let attempt = 0; attempt < 36; attempt++) {
+      await new Promise((resolve) => setTimeout(resolve, 10000));
+      const status = await postHeygen("/api/heygen/video-status", {
+        apiKey: project.heygenApiKey,
+        videoId: created.videoId
+      });
+      if (!status.ok) throw new Error(heygenErrorMessage(status.error, status.detail));
+      if (status.status === "completed") { final = status; break; }
+      if (status.status === "failed") {
+        throw new Error(heygenErrorMessage("heygen_video_create_failed", status.error?.message));
+      }
+    }
+    if (!final?.videoUrl) throw new Error("O video demorou mais que o esperado. Confira na sua conta HeyGen em alguns minutos.");
+
+    const video = document.querySelector("#heygen-test-video");
+    if (video) video.src = final.videoUrl;
+    resultEl?.classList.remove("hidden");
+    showStatus("Video de teste pronto! Esse e o padrao que a Fabrica vai produzir com seus roteiros.");
+  } catch (error) {
+    showStatus(error.message, "is-error");
+  } finally {
+    button.disabled = false;
   }
 }
 

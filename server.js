@@ -7,6 +7,7 @@ import { fileURLToPath } from "node:url";
 import pg from "pg";
 import { runOperationAgentTurn, streamOperationAgentTurn, generateStrategicPlanMarkdown, runTechAssistantTurn } from "./server/operation-agents.js";
 import { streamContentGeneration, generateCampaignImage } from "./server/content-agents.js";
+import { validateHeygenConfig, createHeygenTestVideo, getHeygenVideoStatus } from "./server/heygen.js";
 
 const { Pool } = pg;
 
@@ -42,7 +43,10 @@ const routes = new Map([
   ["/api/operation/assistant", handleOperationAssistant],
   ["/api/wizard/load", handleWizardLoad],
   ["/api/wizard/save", handleWizardSave],
-  ["/api/wizard/ask", handleWizardAsk]
+  ["/api/wizard/ask", handleWizardAsk],
+  ["/api/heygen/validate", handleHeygenValidate],
+  ["/api/heygen/test-video", handleHeygenTestVideo],
+  ["/api/heygen/video-status", handleHeygenVideoStatus]
 ]);
 
 
@@ -338,6 +342,60 @@ async function handleContentImage(payload, response) {
   } catch (error) {
     console.warn("content image handler failed", error);
     return sendJson(response, 500, { ok: false, error: "image_generation_failed" });
+  }
+}
+
+// ─── Fábrica de Vídeos (Módulo 4) — HeyGen com a API key do aluno ───────────
+
+async function handleHeygenValidate(payload) {
+  try {
+    await getAuthenticatedMember(payload);
+  } catch (error) {
+    return { ok: false, error: error.code || "auth_failed" };
+  }
+  try {
+    return await validateHeygenConfig({
+      apiKey: nullableText(payload.apiKey),
+      avatarId: nullableText(payload.avatarId)
+    });
+  } catch (error) {
+    console.warn("heygen validate failed", error);
+    return { ok: false, error: "heygen_request_failed" };
+  }
+}
+
+async function handleHeygenTestVideo(payload) {
+  try {
+    await getAuthenticatedMember(payload);
+  } catch (error) {
+    return { ok: false, error: error.code || "auth_failed" };
+  }
+  try {
+    return await createHeygenTestVideo({
+      apiKey: nullableText(payload.apiKey),
+      avatarId: nullableText(payload.avatarId),
+      voiceId: nullableText(payload.voiceId)
+    });
+  } catch (error) {
+    console.warn("heygen test video failed", error);
+    return { ok: false, error: "heygen_video_create_failed" };
+  }
+}
+
+async function handleHeygenVideoStatus(payload) {
+  try {
+    await getAuthenticatedMember(payload);
+  } catch (error) {
+    return { ok: false, error: error.code || "auth_failed" };
+  }
+  try {
+    return await getHeygenVideoStatus({
+      apiKey: nullableText(payload.apiKey),
+      videoId: nullableText(payload.videoId)
+    });
+  } catch (error) {
+    console.warn("heygen video status failed", error);
+    return { ok: false, error: "heygen_status_failed" };
   }
 }
 
@@ -951,7 +1009,11 @@ function sanitizeWizardState(state) {
       serverIp: nullableText(project.serverIp) || "",
       technicalEmail: nullableText(project.technicalEmail) || "",
       hostName: nullableText(project.hostName) || "manager01",
-      siteImage: nullableText(project.siteImage) || "ghcr.io/axnconsult/site:main"
+      siteImage: nullableText(project.siteImage) || "ghcr.io/axnconsult/site:main",
+      // heygenApiKey fica só no localStorage do aluno (mesma postura de
+      // postgresPassword/evolutionApiKey: segredos não persistem no banco)
+      heygenAvatarId: nullableText(project.heygenAvatarId) || "",
+      heygenVoiceId: nullableText(project.heygenVoiceId) || ""
     },
     currentStep: nullableText(state?.currentStep) || fallback.currentStep,
     currentModule: nullableText(state?.currentModule) || fallback.currentModule,
