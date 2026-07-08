@@ -1010,10 +1010,13 @@ function sanitizeWizardState(state) {
       technicalEmail: nullableText(project.technicalEmail) || "",
       hostName: nullableText(project.hostName) || "manager01",
       siteImage: nullableText(project.siteImage) || "ghcr.io/axnconsult/site:main",
-      // heygenApiKey fica só no localStorage do aluno (mesma postura de
-      // postgresPassword/evolutionApiKey: segredos não persistem no banco)
+      // heygenApiKey e metricoolToken ficam só no localStorage do aluno (mesma
+      // postura de postgresPassword/evolutionApiKey: segredos não persistem no banco)
       heygenAvatarId: nullableText(project.heygenAvatarId) || "",
-      heygenVoiceId: nullableText(project.heygenVoiceId) || ""
+      heygenVoiceId: nullableText(project.heygenVoiceId) || "",
+      ownerWhatsapp: nullableText(project.ownerWhatsapp) || "",
+      metricoolUserId: nullableText(project.metricoolUserId) || "",
+      metricoolBlogId: nullableText(project.metricoolBlogId) || ""
     },
     currentStep: nullableText(state?.currentStep) || fallback.currentStep,
     currentModule: nullableText(state?.currentModule) || fallback.currentModule,

@@ -65,12 +65,13 @@ const COURSE_MODULES = [
     id: "module-6",
     number: 6,
     title: "Operacao Assistida",
-    summary: "Conecte o WhatsApp ao atendimento automatico, registre os leads do site e ganhe um Conselho de IA para decidir com dados.",
-    result: "Atendimento automatico no ar e Conselho de IA acompanhando o negocio",
+    summary: "Conecte o WhatsApp ao atendimento automatico, registre os leads do site, ative a Fabrica de Videos e ganhe um Conselho de IA para decidir com dados.",
+    result: "Atendimento automatico no ar, Fabrica de Videos ativa e Conselho de IA acompanhando o negocio",
     stages: [
       ["Conectar o WhatsApp", "Crie a instancia na Evolution API, escaneie o QR code e integre ao Chatwoot.", "technical", null, ["whatsapp-connect"]],
       ["Leads e vendas do site", "Ative os webhooks que registram leads do formulario e vendas do checkout no seu banco.", "technical", null, ["leads-webhook", "crm"]],
       ["Agente de atendimento", "Gere o prompt personalizado do seu atendente de IA e ative o fluxo que responde o WhatsApp.", "technical", null, ["atendimento-agente"]],
+      ["Fabrica de Videos — ativar", "Ative o fluxo que transforma os roteiros do Modulo 4 em videos prontos, entregues no seu WhatsApp.", "technical", null, ["fabrica-videos-ativar"]],
       ["Painel e Conselho de IA", "Publique o painel de gestao no seu dominio com dashboard de leads e o Conselho de 3 especialistas.", "technical", null, ["painel-conselho"]]
     ]
   }
@@ -1594,6 +1595,55 @@ networks:
     done: "Atendente de IA respondendo o WhatsApp do negocio."
   },
   {
+    id: "fabrica-videos-ativar",
+    title: "Fabrica de Videos — ativar",
+    objective: "Ativar o fluxo que transforma um roteiro do Modulo 4 em video pronto, entregue no seu WhatsApp.",
+    tutorial: [
+      {
+        heading: "1. O que voce esta ativando",
+        body: `<p>A Fabrica de Videos fecha o ciclo que voce comecou no Modulo 4: voce <strong>cola um roteiro de Reels/Shorts</strong> em um formulario, e em ~3 minutos recebe no seu WhatsApp o <strong>video vertical pronto</strong> — seu apresentador falando o roteiro, com legenda embutida — mais a <strong>legenda do post</strong> pronta para copiar.</p>
+<p>Por dentro, o fluxo: ajusta o roteiro para a fala soar natural (pausas e ritmo via pontuacao) → pede o video ao HeyGen → espera o render → entrega no WhatsApp → registra no seu banco. <strong>Custo transparente:</strong> ~US$ 1 por video de ~20s, direto do seu credito de API no HeyGen.</p>
+<p><strong>Pre-requisito:</strong> a etapa "Fabrica de Videos — setup" do Modulo 4 concluida (conta HeyGen, apresentador e voz validados).</p>`
+      },
+      {
+        heading: "2. Confira seus dados",
+        body: `<p>O fluxo ja sai preenchido com o apresentador e a voz que voce validou no Modulo 4. Confirme os dois campos abaixo antes de baixar:</p>`,
+        fields: ["ownerWhatsapp", "heygenApiKey"]
+      },
+      {
+        heading: "3. Baixe, importe e ATIVE o fluxo",
+        body: `<p><button class="button button-primary" type="button" id="download-n8n-fabrica-videos">Baixar fluxo da Fabrica de Videos (.json)</button></p>
+<p>Importe no n8n (<strong>Import from file</strong>) e selecione as credenciais que voce ja criou:</p>
+<ul>
+  <li>No <strong>Prepara roteiro (IA)</strong> → credencial <strong>OpenAI</strong> (modulo 3)</li>
+  <li>No <strong>Registra no banco</strong> → credencial <strong>Postgres negocio</strong> (etapa "Leads e vendas do site")</li>
+</ul>
+<p>Ligue a chave <strong>Active</strong> do workflow — sem ativar, o formulario nao existe.</p>`
+      },
+      {
+        heading: "4. Gere seu primeiro video",
+        body: `<p>Abra o formulario da sua Fabrica: <a href="https://workflows.{{domain}}/form/fabrica-de-videos" target="_blank" rel="noopener">workflows.{{domain}}/form/fabrica-de-videos</a> (salve nos favoritos — e por aqui que voce gera video daqui em diante).</p>
+<p>Cole um <strong>bloco inteiro</strong> de roteiro de Reels do Modulo 4 (do 🎬 ate a legenda) e envie. Em ~3 minutos chegam no seu WhatsApp o video e a legenda do post. Cada envio consome ~US$ 1 do seu credito HeyGen.</p>
+<p>Se nada chegar em 5 minutos, abra o n8n → <strong>Executions</strong> e veja onde o fluxo parou (o erro mais comum e credito de API zerado no HeyGen).</p>`
+      },
+      {
+        heading: "5. Publique — do jeito manual ou automatico (Metricool)",
+        body: `<p>Recomendamos o <strong>Metricool</strong> para agendar e publicar: no plano gratuito, baixe o video do WhatsApp, suba no planner com a legenda e agende — 2 minutos por post, e voce revisa tudo antes de ir ao ar.</p>
+<p><strong>Opcional — rascunho automatico:</strong> se voce assinar o plano <strong>Advanced</strong> do Metricool (que libera a API), a Fabrica cria cada video como <strong>rascunho no seu planner</strong> automaticamente — voce so revisa e confirma. Para ativar, preencha os 3 campos abaixo (no Metricool: <strong>Configuracoes da conta → API</strong> mostra o userToken e o userId; o blogId e o numero da marca, visivel na URL quando voce abre a marca no painel) e <strong>baixe e reimporte o fluxo</strong> no passo 3:</p>`,
+        fields: ["metricoolToken", "metricoolUserId", "metricoolBlogId"]
+      }
+    ],
+    fields: [
+      { key: "ownerWhatsapp", label: "Seu WhatsApp (com DDI, so numeros)", placeholder: "5511999998888", inline: true },
+      { key: "heygenApiKey", label: "API Token do HeyGen (vem do Modulo 4)", placeholder: "cole o token se o campo estiver vazio", inline: true },
+      { key: "metricoolToken", label: "userToken do Metricool (plano Advanced)", placeholder: "Configuracoes da conta → API", inline: true },
+      { key: "metricoolUserId", label: "userId do Metricool", placeholder: "numero do usuario (secao API)", inline: true },
+      { key: "metricoolBlogId", label: "blogId da marca no Metricool", placeholder: "numero da marca conectada", inline: true }
+    ],
+    validation: "Video de teste gerado pelo formulario e recebido no WhatsApp.",
+    done: "Fabrica ativa: roteiro colado vira video no WhatsApp (e rascunho no Metricool, se configurado)."
+  },
+  {
     id: "painel-conselho",
     title: "Painel e Conselho de IA",
     objective: "Ativar os fluxos de dados e publicar o painel de gestao com o Conselho de IA no seu dominio.",
@@ -2520,7 +2570,8 @@ function renderLessonStage(lesson, steps) {
     ["#download-n8n-vendas-stripe", buildVendasStripeWorkflowJson, "vendas-stripe.json"],
     ["#download-n8n-vendas-mp", buildVendasMPWorkflowJson, "vendas-mercadopago.json"],
     ["#download-n8n-metricas", buildMetricsWorkflowJson, "painel-metricas.json"],
-    ["#download-n8n-conselho", buildConselhoWorkflowJson, "conselho-de-ia.json"]
+    ["#download-n8n-conselho", buildConselhoWorkflowJson, "conselho-de-ia.json"],
+    ["#download-n8n-fabrica-videos", buildFabricaVideosWorkflowJson, "fabrica-de-videos.json"]
   ];
   workflowDownloads.forEach(([selector, builder, filename]) => {
     document.querySelector(selector)?.addEventListener("click", () => {
@@ -4341,6 +4392,499 @@ function buildVendasMPWorkflowJson() {
 }
 
 // Webhook GET /webhook/painel-metricas — alimenta o dashboard do painel de gestão
+// Formulario /form/fabrica-de-videos — Fábrica de Vídeos (setup no Módulo 4, ativação no Módulo 6)
+// Aluno cola um roteiro de Reels; IA junta as falas com direção por pontuação (sem tags),
+// HeyGen /v3/videos gera o vídeo vertical legendado (callback_url acorda o nó Wait; se o
+// callback não vier, o fluxo confere o status a cada 90s), entrega vídeo + legenda no
+// WhatsApp do dono e, se houver token Metricool (Advanced), cria o post como rascunho
+// no planner (normalize da mídia → POST /v2/scheduler/posts com draft: true).
+function buildFabricaVideosWorkflowJson() {
+  const project = memberApp.state.project;
+  const domain = project.domain || "seudominio.com.br";
+  const evoKey = project.evolutionApiKey || "CHAVE_EVOLUTION_AQUI";
+
+  const promptFabrica = [
+    "Você prepara roteiros para a Fábrica de Vídeos — vídeos verticais com apresentador virtual e voz sintética (HeyGen).",
+    "Você recebe um bloco de roteiro de Reels/Shorts: falas numeradas (Fala 1, Fala 2...) e, às vezes, uma legenda após \"📝 Legenda:\".",
+    "",
+    "Produza:",
+    "1. script — as falas unidas em um texto corrido de narração, na ordem, exatamente como devem ser faladas. Aplique direção por pontuação: reticências (...) para pausas, travessão (—) para mudança de tom, vírgulas para ritmo. PROIBIDO: tags de emoção (ex.: [excited]), emojis, hashtags, títulos, marcações como \"Fala 1:\" e descrições de cena. A legenda embutida do vídeo é gerada palavra a palavra deste texto — escreva somente o que deve ser dito.",
+    "2. legenda — o texto que vem após \"📝 Legenda:\". Se o bloco não tiver legenda, crie uma curta e natural (2 a 3 frases) com 3 a 5 hashtags.",
+    "3. titulo — título interno curto (máximo 6 palavras, sem emojis) para identificar o vídeo.",
+    "",
+    "Se o texto recebido não parecer um roteiro, use-o assim mesmo como base do script, sem inventar conteúdo novo."
+  ].join("\n");
+  const promptJs = JSON.stringify(promptFabrica);
+
+  const cfg = (name) => `$('Config').first().json.${name}`;
+  const heygenHeaders = {
+    parameters: [
+      { name: "X-Api-Key", value: `={{ ${cfg("heygenApiKey")} }}` },
+      { name: "Content-Type", value: "application/json" }
+    ]
+  };
+  const metricoolAuth = { parameters: [{ name: "X-Mc-Auth", value: `={{ ${cfg("metricoolToken")} }}` }] };
+  const metricoolQuery = [
+    { name: "userId", value: `={{ ${cfg("metricoolUserId")} }}` },
+    { name: "blogId", value: `={{ ${cfg("metricoolBlogId")} }}` }
+  ];
+  const pgCred = { postgres: { id: "SUBSTITUA_PELO_ID_DA_CREDENCIAL", name: "Postgres negocio" } };
+
+  const workflow = {
+    name: "Fabrica de Videos",
+    nodes: [
+      {
+        parameters: {
+          content: [
+            "# 🎬 FÁBRICA DE VÍDEOS — LEIA PRIMEIRO",
+            "",
+            "Cole um roteiro de Reels no formulário e receba o vídeo pronto (seu apresentador + legenda embutida) no WhatsApp.",
+            "",
+            "✅ ATIVAÇÃO (uma vez)",
+            "1. Nó 'Prepara roteiro (IA)' → credencial OpenAI",
+            "2. Nó 'Registra no banco' → credencial Postgres negocio",
+            "3. Confira o nó Config (WhatsApp e chaves)",
+            "4. Ligue a chave ACTIVE do workflow",
+            "",
+            `🔗 Formulário: https://workflows.${domain}/form/fabrica-de-videos`,
+            "",
+            "💰 ~US$ 1 por vídeo de ~20s (crédito de API do HeyGen)",
+            "⏱️ ~2 a 3 minutos por vídeo",
+            "⚠️ O link do HeyGen expira em ~7 dias — o vídeo entregue no WhatsApp é seu para sempre."
+          ].join("\n"),
+          height: 560,
+          width: 380,
+          color: 4
+        },
+        id: "sticky-guia",
+        name: "Guia de ativacao",
+        type: "n8n-nodes-base.stickyNote",
+        typeVersion: 1,
+        position: [-240, 40]
+      },
+      {
+        parameters: {
+          content: [
+            "# ⏳ COMO A ESPERA FUNCIONA",
+            "",
+            "O formulário responde na hora; o vídeo continua sendo gerado em segundo plano.",
+            "O HeyGen avisa quando termina (callback acorda o nó 'Espera o render').",
+            "Se o aviso não vier, o fluxo confere o status sozinho a cada 90 segundos.",
+            "Se o HeyGen recusar o pedido (quase sempre crédito de API zerado), você recebe o aviso no WhatsApp."
+          ].join("\n"),
+          height: 260,
+          width: 420,
+          color: 5
+        },
+        id: "sticky-espera",
+        name: "Nota da espera",
+        type: "n8n-nodes-base.stickyNote",
+        typeVersion: 1,
+        position: [1240, 420]
+      },
+      {
+        parameters: {
+          content: [
+            "# 🗓️ METRICOOL (OPCIONAL)",
+            "",
+            "SEM token: vídeo + legenda chegam no WhatsApp e você agenda manualmente no planner (qualquer plano).",
+            "",
+            "COM token (plano Advanced): o fluxo copia o vídeo para o Metricool e cria um RASCUNHO para amanhã às 10h — revise, ajuste a data e confirme no planner.",
+            "",
+            "Preencha metricoolToken / metricoolUserId / metricoolBlogId no nó Config (ou nos campos do app antes de baixar este arquivo)."
+          ].join("\n"),
+          height: 320,
+          width: 400,
+          color: 6
+        },
+        id: "sticky-metricool",
+        name: "Nota do Metricool",
+        type: "n8n-nodes-base.stickyNote",
+        typeVersion: 1,
+        position: [3020, -240]
+      },
+      {
+        parameters: {
+          path: "fabrica-de-videos",
+          formTitle: "Fabrica de Videos",
+          formDescription: "Cole um roteiro de Reels/Shorts do Modulo 4 (o bloco inteiro, do 🎬 ate a legenda). O video pronto chega no seu WhatsApp em ~3 minutos. Custo: ~US$ 1 do seu credito HeyGen.",
+          formFields: {
+            values: [
+              {
+                fieldLabel: "Roteiro do video",
+                fieldType: "textarea",
+                requiredField: true,
+                placeholder: "🎬 REELS / SHORTS — [data] — [tema]  |  Fala 1: ...  Fala 2: ...  |  📝 Legenda: ..."
+              }
+            ]
+          },
+          responseMode: "onReceived",
+          options: { appendAttribution: false, buttonLabel: "Gerar video" }
+        },
+        id: "form-fabrica",
+        name: "Formulario Fabrica",
+        type: "n8n-nodes-base.formTrigger",
+        typeVersion: 2.2,
+        position: [200, 140],
+        webhookId: "fabrica-de-videos-form"
+      },
+      {
+        parameters: {
+          assignments: {
+            assignments: [
+              { id: "cfg-1", name: "heygenApiKey", type: "string", value: project.heygenApiKey || "COLE_SUA_CHAVE_HEYGEN" },
+              { id: "cfg-2", name: "heygenAvatarId", type: "string", value: project.heygenAvatarId || "COLE_O_ID_DO_APRESENTADOR" },
+              { id: "cfg-3", name: "heygenVoiceId", type: "string", value: project.heygenVoiceId || "COLE_O_ID_DA_VOZ" },
+              { id: "cfg-4", name: "whatsappDono", type: "string", value: project.ownerWhatsapp || "5511999998888" },
+              { id: "cfg-5", name: "metricoolToken", type: "string", value: project.metricoolToken || "" },
+              { id: "cfg-6", name: "metricoolUserId", type: "string", value: project.metricoolUserId || "" },
+              { id: "cfg-7", name: "metricoolBlogId", type: "string", value: project.metricoolBlogId || "" }
+            ]
+          },
+          includeOtherFields: true,
+          options: {}
+        },
+        id: "config-fabrica",
+        name: "Config",
+        type: "n8n-nodes-base.set",
+        typeVersion: 3.4,
+        position: [420, 140]
+      },
+      {
+        parameters: {
+          method: "POST",
+          url: "https://api.openai.com/v1/responses",
+          authentication: "predefinedCredentialType",
+          nodeCredentialType: "openAiApi",
+          sendBody: true,
+          specifyBody: "json",
+          jsonBody: "={{ JSON.stringify({ model: 'gpt-4o-mini', input: [{ role: 'system', content: " + promptJs + " }, { role: 'user', content: String($('Formulario Fabrica').first().json['Roteiro do video'] || '') }], text: { format: { type: 'json_schema', name: 'fabrica_videos', strict: true, schema: { type: 'object', additionalProperties: false, required: ['script', 'legenda', 'titulo'], properties: { script: { type: 'string' }, legenda: { type: 'string' }, titulo: { type: 'string' } } } } } }) }}",
+          options: {}
+        },
+        id: "prepara-roteiro",
+        name: "Prepara roteiro (IA)",
+        type: "n8n-nodes-base.httpRequest",
+        typeVersion: 4.2,
+        position: [640, 140],
+        credentials: {
+          openAiApi: { id: "SUBSTITUA_PELO_ID_DA_CREDENCIAL", name: "OpenAi account" }
+        }
+      },
+      {
+        parameters: {
+          jsCode: [
+            "// Extrai o JSON da Responses API (itens type=message > content > text)",
+            "const r = $input.first().json;",
+            "const bruto = (r.output || [])",
+            "  .flatMap((item) => item.content || [])",
+            "  .map((c) => c.text || '')",
+            "  .join('').trim();",
+            "let script = bruto; let legenda = ''; let titulo = 'Video da Fabrica';",
+            "try { const p = JSON.parse(bruto); script = String(p.script || bruto); legenda = String(p.legenda || ''); titulo = String(p.titulo || titulo); } catch {}",
+            "if (!script) throw new Error('Roteiro vazio — cole o bloco completo no formulario.');",
+            "if (!legenda) legenda = 'Video novo no ar!';",
+            "return [{ json: { script, legenda, titulo } }];"
+          ].join("\n")
+        },
+        id: "extrai-resultado",
+        name: "Extrai resultado",
+        type: "n8n-nodes-base.code",
+        typeVersion: 2,
+        position: [860, 140]
+      },
+      {
+        parameters: {
+          method: "POST",
+          url: "https://api.heygen.com/v3/videos",
+          sendHeaders: true,
+          headerParameters: heygenHeaders,
+          sendBody: true,
+          specifyBody: "json",
+          jsonBody: `={{ JSON.stringify({ type: 'avatar', avatar_id: ${cfg("heygenAvatarId")}, script: $json.script, voice_id: ${cfg("heygenVoiceId")}, aspect_ratio: '9:16', resolution: '1080p', fit: 'cover', caption: { file_format: 'srt', style: 'default' }, title: 'Fabrica: ' + $json.titulo, callback_url: $execution.resumeUrl }) }}`,
+          options: {}
+        },
+        id: "cria-video",
+        name: "Cria video HeyGen",
+        type: "n8n-nodes-base.httpRequest",
+        typeVersion: 4.2,
+        position: [1080, 140],
+        onError: "continueErrorOutput"
+      },
+      {
+        parameters: {
+          resume: "webhook",
+          httpMethod: "POST",
+          limitWaitTime: true,
+          limitType: "afterTimeInterval",
+          resumeAmount: 25,
+          resumeUnit: "minutes",
+          options: {}
+        },
+        id: "espera-render",
+        name: "Espera o render",
+        type: "n8n-nodes-base.wait",
+        typeVersion: 1.1,
+        position: [1300, 60],
+        webhookId: "fabrica-espera-render"
+      },
+      {
+        parameters: {
+          url: "=https://api.heygen.com/v3/videos/{{ $('Cria video HeyGen').first().json.data.video_id }}",
+          sendHeaders: true,
+          headerParameters: { parameters: [{ name: "X-Api-Key", value: `={{ ${cfg("heygenApiKey")} }}` }] },
+          options: {}
+        },
+        id: "consulta-status",
+        name: "Consulta status",
+        type: "n8n-nodes-base.httpRequest",
+        typeVersion: 4.2,
+        position: [1520, 60]
+      },
+      {
+        parameters: {
+          rules: {
+            values: [
+              {
+                conditions: {
+                  options: { caseSensitive: true, leftValue: "", typeValidation: "loose" },
+                  conditions: [{ leftValue: "={{ $json.data.status }}", rightValue: "completed", operator: { type: "string", operation: "equals" } }],
+                  combinator: "and"
+                },
+                renameOutput: true,
+                outputKey: "pronto"
+              },
+              {
+                conditions: {
+                  options: { caseSensitive: true, leftValue: "", typeValidation: "loose" },
+                  conditions: [{ leftValue: "={{ $json.data.status }}", rightValue: "failed", operator: { type: "string", operation: "equals" } }],
+                  combinator: "and"
+                },
+                renameOutput: true,
+                outputKey: "falhou"
+              }
+            ]
+          },
+          options: { fallbackOutput: "extra", renameFallbackOutput: "renderizando" }
+        },
+        id: "status-video",
+        name: "Status do video",
+        type: "n8n-nodes-base.switch",
+        typeVersion: 3.2,
+        position: [1740, 60]
+      },
+      {
+        parameters: { amount: 90, unit: "seconds" },
+        id: "aguarda-mais",
+        name: "Aguarda mais",
+        type: "n8n-nodes-base.wait",
+        typeVersion: 1.1,
+        position: [1740, -140],
+        webhookId: "fabrica-aguarda-mais"
+      },
+      {
+        parameters: {
+          jsCode: [
+            "const d = $('Consulta status').first().json.data || {};",
+            "const r = $('Extrai resultado').first().json;",
+            "const videoUrl = d.captioned_video_url || d.video_url || '';",
+            "if (!videoUrl) throw new Error('HeyGen concluiu sem URL de video.');",
+            "// Rascunho do Metricool entra para amanha as 10h — o aluno reagenda no planner",
+            "const alvo = new Date(Date.now() + 24 * 60 * 60 * 1000);",
+            "const pad = (n) => String(n).padStart(2, '0');",
+            "const dataAgendamento = alvo.getFullYear() + '-' + pad(alvo.getMonth() + 1) + '-' + pad(alvo.getDate()) + 'T10:00:00';",
+            "return [{ json: { videoUrl, legenda: r.legenda, titulo: r.titulo, dataAgendamento } }];"
+          ].join("\n")
+        },
+        id: "prepara-entrega",
+        name: "Prepara entrega",
+        type: "n8n-nodes-base.code",
+        typeVersion: 2,
+        position: [1960, 40]
+      },
+      {
+        parameters: {
+          operation: "executeQuery",
+          query: [
+            "create table if not exists videos_gerados (id serial primary key, titulo text, legenda text, video_url text, criado_em timestamptz default now());",
+            "insert into videos_gerados (titulo, legenda, video_url) values ($1, $2, $3);"
+          ].join("\n"),
+          options: { queryReplacement: "={{ [$json.titulo, $json.legenda, $json.videoUrl] }}" }
+        },
+        id: "registra-banco",
+        name: "Registra no banco",
+        type: "n8n-nodes-base.postgres",
+        typeVersion: 2.4,
+        position: [2180, 40],
+        credentials: pgCred,
+        onError: "continueRegularOutput"
+      },
+      {
+        parameters: {
+          method: "POST",
+          url: `=https://evo.${domain}/message/sendMedia/atendimento`,
+          sendHeaders: true,
+          headerParameters: { parameters: [{ name: "apikey", value: evoKey }] },
+          sendBody: true,
+          specifyBody: "json",
+          jsonBody: `={{ JSON.stringify({ number: ${cfg("whatsappDono")}, mediatype: 'video', mimetype: 'video/mp4', fileName: 'fabrica-video.mp4', caption: '🎬 Video pronto: ' + $('Prepara entrega').first().json.titulo, media: $('Prepara entrega').first().json.videoUrl }) }}`,
+          options: {}
+        },
+        id: "envia-video",
+        name: "Envia video no WhatsApp",
+        type: "n8n-nodes-base.httpRequest",
+        typeVersion: 4.2,
+        position: [2400, 40]
+      },
+      {
+        parameters: {
+          method: "POST",
+          url: `=https://evo.${domain}/message/sendText/atendimento`,
+          sendHeaders: true,
+          headerParameters: { parameters: [{ name: "apikey", value: evoKey }] },
+          sendBody: true,
+          specifyBody: "json",
+          jsonBody: `={{ JSON.stringify({ number: ${cfg("whatsappDono")}, text: '📝 Legenda pronta — copie e cole ao publicar:\\n\\n' + $('Prepara entrega').first().json.legenda }) }}`,
+          options: {}
+        },
+        id: "envia-legenda",
+        name: "Envia legenda no WhatsApp",
+        type: "n8n-nodes-base.httpRequest",
+        typeVersion: 4.2,
+        position: [2620, 40]
+      },
+      {
+        parameters: {
+          conditions: {
+            options: { caseSensitive: true, leftValue: "", typeValidation: "loose" },
+            conditions: [
+              { id: "cond-metricool", leftValue: `={{ ${cfg("metricoolToken")} }}`, rightValue: "", operator: { type: "string", operation: "notEmpty", singleValue: true } }
+            ],
+            combinator: "and"
+          },
+          options: {}
+        },
+        id: "tem-metricool",
+        name: "Metricool configurado?",
+        type: "n8n-nodes-base.if",
+        typeVersion: 2,
+        position: [2840, 40]
+      },
+      {
+        parameters: {
+          url: "https://app.metricool.com/api/actions/normalize/image/url",
+          sendQuery: true,
+          queryParameters: {
+            parameters: [
+              { name: "url", value: "={{ $('Prepara entrega').first().json.videoUrl }}" },
+              ...metricoolQuery
+            ]
+          },
+          sendHeaders: true,
+          headerParameters: metricoolAuth,
+          options: {}
+        },
+        id: "copia-metricool",
+        name: "Copia video para o Metricool",
+        type: "n8n-nodes-base.httpRequest",
+        typeVersion: 4.2,
+        position: [3060, -60]
+      },
+      {
+        parameters: {
+          method: "POST",
+          url: "https://app.metricool.com/api/v2/scheduler/posts",
+          sendQuery: true,
+          queryParameters: { parameters: [...metricoolQuery] },
+          sendHeaders: true,
+          headerParameters: {
+            parameters: [...metricoolAuth.parameters, { name: "Content-Type", value: "application/json" }]
+          },
+          sendBody: true,
+          specifyBody: "json",
+          jsonBody: "={{ JSON.stringify({ publicationDate: { dateTime: $('Prepara entrega').first().json.dataAgendamento, timezone: 'America/Sao_Paulo' }, text: $('Prepara entrega').first().json.legenda, providers: [{ network: 'instagram' }], media: [ $json.url || ($json.data && $json.data.url) || (typeof $json.data === 'string' ? $json.data : '') ], autoPublish: false, draft: true, saveExternalMediaFiles: false, shortener: false }) }}",
+          options: {}
+        },
+        id: "rascunho-metricool",
+        name: "Cria rascunho no Metricool",
+        type: "n8n-nodes-base.httpRequest",
+        typeVersion: 4.2,
+        position: [3280, -60]
+      },
+      {
+        parameters: {
+          method: "POST",
+          url: `=https://evo.${domain}/message/sendText/atendimento`,
+          sendHeaders: true,
+          headerParameters: { parameters: [{ name: "apikey", value: evoKey }] },
+          sendBody: true,
+          specifyBody: "json",
+          jsonBody: `={{ JSON.stringify({ number: ${cfg("whatsappDono")}, text: '🗓️ Tambem criei o rascunho no Metricool (amanha, 10h). Abra o planner para revisar, ajustar a data e confirmar.' }) }}`,
+          options: {}
+        },
+        id: "avisa-rascunho",
+        name: "Avisa rascunho no WhatsApp",
+        type: "n8n-nodes-base.httpRequest",
+        typeVersion: 4.2,
+        position: [3500, -60]
+      },
+      {
+        parameters: {
+          method: "POST",
+          url: `=https://evo.${domain}/message/sendText/atendimento`,
+          sendHeaders: true,
+          headerParameters: { parameters: [{ name: "apikey", value: evoKey }] },
+          sendBody: true,
+          specifyBody: "json",
+          jsonBody: `={{ JSON.stringify({ number: ${cfg("whatsappDono")}, text: '⚠️ A Fabrica nao conseguiu gerar este video. Confira o credito de API no HeyGen (app.heygen.com → Billing → API) e envie o roteiro de novo. Detalhe: ' + JSON.stringify(($json.data && $json.data.error) || $json.error || $json.message || 'sem detalhe').slice(0, 300) }) }}`,
+          options: {}
+        },
+        id: "avisa-problema",
+        name: "Avisa problema no WhatsApp",
+        type: "n8n-nodes-base.httpRequest",
+        typeVersion: 4.2,
+        position: [1960, 320]
+      }
+    ],
+    connections: {
+      "Formulario Fabrica": { main: [[{ node: "Config", type: "main", index: 0 }]] },
+      "Config": { main: [[{ node: "Prepara roteiro (IA)", type: "main", index: 0 }]] },
+      "Prepara roteiro (IA)": { main: [[{ node: "Extrai resultado", type: "main", index: 0 }]] },
+      "Extrai resultado": { main: [[{ node: "Cria video HeyGen", type: "main", index: 0 }]] },
+      "Cria video HeyGen": {
+        main: [
+          [{ node: "Espera o render", type: "main", index: 0 }],
+          [{ node: "Avisa problema no WhatsApp", type: "main", index: 0 }]
+        ]
+      },
+      "Espera o render": { main: [[{ node: "Consulta status", type: "main", index: 0 }]] },
+      "Consulta status": { main: [[{ node: "Status do video", type: "main", index: 0 }]] },
+      "Status do video": {
+        main: [
+          [{ node: "Prepara entrega", type: "main", index: 0 }],
+          [{ node: "Avisa problema no WhatsApp", type: "main", index: 0 }],
+          [{ node: "Aguarda mais", type: "main", index: 0 }]
+        ]
+      },
+      "Aguarda mais": { main: [[{ node: "Consulta status", type: "main", index: 0 }]] },
+      "Prepara entrega": { main: [[{ node: "Registra no banco", type: "main", index: 0 }]] },
+      "Registra no banco": { main: [[{ node: "Envia video no WhatsApp", type: "main", index: 0 }]] },
+      "Envia video no WhatsApp": { main: [[{ node: "Envia legenda no WhatsApp", type: "main", index: 0 }]] },
+      "Envia legenda no WhatsApp": { main: [[{ node: "Metricool configurado?", type: "main", index: 0 }]] },
+      "Metricool configurado?": {
+        main: [
+          [{ node: "Copia video para o Metricool", type: "main", index: 0 }],
+          []
+        ]
+      },
+      "Copia video para o Metricool": { main: [[{ node: "Cria rascunho no Metricool", type: "main", index: 0 }]] },
+      "Cria rascunho no Metricool": { main: [[{ node: "Avisa rascunho no WhatsApp", type: "main", index: 0 }]] }
+    },
+    pinData: {},
+    settings: { executionOrder: "v1" }
+  };
+  return JSON.stringify(workflow, null, 2);
+}
+
 function buildMetricsWorkflowJson() {
   const workflow = {
     name: "Painel - Metricas",
@@ -4756,12 +5300,15 @@ function buildLessonStepContent(step, lesson) {
       ? `<div class="inline-command"><pre class="command-box"><code>${escapeHtml(fillTemplate(block.command))}</code></pre><button class="btn-copy-inline" type="button" data-copy-command title="Copiar"><svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="9" y="9" width="13" height="13" rx="2"/><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/></svg></button></div>`
       : "";
     let inlineFieldHtml = "";
-    if (block.field) {
-      const fieldDef = (step.fields || []).find(f => f.key === block.field);
-      if (fieldDef) {
+    const blockFieldKeys = block.fields || (block.field ? [block.field] : []);
+    if (blockFieldKeys.length) {
+      const inner = blockFieldKeys.map((key) => {
+        const fieldDef = (step.fields || []).find(f => f.key === key);
+        if (!fieldDef) return "";
         const value = memberApp.state.project[fieldDef.key] || "";
-        inlineFieldHtml = `<div class="wizard-data-fields"><label class="wizard-data-field${value ? " is-filled" : ""}"><span>${escapeHtml(fieldDef.label)}</span><span class="wizard-data-input"><input data-project-field="${escapeHtml(fieldDef.key)}" placeholder="${escapeHtml(fieldDef.placeholder || "")}" value="${escapeHtml(value)}" /><svg class="field-check" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M20 6 9 17l-5-5"/></svg></span></label></div>`;
-      }
+        return `<label class="wizard-data-field${value ? " is-filled" : ""}"><span>${escapeHtml(fieldDef.label)}</span><span class="wizard-data-input"><input data-project-field="${escapeHtml(fieldDef.key)}" placeholder="${escapeHtml(fieldDef.placeholder || "")}" value="${escapeHtml(value)}" /><svg class="field-check" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M20 6 9 17l-5-5"/></svg></span></label>`;
+      }).join("");
+      if (inner) inlineFieldHtml = `<div class="wizard-data-fields">${inner}</div>`;
     }
     let generateHtml = "";
     if (block.generate) {
