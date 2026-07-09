@@ -4443,7 +4443,8 @@ function buildFabricaVideosWorkflowJson() {
             "✅ ATIVAÇÃO (uma vez)",
             "1. Nó 'Prepara roteiro (IA)' → credencial OpenAI",
             "2. Nó 'Registra no banco' → credencial Postgres negocio",
-            "3. Confira o nó Config (WhatsApp e chaves)",
+            "3. Confira o nó Config: WhatsApp, chaves e evolutionInstance",
+            "   (o nome EXATO da sua instância no manager da Evolution)",
             "4. Ligue a chave ACTIVE do workflow",
             "",
             `🔗 Formulário: https://workflows.${domain}/form/fabrica-de-videos`,
@@ -4536,6 +4537,7 @@ function buildFabricaVideosWorkflowJson() {
               { id: "cfg-2", name: "heygenAvatarId", type: "string", value: project.heygenAvatarId || "COLE_O_ID_DO_APRESENTADOR" },
               { id: "cfg-3", name: "heygenVoiceId", type: "string", value: project.heygenVoiceId || "COLE_O_ID_DA_VOZ" },
               { id: "cfg-4", name: "whatsappDono", type: "string", value: project.ownerWhatsapp || "5511999998888" },
+              { id: "cfg-8", name: "evolutionInstance", type: "string", value: "atendimento" },
               { id: "cfg-5", name: "metricoolToken", type: "string", value: project.metricoolToken || "" },
               { id: "cfg-6", name: "metricoolUserId", type: "string", value: project.metricoolUserId || "" },
               { id: "cfg-7", name: "metricoolBlogId", type: "string", value: project.metricoolBlogId || "" }
@@ -4721,7 +4723,7 @@ function buildFabricaVideosWorkflowJson() {
       {
         parameters: {
           method: "POST",
-          url: `=https://evo.${domain}/message/sendMedia/atendimento`,
+          url: `=https://evo.${domain}/message/sendMedia/{{ $('Config').first().json.evolutionInstance }}`,
           sendHeaders: true,
           headerParameters: { parameters: [{ name: "apikey", value: evoKey }] },
           sendBody: true,
@@ -4738,7 +4740,7 @@ function buildFabricaVideosWorkflowJson() {
       {
         parameters: {
           method: "POST",
-          url: `=https://evo.${domain}/message/sendText/atendimento`,
+          url: `=https://evo.${domain}/message/sendText/{{ $('Config').first().json.evolutionInstance }}`,
           sendHeaders: true,
           headerParameters: { parameters: [{ name: "apikey", value: evoKey }] },
           sendBody: true,
@@ -4813,7 +4815,7 @@ function buildFabricaVideosWorkflowJson() {
       {
         parameters: {
           method: "POST",
-          url: `=https://evo.${domain}/message/sendText/atendimento`,
+          url: `=https://evo.${domain}/message/sendText/{{ $('Config').first().json.evolutionInstance }}`,
           sendHeaders: true,
           headerParameters: { parameters: [{ name: "apikey", value: evoKey }] },
           sendBody: true,
@@ -4830,7 +4832,7 @@ function buildFabricaVideosWorkflowJson() {
       {
         parameters: {
           method: "POST",
-          url: `=https://evo.${domain}/message/sendText/atendimento`,
+          url: `=https://evo.${domain}/message/sendText/{{ $('Config').first().json.evolutionInstance }}`,
           sendHeaders: true,
           headerParameters: { parameters: [{ name: "apikey", value: evoKey }] },
           sendBody: true,
