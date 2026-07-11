@@ -1621,9 +1621,11 @@ networks:
 <p>Ligue a chave <strong>Active</strong> do workflow — sem ativar, o formulario nao existe.</p>`
       },
       {
-        heading: "4. Gere seu primeiro video",
-        body: `<p>Abra o formulario da sua Fabrica: <a href="https://workflows.{{domain}}/form/fabrica-de-videos" target="_blank" rel="noopener">workflows.{{domain}}/form/fabrica-de-videos</a> (salve nos favoritos — e por aqui que voce gera video daqui em diante).</p>
-<p>Cole um <strong>bloco inteiro</strong> de roteiro de Reels do Modulo 4 (do 🎬 ate a legenda) e envie. Em ~3 minutos chegam no seu WhatsApp o video e a legenda do post. Cada envio consome ~US$ 1 do seu credito HeyGen.</p>
+        heading: "4. Pegue o endereco do seu formulario e gere o primeiro video",
+        body: `<p>Ao importar, o n8n troca o endereco do formulario por um codigo aleatorio (comportamento padrao dele). Para deixar sua URL fixa e bonita: abra o no <strong>Formulario Fabrica</strong>, localize o campo <strong>Form Path</strong> e digite <code>fabrica-de-videos</code>. Salve. Seu formulario fica em:</p>
+<p><code>https://workflows.{{domain}}/form/fabrica-de-videos</code></p>
+<p>(Se preferir, use a <strong>Production URL</strong> exibida no proprio no — funciona do mesmo jeito.) <strong>Salve o endereco nos favoritos</strong> — e por aqui que voce gera video daqui em diante.</p>
+<p>Abra o formulario, cole um <strong>bloco inteiro</strong> de roteiro de Reels do Modulo 4 (do 🎬 ate a legenda — a legenda vira o texto do post) e envie. Em ~3 minutos chegam no seu WhatsApp o video e a legenda. Cada envio consome ~US$ 1 do seu credito HeyGen.</p>
 <p>Se nada chegar em 5 minutos, abra o n8n → <strong>Executions</strong> e veja onde o fluxo parou (o erro mais comum e credito de API zerado no HeyGen).</p>`
       },
       {
@@ -4453,9 +4455,13 @@ function buildFabricaVideosWorkflowJson() {
             "2. Nó 'Registra no banco' → credencial Postgres negocio",
             "3. Confira o nó Config: WhatsApp, chaves e evolutionInstance",
             "   (o nome EXATO da sua instância no manager da Evolution)",
-            "4. Ligue a chave ACTIVE do workflow",
+            "4. No nó 'Formulario Fabrica', digite 'fabrica-de-videos' no",
+            "   campo Form Path (o n8n troca por um código aleatório ao",
+            "   importar — este passo devolve a URL fixa)",
+            "5. Ligue a chave ACTIVE do workflow",
             "",
             `🔗 Formulário: https://workflows.${domain}/form/fabrica-de-videos`,
+            "   (ou a Production URL exibida no nó do formulário)",
             "",
             "💰 ~US$ 1 por vídeo de ~20s (crédito de API do HeyGen)",
             "⏱️ ~2 a 3 minutos por vídeo",
