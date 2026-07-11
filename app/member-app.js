@@ -4403,6 +4403,14 @@ function buildFabricaVideosWorkflowJson() {
   const domain = project.domain || "seudominio.com.br";
   const evoKey = project.evolutionApiKey || "CHAVE_EVOLUTION_AQUI";
 
+  // Normaliza o WhatsApp do dono: só dígitos e DDI 55 obrigatório — número local
+  // (DDD + telefone, 10-11 dígitos) ganha o 55 na frente; testado: sem DDI a
+  // Evolution responde 400 {"exists": false} e o aluno não entende o porquê.
+  const rawWhats = String(project.ownerWhatsapp || "").replace(/\D/g, "");
+  const whatsappDono = rawWhats
+    ? (rawWhats.length <= 11 ? `55${rawWhats}` : rawWhats)
+    : "5511999998888";
+
   const promptFabrica = [
     "Você prepara roteiros para a Fábrica de Vídeos — vídeos verticais com apresentador virtual e voz sintética (HeyGen).",
     "Você recebe um bloco de roteiro de Reels/Shorts: falas numeradas (Fala 1, Fala 2...) e, às vezes, uma legenda após \"📝 Legenda:\".",
@@ -4536,7 +4544,7 @@ function buildFabricaVideosWorkflowJson() {
               { id: "cfg-1", name: "heygenApiKey", type: "string", value: project.heygenApiKey || "COLE_SUA_CHAVE_HEYGEN" },
               { id: "cfg-2", name: "heygenAvatarId", type: "string", value: project.heygenAvatarId || "COLE_O_ID_DO_APRESENTADOR" },
               { id: "cfg-3", name: "heygenVoiceId", type: "string", value: project.heygenVoiceId || "COLE_O_ID_DA_VOZ" },
-              { id: "cfg-4", name: "whatsappDono", type: "string", value: project.ownerWhatsapp || "5511999998888" },
+              { id: "cfg-4", name: "whatsappDono", type: "string", value: whatsappDono },
               { id: "cfg-8", name: "evolutionInstance", type: "string", value: "atendimento" },
               { id: "cfg-5", name: "metricoolToken", type: "string", value: project.metricoolToken || "" },
               { id: "cfg-6", name: "metricoolUserId", type: "string", value: project.metricoolUserId || "" },
