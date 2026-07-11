@@ -1626,7 +1626,8 @@ networks:
 <p><code>https://workflows.{{domain}}/form/fabrica-de-videos</code></p>
 <p>(Se preferir, use a <strong>Production URL</strong> exibida no proprio no — funciona do mesmo jeito.) <strong>Salve o endereco nos favoritos</strong> — e por aqui que voce gera video daqui em diante.</p>
 <p>Abra o formulario, cole um <strong>bloco inteiro</strong> de roteiro de Reels do Modulo 4 (do 🎬 ate a legenda — a legenda vira o texto do post) e envie. Em ~3 minutos chegam no seu WhatsApp o video e a legenda. Cada envio consome ~US$ 1 do seu credito HeyGen.</p>
-<p>Se nada chegar em 5 minutos, abra o n8n → <strong>Executions</strong> e veja onde o fluxo parou (o erro mais comum e credito de API zerado no HeyGen).</p>`
+<p>Se nada chegar em 5 minutos, abra o n8n → <strong>Executions</strong> e veja onde o fluxo parou (o erro mais comum e credito de API zerado no HeyGen).</p>
+<p>💡 Na proxima etapa, o seu <strong>Painel de gestao</strong> ganha um card "Fabrica de Videos" — dai em diante voce gera video por la, sem abrir o n8n (o formulario continua funcionando como alternativa).</p>`
       },
       {
         heading: "5. Publique — do jeito manual ou automatico (Metricool)",
@@ -1660,7 +1661,8 @@ networks:
       },
       {
         heading: "2. Gere o PRD do painel",
-        body: `<p>Como no módulo 5: o agente monta o PRD do seu painel de gestão — página protegida por senha em <code>gestao.{{domain}}</code> com os números do negócio e o chat do Conselho.</p>`,
+        body: `<p>Como no módulo 5: o agente monta o PRD do seu painel de gestão — página protegida por senha em <code>gestao.{{domain}}</code> com os números do negócio, o chat do Conselho e o balcão da <strong>Fábrica de Vídeos</strong> (cole o roteiro no card e o vídeo chega no seu WhatsApp — sem abrir o n8n).</p>
+<p><strong>Pré-requisito do card da Fábrica:</strong> a etapa anterior concluída, com o workflow "Fabrica de Videos" ATIVO no n8n. Se você pulou essa etapa, o painel funciona mesmo assim — o card só avisa que a Fábrica ainda não foi ativada.</p>`,
         generate: {
           id: "painel_prd",
           type: "text",
@@ -1679,6 +1681,7 @@ networks:
 <ul>
   <li>Os números de leads carregam no dashboard</li>
   <li>O chat responde — experimente: <em>"Com os dados que temos até aqui, onde devo focar minha energia esta semana?"</em></li>
+  <li>O card <strong>Fábrica de Vídeos</strong> aparece — quando quiser, gere um vídeo por ele (cada envio é um render real, ~US$ 1 do crédito HeyGen)</li>
 </ul>
 <p>🎓 <strong>Jornada completa:</strong> estratégia validada, infraestrutura própria, conteúdo programado, site vendendo, atendimento automático e um conselho de especialistas de plantão. Agora é operar, medir e crescer.</p>`
       }
@@ -4394,7 +4397,10 @@ function buildVendasMPWorkflowJson() {
 }
 
 // Webhook GET /webhook/painel-metricas — alimenta o dashboard do painel de gestão
-// Formulario /form/fabrica-de-videos — Fábrica de Vídeos (setup no Módulo 4, ativação no Módulo 6)
+// Fábrica de Vídeos (setup no Módulo 4, ativação no Módulo 6) — DOIS gatilhos:
+// formulário /form/fabrica-de-videos (teste da etapa) e webhook POST /webhook/fabrica-videos
+// (card do Painel de gestão — o path de webhook sobrevive à importação, ao contrário do
+// Form Path, bug n8n #29596). O nó "Entrada" normaliza as duas origens.
 // Aluno cola um roteiro de Reels; IA junta as falas com direção por pontuação (sem tags),
 // HeyGen /v3/videos gera o vídeo vertical legendado (callback_url acorda o nó Wait; se o
 // callback não vier, o fluxo confere o status a cada 90s), entrega vídeo + legenda no
@@ -4463,11 +4469,15 @@ function buildFabricaVideosWorkflowJson() {
             `🔗 Formulário: https://workflows.${domain}/form/fabrica-de-videos`,
             "   (ou a Production URL exibida no nó do formulário)",
             "",
+            "🖥️ O card 'Fábrica de Vídeos' do seu Painel de gestão envia",
+            `   para POST https://workflows.${domain}/webhook/fabrica-videos`,
+            "   — mesmo fluxo, e esse endereço NÃO muda na importação.",
+            "",
             "💰 ~US$ 1 por vídeo de ~20s (crédito de API do HeyGen)",
             "⏱️ ~2 a 3 minutos por vídeo",
             "⚠️ O link do HeyGen expira em ~7 dias — o vídeo entregue no WhatsApp é seu para sempre."
           ].join("\n"),
-          height: 560,
+          height: 640,
           width: 380,
           color: 4
         },
@@ -4495,7 +4505,7 @@ function buildFabricaVideosWorkflowJson() {
         name: "Nota da espera",
         type: "n8n-nodes-base.stickyNote",
         typeVersion: 1,
-        position: [1240, 420]
+        position: [1460, 420]
       },
       {
         parameters: {
@@ -4516,7 +4526,7 @@ function buildFabricaVideosWorkflowJson() {
         name: "Nota do Metricool",
         type: "n8n-nodes-base.stickyNote",
         typeVersion: 1,
-        position: [3020, -240]
+        position: [3240, -240]
       },
       {
         parameters: {
@@ -4540,8 +4550,38 @@ function buildFabricaVideosWorkflowJson() {
         name: "Formulario Fabrica",
         type: "n8n-nodes-base.formTrigger",
         typeVersion: 2.2,
-        position: [200, 140],
+        position: [200, 40],
         webhookId: "fabrica-de-videos-form"
+      },
+      {
+        parameters: {
+          httpMethod: "POST",
+          path: "fabrica-videos",
+          responseMode: "onReceived",
+          options: { allowedOrigins: "*" }
+        },
+        id: "webhook-painel",
+        name: "Webhook Painel",
+        type: "n8n-nodes-base.webhook",
+        typeVersion: 2,
+        position: [200, 260],
+        webhookId: "fabrica-videos-webhook"
+      },
+      {
+        parameters: {
+          jsCode: [
+            "// Normaliza as duas origens: formulario n8n (teste da etapa) e card do Painel (webhook)",
+            "const j = $input.first().json;",
+            "const roteiro = String((j.body && j.body.roteiro) || j['Roteiro do video'] || '').trim();",
+            "if (!roteiro) throw new Error('Roteiro vazio — cole o bloco completo do Modulo 4.');",
+            "return [{ json: { roteiro } }];"
+          ].join("\n")
+        },
+        id: "entrada-fabrica",
+        name: "Entrada",
+        type: "n8n-nodes-base.code",
+        typeVersion: 2,
+        position: [420, 140]
       },
       {
         parameters: {
@@ -4564,7 +4604,7 @@ function buildFabricaVideosWorkflowJson() {
         name: "Config",
         type: "n8n-nodes-base.set",
         typeVersion: 3.4,
-        position: [420, 140]
+        position: [640, 140]
       },
       {
         parameters: {
@@ -4574,14 +4614,14 @@ function buildFabricaVideosWorkflowJson() {
           nodeCredentialType: "openAiApi",
           sendBody: true,
           specifyBody: "json",
-          jsonBody: "={{ JSON.stringify({ model: 'gpt-4o-mini', input: [{ role: 'system', content: " + promptJs + " }, { role: 'user', content: String($('Formulario Fabrica').first().json['Roteiro do video'] || '') }], text: { format: { type: 'json_schema', name: 'fabrica_videos', strict: true, schema: { type: 'object', additionalProperties: false, required: ['script', 'legenda', 'titulo'], properties: { script: { type: 'string' }, legenda: { type: 'string' }, titulo: { type: 'string' } } } } } }) }}",
+          jsonBody: "={{ JSON.stringify({ model: 'gpt-4o-mini', input: [{ role: 'system', content: " + promptJs + " }, { role: 'user', content: String($('Entrada').first().json.roteiro || '') }], text: { format: { type: 'json_schema', name: 'fabrica_videos', strict: true, schema: { type: 'object', additionalProperties: false, required: ['script', 'legenda', 'titulo'], properties: { script: { type: 'string' }, legenda: { type: 'string' }, titulo: { type: 'string' } } } } } }) }}",
           options: {}
         },
         id: "prepara-roteiro",
         name: "Prepara roteiro (IA)",
         type: "n8n-nodes-base.httpRequest",
         typeVersion: 4.2,
-        position: [640, 140],
+        position: [860, 140],
         credentials: {
           openAiApi: { id: "SUBSTITUA_PELO_ID_DA_CREDENCIAL", name: "OpenAi account" }
         }
@@ -4606,7 +4646,7 @@ function buildFabricaVideosWorkflowJson() {
         name: "Extrai resultado",
         type: "n8n-nodes-base.code",
         typeVersion: 2,
-        position: [860, 140]
+        position: [1080, 140]
       },
       {
         parameters: {
@@ -4623,7 +4663,7 @@ function buildFabricaVideosWorkflowJson() {
         name: "Cria video HeyGen",
         type: "n8n-nodes-base.httpRequest",
         typeVersion: 4.2,
-        position: [1080, 140],
+        position: [1300, 140],
         onError: "continueErrorOutput"
       },
       {
@@ -4640,7 +4680,7 @@ function buildFabricaVideosWorkflowJson() {
         name: "Espera o render",
         type: "n8n-nodes-base.wait",
         typeVersion: 1.1,
-        position: [1300, 60],
+        position: [1520, 60],
         webhookId: "fabrica-espera-render"
       },
       {
@@ -4654,7 +4694,7 @@ function buildFabricaVideosWorkflowJson() {
         name: "Consulta status",
         type: "n8n-nodes-base.httpRequest",
         typeVersion: 4.2,
-        position: [1520, 60]
+        position: [1740, 60]
       },
       {
         parameters: {
@@ -4686,7 +4726,7 @@ function buildFabricaVideosWorkflowJson() {
         name: "Status do video",
         type: "n8n-nodes-base.switch",
         typeVersion: 3.2,
-        position: [1740, 60]
+        position: [1960, 60]
       },
       {
         parameters: { amount: 90, unit: "seconds" },
@@ -4694,7 +4734,7 @@ function buildFabricaVideosWorkflowJson() {
         name: "Aguarda mais",
         type: "n8n-nodes-base.wait",
         typeVersion: 1.1,
-        position: [1740, -140],
+        position: [1960, -140],
         webhookId: "fabrica-aguarda-mais"
       },
       {
@@ -4715,7 +4755,7 @@ function buildFabricaVideosWorkflowJson() {
         name: "Prepara entrega",
         type: "n8n-nodes-base.code",
         typeVersion: 2,
-        position: [1960, 40]
+        position: [2180, 40]
       },
       {
         parameters: {
@@ -4730,7 +4770,7 @@ function buildFabricaVideosWorkflowJson() {
         name: "Registra no banco",
         type: "n8n-nodes-base.postgres",
         typeVersion: 2.4,
-        position: [2180, 40],
+        position: [2400, 40],
         credentials: pgCred,
         onError: "continueRegularOutput"
       },
@@ -4749,7 +4789,7 @@ function buildFabricaVideosWorkflowJson() {
         name: "Envia video no WhatsApp",
         type: "n8n-nodes-base.httpRequest",
         typeVersion: 4.2,
-        position: [2400, 40]
+        position: [2620, 40]
       },
       {
         parameters: {
@@ -4766,7 +4806,7 @@ function buildFabricaVideosWorkflowJson() {
         name: "Envia legenda no WhatsApp",
         type: "n8n-nodes-base.httpRequest",
         typeVersion: 4.2,
-        position: [2620, 40]
+        position: [2840, 40]
       },
       {
         parameters: {
@@ -4783,7 +4823,7 @@ function buildFabricaVideosWorkflowJson() {
         name: "Metricool configurado?",
         type: "n8n-nodes-base.if",
         typeVersion: 2,
-        position: [2840, 40]
+        position: [3060, 40]
       },
       {
         parameters: {
@@ -4803,7 +4843,7 @@ function buildFabricaVideosWorkflowJson() {
         name: "Copia video para o Metricool",
         type: "n8n-nodes-base.httpRequest",
         typeVersion: 4.2,
-        position: [3060, -60]
+        position: [3280, -60]
       },
       {
         parameters: {
@@ -4824,7 +4864,7 @@ function buildFabricaVideosWorkflowJson() {
         name: "Cria rascunho no Metricool",
         type: "n8n-nodes-base.httpRequest",
         typeVersion: 4.2,
-        position: [3280, -60]
+        position: [3500, -60]
       },
       {
         parameters: {
@@ -4841,7 +4881,7 @@ function buildFabricaVideosWorkflowJson() {
         name: "Avisa rascunho no WhatsApp",
         type: "n8n-nodes-base.httpRequest",
         typeVersion: 4.2,
-        position: [3500, -60]
+        position: [3720, -60]
       },
       {
         parameters: {
@@ -4858,11 +4898,13 @@ function buildFabricaVideosWorkflowJson() {
         name: "Avisa problema no WhatsApp",
         type: "n8n-nodes-base.httpRequest",
         typeVersion: 4.2,
-        position: [1960, 320]
+        position: [2180, 320]
       }
     ],
     connections: {
-      "Formulario Fabrica": { main: [[{ node: "Config", type: "main", index: 0 }]] },
+      "Formulario Fabrica": { main: [[{ node: "Entrada", type: "main", index: 0 }]] },
+      "Webhook Painel": { main: [[{ node: "Entrada", type: "main", index: 0 }]] },
+      "Entrada": { main: [[{ node: "Config", type: "main", index: 0 }]] },
       "Config": { main: [[{ node: "Prepara roteiro (IA)", type: "main", index: 0 }]] },
       "Prepara roteiro (IA)": { main: [[{ node: "Extrai resultado", type: "main", index: 0 }]] },
       "Extrai resultado": { main: [[{ node: "Cria video HeyGen", type: "main", index: 0 }]] },
