@@ -110,7 +110,7 @@ Regras da tabela:
 - Uma linha por slide; repita Data e Tema em todas as linhas do mesmo carrossel
 - Slides: `Capa (1)`, `2`, `3`, `4`, `CTA (5)`
 - Capa: título curto e magnético (máx. 8 palavras); CTA: encerramento + chamada clara para ação
-- Prompt de imagem: descrição visual para IA usando a paleta da marca (Seção 6), sem texto na imagem
+- Prompt de imagem: descrição visual para IA com direção de arte premium — estilo editorial minimalista e sofisticado (nunca genérico ou "clip-art"), paleta da marca (Seção 6), um único elemento visual central por slide, composição com respiro; descreva o MESMO estilo visual em todos os slides do carrossel para a série ter unidade; sem texto na imagem (o texto é adicionado pela Fábrica na geração)
 - Após os slides de cada carrossel, adicione uma linha final com Slide = `Legenda`, Texto = legenda completa do post (mini-artigo: gancho, desenvolvimento, CTA + 3 a 5 hashtags) e Prompt de imagem = `—`
 - Não use quebras de linha dentro das células
 

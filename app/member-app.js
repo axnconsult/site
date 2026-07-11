@@ -65,12 +65,13 @@ const COURSE_MODULES = [
     id: "module-6",
     number: 6,
     title: "Operacao Assistida",
-    summary: "Conecte o WhatsApp ao atendimento automatico, registre os leads do site, ative a Fabrica de Videos e ganhe um Conselho de IA para decidir com dados.",
-    result: "Atendimento automatico no ar, Fabrica de Videos ativa e Conselho de IA acompanhando o negocio",
+    summary: "Conecte o WhatsApp ao atendimento automatico, registre os leads do site, ative as Fabricas de Carrosseis e de Videos e ganhe um Conselho de IA para decidir com dados.",
+    result: "Atendimento automatico no ar, Fabricas de Carrosseis e de Videos ativas e Conselho de IA acompanhando o negocio",
     stages: [
       ["Conectar o WhatsApp", "Crie a instancia na Evolution API, escaneie o QR code e integre ao Chatwoot.", "technical", null, ["whatsapp-connect"]],
       ["Leads e vendas do site", "Ative os webhooks que registram leads do formulario e vendas do checkout no seu banco.", "technical", null, ["leads-webhook", "crm"]],
       ["Agente de atendimento", "Gere o prompt personalizado do seu atendente de IA e ative o fluxo que responde o WhatsApp.", "technical", null, ["atendimento-agente"]],
+      ["Fabrica de Carrosseis — ativar", "Ative o fluxo que transforma os carrosseis do Modulo 4 em imagens prontas, entregues no seu WhatsApp.", "technical", null, ["fabrica-carrosseis-ativar"]],
       ["Fabrica de Videos — ativar", "Ative o fluxo que transforma os roteiros do Modulo 4 em videos prontos, entregues no seu WhatsApp.", "technical", null, ["fabrica-videos-ativar"]],
       ["Painel e Conselho de IA", "Publique o painel de gestao no seu dominio com dashboard de leads e o Conselho de 3 especialistas.", "technical", null, ["painel-conselho"]]
     ]
@@ -1595,6 +1596,51 @@ networks:
     done: "Atendente de IA respondendo o WhatsApp do negocio."
   },
   {
+    id: "fabrica-carrosseis-ativar",
+    title: "Fabrica de Carrosseis — ativar",
+    objective: "Ativar o fluxo que transforma um carrossel do Modulo 4 em 5 imagens prontas (4:5), entregues no seu WhatsApp.",
+    tutorial: [
+      {
+        heading: "1. O que voce esta ativando",
+        body: `<p>A Fabrica de Carrosseis fecha o ciclo dos carrosseis do Modulo 4: voce <strong>cola as linhas de UM carrossel</strong> da tabela do agente de conteudo (os 5 slides + a linha Legenda), e em poucos minutos recebe no seu WhatsApp as <strong>5 imagens prontas</strong> — no formato retrato 4:5 do Instagram, com o texto de cada slide ja desenhado na arte — mais a <strong>legenda do post</strong> para copiar.</p>
+<p>Por dentro, o fluxo: interpreta as linhas coladas → gera cada slide com IA de imagem (gpt-image-2, texto renderizado na propria arte, mesma direcao visual em todos) → entrega as imagens uma a uma no WhatsApp → registra no seu banco. <strong>Custo transparente:</strong> ~US$ 1 por carrossel de 5 slides, direto do seu credito OpenAI (a mesma conta do modulo 3 — nenhuma conta nova).</p>
+<p><strong>Pre-requisito:</strong> credencial OpenAI criada no n8n (modulo 3) e o carrossel gerado no Modulo 4.</p>`
+      },
+      {
+        heading: "2. Confira seu WhatsApp",
+        body: `<p>As imagens chegam no numero abaixo (o mesmo das outras automacoes):</p>`,
+        fields: ["ownerWhatsapp"]
+      },
+      {
+        heading: "3. Baixe, importe e ATIVE o fluxo",
+        body: `<p><button class="button button-primary" type="button" id="download-n8n-fabrica-carrosseis">Baixar fluxo da Fabrica de Carrosseis (.json)</button></p>
+<p>Importe no n8n (<strong>Import from file</strong>) e selecione as credenciais que voce ja criou:</p>
+<ul>
+  <li>Nos <strong>Prepara slides (IA)</strong> e <strong>Gera imagem (IA)</strong> → credencial <strong>OpenAI</strong> (modulo 3)</li>
+  <li>No <strong>Registra no banco</strong> → credencial <strong>Postgres negocio</strong> (etapa "Leads e vendas do site")</li>
+</ul>
+<p>Ligue a chave <strong>Active</strong> do workflow — sem ativar, o formulario nao existe.</p>`
+      },
+      {
+        heading: "4. Pegue o endereco do formulario e gere o primeiro carrossel",
+        body: `<p>Ao importar, o n8n troca o endereco do formulario por um codigo aleatorio (comportamento padrao dele). Para a URL fixa: abra o no <strong>Formulario Carrosseis</strong>, digite <code>fabrica-de-carrosseis</code> no campo <strong>Form Path</strong> e salve. Seu formulario fica em:</p>
+<p><code>https://workflows.{{domain}}/form/fabrica-de-carrosseis</code></p>
+<p>Abra o formulario e cole as <strong>linhas de UM carrossel</strong> da tabela do Modulo 4 — do slide <code>Capa (1)</code> ate a linha <code>Legenda</code>. As 5 imagens chegam uma a uma no seu WhatsApp (~2 a 4 minutos), seguidas da legenda. Cada envio consome ~US$ 1 do seu credito OpenAI.</p>
+<p>Se nada chegar em 5 minutos, abra o n8n → <strong>Executions</strong> e veja onde o fluxo parou (o erro mais comum e credito zerado na OpenAI).</p>
+<p>💡 Na etapa do Painel, o seu painel de gestao ganha um formulario da Fabrica de Carrosseis — dai em diante voce gera por la, sem abrir o n8n.</p>`
+      },
+      {
+        heading: "5. Publique",
+        body: `<p>Baixe as 5 imagens do WhatsApp e suba no Instagram (ou no planner do Metricool) na ordem, com a legenda pronta. As imagens ja saem no formato 4:5 — nenhum ajuste necessario.</p>`
+      }
+    ],
+    fields: [
+      { key: "ownerWhatsapp", label: "Seu WhatsApp (com DDI, so numeros)", placeholder: "5511999998888", inline: true }
+    ],
+    validation: "Carrossel de teste gerado pelo formulario e as 5 imagens recebidas no WhatsApp.",
+    done: "Fabrica de Carrosseis ativa: tabela colada vira 5 imagens prontas no WhatsApp."
+  },
+  {
     id: "fabrica-videos-ativar",
     title: "Fabrica de Videos — ativar",
     objective: "Ativar o fluxo que transforma um roteiro do Modulo 4 em video pronto, entregue no seu WhatsApp.",
@@ -1661,8 +1707,8 @@ networks:
       },
       {
         heading: "2. Gere o PRD do painel",
-        body: `<p>Como no módulo 5: o agente monta o PRD do seu painel de gestão — página protegida por senha em <code>gestao.{{domain}}</code> com os números do negócio, o chat do Conselho e o balcão da <strong>Fábrica de Vídeos</strong> (cole o roteiro no card e o vídeo chega no seu WhatsApp — sem abrir o n8n).</p>
-<p><strong>Pré-requisito do card da Fábrica:</strong> a etapa anterior concluída, com o workflow "Fabrica de Videos" ATIVO no n8n. Se você pulou essa etapa, o painel funciona mesmo assim — o card só avisa que a Fábrica ainda não foi ativada.</p>`,
+        body: `<p>Como no módulo 5: o agente monta o PRD do seu painel de gestão — página protegida por senha em <code>gestao.{{domain}}</code> com os números do negócio, o chat do Conselho e o balcão das <strong>Fábricas</strong> (cole o roteiro ou o carrossel no card e o resultado chega no seu WhatsApp — sem abrir o n8n).</p>
+<p><strong>Pré-requisito dos cards das Fábricas:</strong> as etapas das Fábricas concluídas, com os workflows "Fabrica de Carrosseis" e "Fabrica de Videos" ATIVOS no n8n. Se você pulou alguma, o painel funciona mesmo assim — o card só avisa que a Fábrica ainda não foi ativada.</p>`,
         generate: {
           id: "painel_prd",
           type: "text",
@@ -1681,7 +1727,7 @@ networks:
 <ul>
   <li>Os números de leads carregam no dashboard</li>
   <li>O chat responde — experimente: <em>"Com os dados que temos até aqui, onde devo focar minha energia esta semana?"</em></li>
-  <li>O card <strong>Fábrica de Vídeos</strong> aparece — quando quiser, gere um vídeo por ele (cada envio é um render real, ~US$ 1 do crédito HeyGen)</li>
+  <li>Os cards <strong>Fábrica de Carrosséis</strong> e <strong>Fábrica de Vídeos</strong> aparecem — quando quiser, gere por eles (cada envio é uma geração real, ~US$ 1 do crédito OpenAI ou HeyGen)</li>
 </ul>
 <p>🎓 <strong>Jornada completa:</strong> estratégia validada, infraestrutura própria, conteúdo programado, site vendendo, atendimento automático e um conselho de especialistas de plantão. Agora é operar, medir e crescer.</p>`
       }
@@ -2576,7 +2622,8 @@ function renderLessonStage(lesson, steps) {
     ["#download-n8n-vendas-mp", buildVendasMPWorkflowJson, "vendas-mercadopago.json"],
     ["#download-n8n-metricas", buildMetricsWorkflowJson, "painel-metricas.json"],
     ["#download-n8n-conselho", buildConselhoWorkflowJson, "conselho-de-ia.json"],
-    ["#download-n8n-fabrica-videos", buildFabricaVideosWorkflowJson, "fabrica-de-videos.json"]
+    ["#download-n8n-fabrica-videos", buildFabricaVideosWorkflowJson, "fabrica-de-videos.json"],
+    ["#download-n8n-fabrica-carrosseis", buildFabricaCarrosseisWorkflowJson, "fabrica-de-carrosseis.json"]
   ];
   workflowDownloads.forEach(([selector, builder, filename]) => {
     document.querySelector(selector)?.addEventListener("click", () => {
@@ -4936,6 +4983,342 @@ function buildFabricaVideosWorkflowJson() {
       },
       "Copia video para o Metricool": { main: [[{ node: "Cria rascunho no Metricool", type: "main", index: 0 }]] },
       "Cria rascunho no Metricool": { main: [[{ node: "Avisa rascunho no WhatsApp", type: "main", index: 0 }]] }
+    },
+    pinData: {},
+    settings: { executionOrder: "v1" }
+  };
+  return JSON.stringify(workflow, null, 2);
+}
+
+// Fábrica de Carrosséis (ativação no Módulo 6) — mesmo esqueleto da Fábrica de Vídeos,
+// dois gatilhos: formulário /form/fabrica-de-carrosseis e webhook POST /webhook/fabrica-carrosseis
+// (card do Painel). Aluno cola as linhas de UM carrossel da tabela do Agente 8; gpt-4o-mini
+// interpreta, gpt-image-2 gera cada slide em 4:5 (1024x1280) com o texto renderizado na arte
+// e direção de arte fixa (POC 2026-07-11 validou o pt-BR renderizado), entrega as imagens em
+// base64 no WhatsApp (Evolution aceita sem hospedar) + legenda. Sem Metricool na v1 (a API
+// deles exige URL pública e as imagens não são hospedadas).
+function buildFabricaCarrosseisWorkflowJson() {
+  const project = memberApp.state.project;
+  const domain = project.domain || "seudominio.com.br";
+  const evoKey = project.evolutionApiKey || "CHAVE_EVOLUTION_AQUI";
+
+  // Mesma normalização de WhatsApp da Fábrica de Vídeos (DDI 55 obrigatório)
+  const rawWhats = String(project.ownerWhatsapp || "").replace(/\D/g, "");
+  const whatsappDono = rawWhats
+    ? (rawWhats.length <= 11 ? `55${rawWhats}` : rawWhats)
+    : "5511999998888";
+
+  const promptCarrossel = [
+    "Você prepara carrosséis do Instagram para a Fábrica de Carrosséis.",
+    "Você recebe linhas de uma tabela com colunas Data | Tema | Slide | Texto | Prompt de imagem (em Markdown, colado de planilha ou texto livre). Cada linha de slide (Capa (1), 2, 3, 4, CTA (5)) vira uma imagem; a linha com Slide = Legenda traz a legenda do post.",
+    "",
+    "Produza:",
+    "1. slides — array na ordem original, um item por slide de imagem (NÃO inclua a linha Legenda), cada um com: texto (o campo Texto, exatamente como está) e prompt_imagem (o campo Prompt de imagem; se estiver vazio, descreva uma cena minimalista coerente com o tema e a paleta citada nas outras linhas).",
+    "2. legenda — o texto da linha Legenda. Se não houver, crie uma curta e natural (2 a 3 frases) com 3 a 5 hashtags.",
+    "3. titulo — título interno curto (máximo 6 palavras, sem emojis).",
+    "",
+    "Se o conteúdo não parecer uma tabela, divida o texto recebido em até 5 frases curtas e use-as como textos dos slides."
+  ].join("\n");
+  const promptJs = JSON.stringify(promptCarrossel);
+
+  const cfg = (name) => `$('Config').first().json.${name}`;
+
+  const workflow = {
+    name: "Fabrica de Carrosseis",
+    nodes: [
+      {
+        parameters: {
+          content: [
+            "# 🖼️ FÁBRICA DE CARROSSÉIS — LEIA PRIMEIRO",
+            "",
+            "Cole as linhas de UM carrossel do Módulo 4 (do slide Capa até a linha Legenda) e receba as 5 imagens prontas (4:5, texto já na arte) + a legenda no seu WhatsApp.",
+            "",
+            "✅ ATIVAÇÃO (uma vez)",
+            "1. Nós 'Prepara slides (IA)' e 'Gera imagem (IA)' →",
+            "   credencial OpenAI",
+            "2. Nó 'Registra no banco' → credencial Postgres negocio",
+            "3. Confira o nó Config: WhatsApp e evolutionInstance",
+            "   (o nome EXATO da sua instância no manager da Evolution)",
+            "4. No nó 'Formulario Carrosseis', digite 'fabrica-de-carrosseis'",
+            "   no campo Form Path (o n8n troca por um código aleatório",
+            "   ao importar — este passo devolve a URL fixa)",
+            "5. Ligue a chave ACTIVE do workflow",
+            "",
+            `🔗 Formulário: https://workflows.${domain}/form/fabrica-de-carrosseis`,
+            "",
+            "🖥️ O card 'Fábrica de Carrosséis' do seu Painel de gestão envia",
+            `   para POST https://workflows.${domain}/webhook/fabrica-carrosseis`,
+            "   — mesmo fluxo, e esse endereço NÃO muda na importação.",
+            "",
+            "💰 ~US$ 1 por carrossel de 5 slides (crédito OpenAI)",
+            "⏱️ ~2 a 4 minutos por carrossel (as imagens chegam uma a uma)"
+          ].join("\n"),
+          height: 640,
+          width: 400,
+          color: 4
+        },
+        id: "sticky-guia-carrosseis",
+        name: "Guia de ativacao",
+        type: "n8n-nodes-base.stickyNote",
+        typeVersion: 1,
+        position: [-260, 40]
+      },
+      {
+        parameters: {
+          path: "fabrica-de-carrosseis",
+          formTitle: "Fabrica de Carrosseis",
+          formDescription: "Cole as linhas de UM carrossel do Modulo 4 (do slide Capa ate a linha Legenda). As 5 imagens prontas chegam no seu WhatsApp em ~3 minutos. Custo: ~US$ 1 do seu credito OpenAI.",
+          formFields: {
+            values: [
+              {
+                fieldLabel: "Linhas do carrossel",
+                fieldType: "textarea",
+                requiredField: true,
+                placeholder: "| Data | Tema | Slide | Texto | Prompt de imagem |  (cole as linhas do carrossel, inclusive a linha Legenda)"
+              }
+            ]
+          },
+          responseMode: "onReceived",
+          options: { appendAttribution: false, buttonLabel: "Gerar carrossel" }
+        },
+        id: "form-carrosseis",
+        name: "Formulario Carrosseis",
+        type: "n8n-nodes-base.formTrigger",
+        typeVersion: 2.2,
+        position: [200, 40],
+        webhookId: "fabrica-de-carrosseis-form"
+      },
+      {
+        parameters: {
+          httpMethod: "POST",
+          path: "fabrica-carrosseis",
+          responseMode: "onReceived",
+          options: { allowedOrigins: "*" }
+        },
+        id: "webhook-painel-carrosseis",
+        name: "Webhook Painel",
+        type: "n8n-nodes-base.webhook",
+        typeVersion: 2,
+        position: [200, 260],
+        webhookId: "fabrica-carrosseis-webhook"
+      },
+      {
+        parameters: {
+          jsCode: [
+            "// Normaliza as duas origens: formulario n8n (teste da etapa) e card do Painel (webhook)",
+            "const j = $input.first().json;",
+            "const conteudo = String((j.body && (j.body.carrossel || j.body.roteiro)) || j['Linhas do carrossel'] || '').trim();",
+            "if (!conteudo) throw new Error('Conteudo vazio — cole as linhas do carrossel do Modulo 4.');",
+            "return [{ json: { conteudo } }];"
+          ].join("\n")
+        },
+        id: "entrada-carrosseis",
+        name: "Entrada",
+        type: "n8n-nodes-base.code",
+        typeVersion: 2,
+        position: [420, 140]
+      },
+      {
+        parameters: {
+          assignments: {
+            assignments: [
+              { id: "ccfg-1", name: "whatsappDono", type: "string", value: whatsappDono },
+              { id: "ccfg-2", name: "evolutionInstance", type: "string", value: "atendimento" }
+            ]
+          },
+          includeOtherFields: true,
+          options: {}
+        },
+        id: "config-carrosseis",
+        name: "Config",
+        type: "n8n-nodes-base.set",
+        typeVersion: 3.4,
+        position: [640, 140]
+      },
+      {
+        parameters: {
+          method: "POST",
+          url: "https://api.openai.com/v1/responses",
+          authentication: "predefinedCredentialType",
+          nodeCredentialType: "openAiApi",
+          sendBody: true,
+          specifyBody: "json",
+          jsonBody: "={{ JSON.stringify({ model: 'gpt-4o-mini', input: [{ role: 'system', content: " + promptJs + " }, { role: 'user', content: String($('Entrada').first().json.conteudo || '') }], text: { format: { type: 'json_schema', name: 'fabrica_carrosseis', strict: true, schema: { type: 'object', additionalProperties: false, required: ['titulo', 'legenda', 'slides'], properties: { titulo: { type: 'string' }, legenda: { type: 'string' }, slides: { type: 'array', items: { type: 'object', additionalProperties: false, required: ['texto', 'prompt_imagem'], properties: { texto: { type: 'string' }, prompt_imagem: { type: 'string' } } } } } } } } }) }}",
+          options: {}
+        },
+        id: "prepara-slides",
+        name: "Prepara slides (IA)",
+        type: "n8n-nodes-base.httpRequest",
+        typeVersion: 4.2,
+        position: [860, 140],
+        credentials: {
+          openAiApi: { id: "SUBSTITUA_PELO_ID_DA_CREDENCIAL", name: "OpenAi account" }
+        },
+        onError: "continueErrorOutput"
+      },
+      {
+        parameters: {
+          jsCode: [
+            "// Extrai o JSON da Responses API e monta um item por slide com o prompt final da imagem.",
+            "// A direcao de arte fixa abaixo garante a MESMA cara em todos os slides da serie",
+            "// (o POC mostrou tipografia variando entre slides quando ela nao e especificada).",
+            "const r = $input.first().json;",
+            "const bruto = (r.output || [])",
+            "  .flatMap((item) => item.content || [])",
+            "  .map((c) => c.text || '')",
+            "  .join('').trim();",
+            "let dados;",
+            "try { dados = JSON.parse(bruto); } catch { throw new Error('Nao consegui interpretar o carrossel — cole as linhas da tabela do Modulo 4.'); }",
+            "const slides = Array.isArray(dados.slides) ? dados.slides.slice(0, 6) : [];",
+            "if (!slides.length) throw new Error('Nenhum slide encontrado — cole as linhas da tabela, do slide Capa ate a Legenda.');",
+            "const legenda = String(dados.legenda || 'Carrossel novo no ar!');",
+            "const titulo = String(dados.titulo || 'Carrossel da Fabrica');",
+            "const total = slides.length;",
+            "return slides.map((s, i) => ({ json: {",
+            "  indice: i + 1, total, titulo, legenda,",
+            "  promptFinal: 'Slide ' + (i + 1) + ' de ' + total + ' de um carrossel premium do Instagram, formato retrato 4:5. ' +",
+            "    'Direcao de arte IDENTICA em todos os slides da serie: design editorial minimalista e sofisticado, nivel de estudio de design profissional; ' +",
+            "    'uma unica familia tipografica sans-serif geometrica moderna, no maximo dois pesos (bold apenas nos destaques); ' +",
+            "    'composicao em grid com margens generosas e hierarquia visual clara. ' +",
+            "    'Cena e estilo: ' + String(s.prompt_imagem || 'fundo minimalista e elegante na paleta da marca') + '. ' +",
+            "    'Renderize EXATAMENTE este texto em portugues do Brasil, sem mudar, omitir ou acrescentar nenhuma palavra e sem nenhum erro de ortografia ou acentuacao: \\u00ab' + String(s.texto || '') + '\\u00bb. ' +",
+            "    'O texto e o protagonista da composicao: contraste alto com o fundo, margens seguras, nenhum outro texto ou marca d\\u2019agua na imagem.'",
+            "} }));"
+          ].join("\n")
+        },
+        id: "extrai-slides",
+        name: "Extrai slides",
+        type: "n8n-nodes-base.code",
+        typeVersion: 2,
+        position: [1080, 140]
+      },
+      {
+        parameters: {
+          method: "POST",
+          url: "https://api.openai.com/v1/images/generations",
+          authentication: "predefinedCredentialType",
+          nodeCredentialType: "openAiApi",
+          sendBody: true,
+          specifyBody: "json",
+          jsonBody: "={{ JSON.stringify({ model: 'gpt-image-2', prompt: $json.promptFinal, size: '1024x1280', quality: 'high', n: 1 }) }}",
+          options: { timeout: 300000 }
+        },
+        id: "gera-imagem",
+        name: "Gera imagem (IA)",
+        type: "n8n-nodes-base.httpRequest",
+        typeVersion: 4.2,
+        position: [1300, 140],
+        credentials: {
+          openAiApi: { id: "SUBSTITUA_PELO_ID_DA_CREDENCIAL", name: "OpenAi account" }
+        },
+        onError: "continueErrorOutput"
+      },
+      {
+        parameters: {
+          method: "POST",
+          url: `=https://evo.${domain}/message/sendMedia/{{ $('Config').first().json.evolutionInstance }}`,
+          sendHeaders: true,
+          headerParameters: { parameters: [{ name: "apikey", value: evoKey }] },
+          sendBody: true,
+          specifyBody: "json",
+          jsonBody: `={{ JSON.stringify({ number: ${cfg("whatsappDono")}, mediatype: 'image', mimetype: 'image/png', fileName: 'slide-' + $('Extrai slides').item.json.indice + '.png', caption: $('Extrai slides').item.json.indice + '/' + $('Extrai slides').item.json.total + ' — ' + $('Extrai slides').item.json.titulo, media: $json.data[0].b64_json }) }}`,
+          options: {}
+        },
+        id: "envia-imagem",
+        name: "Envia imagem no WhatsApp",
+        type: "n8n-nodes-base.httpRequest",
+        typeVersion: 4.2,
+        position: [1520, 140]
+      },
+      {
+        parameters: {
+          jsCode: [
+            "// Reduz os 5 itens a um so — a legenda e o registro no banco saem uma unica vez",
+            "const r = $('Extrai slides').first().json;",
+            "return [{ json: { titulo: r.titulo, legenda: r.legenda, slides: $('Extrai slides').all().length } }];"
+          ].join("\n")
+        },
+        id: "junta-legenda",
+        name: "Junta legenda",
+        type: "n8n-nodes-base.code",
+        typeVersion: 2,
+        position: [1740, 140]
+      },
+      {
+        parameters: {
+          operation: "executeQuery",
+          query: [
+            "create table if not exists carrosseis_gerados (id serial primary key, titulo text, legenda text, slides int, criado_em timestamptz default now());",
+            "insert into carrosseis_gerados (titulo, legenda, slides) values ($1, $2, $3);"
+          ].join("\n"),
+          options: { queryReplacement: "={{ [$json.titulo, $json.legenda, $json.slides] }}" }
+        },
+        id: "registra-banco-carrosseis",
+        name: "Registra no banco",
+        type: "n8n-nodes-base.postgres",
+        typeVersion: 2.4,
+        position: [1960, 140],
+        credentials: {
+          postgres: { id: "SUBSTITUA_PELO_ID_DA_CREDENCIAL", name: "Postgres negocio" }
+        },
+        onError: "continueRegularOutput"
+      },
+      {
+        parameters: {
+          method: "POST",
+          url: `=https://evo.${domain}/message/sendText/{{ $('Config').first().json.evolutionInstance }}`,
+          sendHeaders: true,
+          headerParameters: { parameters: [{ name: "apikey", value: evoKey }] },
+          sendBody: true,
+          specifyBody: "json",
+          jsonBody: `={{ JSON.stringify({ number: ${cfg("whatsappDono")}, text: '🖼️ Carrossel pronto: ' + $('Junta legenda').first().json.titulo + ' (' + $('Junta legenda').first().json.slides + ' imagens acima, na ordem).\\n\\n📝 Legenda — copie e cole ao publicar:\\n\\n' + $('Junta legenda').first().json.legenda }) }}`,
+          options: {}
+        },
+        id: "envia-legenda-carrosseis",
+        name: "Envia legenda no WhatsApp",
+        type: "n8n-nodes-base.httpRequest",
+        typeVersion: 4.2,
+        position: [2180, 140]
+      },
+      {
+        parameters: {
+          method: "POST",
+          url: `=https://evo.${domain}/message/sendText/{{ $('Config').first().json.evolutionInstance }}`,
+          sendHeaders: true,
+          headerParameters: { parameters: [{ name: "apikey", value: evoKey }] },
+          sendBody: true,
+          specifyBody: "json",
+          jsonBody: `={{ JSON.stringify({ number: ${cfg("whatsappDono")}, text: '⚠️ A Fabrica nao conseguiu gerar este carrossel. Confira o credito da OpenAI (platform.openai.com → Billing) e envie as linhas de novo. Detalhe: ' + JSON.stringify(($json.error && ($json.error.message || $json.error)) || $json.message || 'sem detalhe').slice(0, 300) }) }}`,
+          options: {}
+        },
+        id: "avisa-problema-carrosseis",
+        name: "Avisa problema no WhatsApp",
+        type: "n8n-nodes-base.httpRequest",
+        typeVersion: 4.2,
+        position: [1300, 400]
+      }
+    ],
+    connections: {
+      "Formulario Carrosseis": { main: [[{ node: "Entrada", type: "main", index: 0 }]] },
+      "Webhook Painel": { main: [[{ node: "Entrada", type: "main", index: 0 }]] },
+      "Entrada": { main: [[{ node: "Config", type: "main", index: 0 }]] },
+      "Config": { main: [[{ node: "Prepara slides (IA)", type: "main", index: 0 }]] },
+      "Prepara slides (IA)": {
+        main: [
+          [{ node: "Extrai slides", type: "main", index: 0 }],
+          [{ node: "Avisa problema no WhatsApp", type: "main", index: 0 }]
+        ]
+      },
+      "Extrai slides": { main: [[{ node: "Gera imagem (IA)", type: "main", index: 0 }]] },
+      "Gera imagem (IA)": {
+        main: [
+          [{ node: "Envia imagem no WhatsApp", type: "main", index: 0 }],
+          [{ node: "Avisa problema no WhatsApp", type: "main", index: 0 }]
+        ]
+      },
+      "Envia imagem no WhatsApp": { main: [[{ node: "Junta legenda", type: "main", index: 0 }]] },
+      "Junta legenda": { main: [[{ node: "Registra no banco", type: "main", index: 0 }]] },
+      "Registra no banco": { main: [[{ node: "Envia legenda no WhatsApp", type: "main", index: 0 }]] }
     },
     pinData: {},
     settings: { executionOrder: "v1" }
