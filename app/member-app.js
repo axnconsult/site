@@ -32,7 +32,7 @@ const COURSE_MODULES = [
     stages: [
       ["Dominio, VPS e DNS", "Compre o dominio e a VPS, conecte na Cloudflare e aponte os registros DNS.", "technical", null, ["domain", "vps-compra", "dns", "email"]],
       ["Configuracao automatica", "Um script instala tudo: Docker, Swarm, Traefik, Portainer, Postgres, n8n, Evolution API e Chatwoot.", "technical", null, ["infra-auto"]],
-      ["Chaves e contas", "Crie contas no Google Ads e Meta Ads, copie os pixels e as chaves de OpenAI e Anthropic.", "technical", null, ["api-keys", "midia-paga"]],
+      ["Chaves e contas", "Crie contas no Google Ads e Meta Ads, copie os pixels e a chave de API da OpenAI.", "technical", null, ["api-keys", "midia-paga"]],
       ["Documento de infra", "Anote URLs de acesso, credenciais e pixels em um unico documento. Sem comandos — so revisao e registro.", "technical", null, ["infra-dados"]]
     ]
   },
@@ -163,18 +163,20 @@ const WIZARD_STEPS = [
         heading: "2. Crie os registros A dos serviços",
         body: `<p>Repita <strong>Add record</strong> para cada linha abaixo:</p>
 <table style="width:100%;border-collapse:collapse;font-size:0.85rem">
-  <tr style="text-align:left"><th>Type</th><th>Name</th><th>IPv4 address</th><th>Proxy</th></tr>
-  <tr><td>A</td><td><code>@</code></td><td><code>{{serverIp}}</code></td><td>DNS only</td></tr>
-  <tr><td>A</td><td><code>painel</code></td><td><code>{{serverIp}}</code></td><td>DNS only</td></tr>
-  <tr><td>A</td><td><code>workflows</code></td><td><code>{{serverIp}}</code></td><td>DNS only</td></tr>
-  <tr><td>A</td><td><code>webhooks</code></td><td><code>{{serverIp}}</code></td><td>DNS only</td></tr>
-  <tr><td>A</td><td><code>chat</code></td><td><code>{{serverIp}}</code></td><td>DNS only</td></tr>
-  <tr><td>A</td><td><code>evo</code></td><td><code>{{serverIp}}</code></td><td>DNS only</td></tr>
+  <tr style="text-align:left"><th>Type</th><th>Name</th><th>IPv4 address</th><th>Proxy</th><th>Para que serve</th></tr>
+  <tr><td>A</td><td><code>@</code></td><td><code>{{serverIp}}</code></td><td>DNS only</td><td>Site (módulo 5)</td></tr>
+  <tr><td>A</td><td><code>www</code></td><td><code>{{serverIp}}</code></td><td>DNS only</td><td>Site com www (módulo 5)</td></tr>
+  <tr><td>A</td><td><code>painel</code></td><td><code>{{serverIp}}</code></td><td>DNS only</td><td>Portainer</td></tr>
+  <tr><td>A</td><td><code>workflows</code></td><td><code>{{serverIp}}</code></td><td>DNS only</td><td>n8n (editor)</td></tr>
+  <tr><td>A</td><td><code>webhooks</code></td><td><code>{{serverIp}}</code></td><td>DNS only</td><td>n8n (webhooks)</td></tr>
+  <tr><td>A</td><td><code>chat</code></td><td><code>{{serverIp}}</code></td><td>DNS only</td><td>Chatwoot</td></tr>
+  <tr><td>A</td><td><code>evo</code></td><td><code>{{serverIp}}</code></td><td>DNS only</td><td>Evolution API</td></tr>
+  <tr><td>A</td><td><code>gestao</code></td><td><code>{{serverIp}}</code></td><td>DNS only</td><td>Painel de gestão (módulo 6)</td></tr>
 </table>
-<p style="margin-top:8px">O registro <code>@</code> aponta o domínio raiz (<code>{{domain}}</code>) para a VPS — o site ficará aqui no módulo 4. Mantenha todos como <strong>DNS only</strong> (nuvem cinza). O Traefik cuida do HTTPS — não deixe a Cloudflare proxiar.</p>`
+<p style="margin-top:8px">O registro <code>@</code> aponta o domínio raiz (<code>{{domain}}</code>) para a VPS. Os registros <code>www</code> e <code>gestao</code> só serão usados nos módulos 5 e 6, mas criá-los agora evita voltar aqui depois. Mantenha todos como <strong>DNS only</strong> (nuvem cinza). O Traefik cuida do HTTPS — não deixe a Cloudflare proxiar.</p>`
       }
     ],
-    validation: "Os 6 registros A aparecerem na lista de DNS da Cloudflare.",
+    validation: "Os 8 registros A aparecerem na lista de DNS da Cloudflare.",
     done: "Registros A criados — dominio raiz e todos os subdominios apontando para a VPS."
   },
   {
@@ -223,6 +225,7 @@ const WIZARD_STEPS = [
         heading: "5. Crie o usuário admin no Portainer",
         body: `<p>Quando o script terminar, ele vai exibir a <strong>Chave da Evolution API</strong> — copie e guarde no documento de infra.</p>
 <p>Abra o Portainer no navegador, defina usuário e senha e clique em <strong>Create user</strong>. Não será pedido nenhum token.</p>
+<p>Na tela seguinte, clique em <strong>Get Started</strong>. <strong>Não clique em "Add Environments"</strong> — o seu servidor já aparece conectado (ambiente <code>primary</code>, criado pelo script); adicionar outro criaria um ambiente duplicado.</p>
 <p>Se a página exibir "timeout", rode o comando abaixo e acesse novamente:</p>`,
         command: `docker service update --force portainer_portainer`
       },
@@ -441,7 +444,7 @@ services:
           - node.role == manager
       labels:
         - "traefik.enable=true"
-        - "traefik.docker.network=network_swarm_public"
+        - "traefik.swarm.network=network_swarm_public"
         - "traefik.http.routers.portainer.rule=Host(\`painel.{{domain}}\`)"
         - "traefik.http.routers.portainer.entrypoints=websecure"
         - "traefik.http.routers.portainer.tls.certresolver=letsencryptresolver"
@@ -514,7 +517,7 @@ services:
           memory: 128M
       labels:
         - "traefik.enable=true"
-        - "traefik.docker.network=network_swarm_public"
+        - "traefik.swarm.network=network_swarm_public"
         - "traefik.http.routers.site.rule=Host(\`{{domain}}\`) || Host(\`www.{{domain}}\`)"
         - "traefik.http.routers.site.entrypoints=websecure"
         - "traefik.http.routers.site.tls.certresolver=letsencryptresolver"
@@ -1007,29 +1010,24 @@ networks:
   {
     id: "api-keys",
     title: "Chaves e credenciais",
-    objective: "Configurar chaves de API da OpenAI e Anthropic no n8n e preparar as variaveis de ambiente para as automacoes.",
+    objective: "Configurar a chave de API da OpenAI no n8n — ela alimenta todas as automacoes de IA da sua operacao.",
     tutorial: [
       {
         heading: "1. Gere a chave da OpenAI",
         body: `<p>Acesse <a href="https://platform.openai.com/api-keys" target="_blank" rel="noopener">platform.openai.com/api-keys</a>. Clique em <strong>Create new secret key</strong>, dê um nome descritivo (ex: <code>automacoes-{{domain}}</code>) e copie a chave — ela aparece uma única vez.</p>
-<p>Se ainda não tem conta, crie em <a href="https://platform.openai.com" target="_blank" rel="noopener">platform.openai.com</a> e adicione crédito em <strong>Billing → Add payment method</strong>.</p>`
+<p>Se ainda não tem conta, crie em <a href="https://platform.openai.com" target="_blank" rel="noopener">platform.openai.com</a> e adicione crédito em <strong>Billing → Add payment method</strong>.</p>
+<p>Essa chave única atende tudo que vem pela frente: os agentes de texto do atendimento e do Conselho e a geração de imagens da Fábrica de Carrosséis.</p>`
       },
       {
-        heading: "2. Gere a chave da Anthropic",
-        body: `<p>Acesse <a href="https://console.anthropic.com/settings/keys" target="_blank" rel="noopener">console.anthropic.com/settings/keys</a>. Clique em <strong>Create Key</strong>, dê um nome (ex: <code>automacoes-{{domain}}</code>) e copie a chave.</p>
-<p>Se não tem conta, crie em <a href="https://console.anthropic.com" target="_blank" rel="noopener">console.anthropic.com</a> e adicione crédito em <strong>Plans &amp; Billing</strong>.</p>`
-      },
-      {
-        heading: "3. Adicione as credenciais no n8n",
+        heading: "2. Adicione a credencial no n8n",
         body: `<p>No editor do n8n (<a href="https://workflows.{{domain}}" target="_blank" rel="noopener">workflows.{{domain}}</a>), acesse <strong>Credentials</strong> no menu lateral.</p>
 <ol>
   <li>Clique em <strong>Add credential</strong> → busque <strong>OpenAI</strong> → cole a chave no campo <strong>API Key</strong> → salve.</li>
-  <li>Repita o processo para <strong>Anthropic</strong>.</li>
 </ol>
-<p>As credenciais ficam salvas com a criptografia da <code>N8N_ENCRYPTION_KEY</code> configurada no módulo anterior — não ficam visíveis nos YAMLs das stacks.</p>`
+<p>A credencial fica salva com a criptografia da <code>N8N_ENCRYPTION_KEY</code> configurada no módulo anterior — não fica visível nos YAMLs das stacks.</p>`
       },
       {
-        heading: "4. Teste com um nó simples",
+        heading: "3. Teste com um nó simples",
         body: `<p>No n8n, crie um workflow de teste:</p>
 <ol>
   <li>Adicione um nó <strong>Manual Trigger</strong>.</li>
@@ -1038,8 +1036,8 @@ networks:
 </ol>`
       }
     ],
-    validation: "O no de OpenAI ou Anthropic no n8n responder sem erro de autenticacao.",
-    done: "Credenciais de OpenAI e Anthropic ativas no n8n."
+    validation: "O no de OpenAI no n8n responder sem erro de autenticacao.",
+    done: "Credencial da OpenAI ativa no n8n."
   },
   {
     id: "midia-paga",
@@ -2635,7 +2633,32 @@ function renderLessonStage(lesson, steps) {
     URL.revokeObjectURL(url);
   });
 
-  document.querySelector("#download-infra-script")?.addEventListener("click", () => {
+  document.querySelector("#download-infra-script")?.addEventListener("click", (event) => {
+    // O script sai com os dados do aluno embutidos. Sem eles, placeholders como
+    // "SEU_EMAIL_REAL" iriam parar na VPS — melhor barrar aqui do que quebrar lá.
+    const p = memberApp.state.project;
+    const missing = [
+      [!p.domain, "seu domínio (etapa \"Preparar domínio\")"],
+      [!p.serverIp, "o IP da VPS (etapa \"Contratar a VPS\")"],
+      [!p.technicalEmail, "o e-mail do negócio (etapa \"E-mail para certificados\")"],
+      [!p.postgresPassword, "a senha do banco (passo 1 acima)"]
+    ].filter(([isMissing]) => isMissing).map(([, label]) => label);
+
+    const button = event.currentTarget;
+    let notice = document.querySelector("#infra-script-notice");
+    if (!notice) {
+      notice = document.createElement("p");
+      notice.id = "infra-script-notice";
+      notice.className = "form-status-error";
+      button.insertAdjacentElement("afterend", notice);
+    }
+
+    if (missing.length) {
+      notice.textContent = `Antes de baixar, preencha: ${missing.join("; ")}.`;
+      return;
+    }
+    notice.textContent = "";
+
     const blob = new Blob([buildInfraSetupScript()], { type: "text/x-shellscript;charset=utf-8" });
     const url = URL.createObjectURL(blob);
     const link = document.createElement("a");
