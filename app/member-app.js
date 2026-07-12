@@ -1891,6 +1891,7 @@ function wireMemberNavigation() {
 function wireModuleActions() {
   document.querySelector("#previous-stage")?.addEventListener("click", () => moveStage(-1));
   document.querySelector("#next-stage")?.addEventListener("click", () => moveStage(1));
+  wireAssistantAttachments();
 
   document.querySelector("#assistant-submit")?.addEventListener("click", async () => {
     const module = currentModule();
@@ -1903,8 +1904,14 @@ function wireModuleActions() {
 
     const key = currentLessonKey();
     const requestThread = (memberApp.state.assistantThreads[key] || []).slice(-20);
-    addAssistantMessage("user", value);
-    addAssistantMessage("assistant", "Estou organizando sua resposta e preparando o proximo passo.");
+    // Anexos só valem no Módulo 1; saem da fila no envio e voltam se a chamada falhar
+    const attachments = module.id === "module-1" ? assistantAttachments.pending.splice(0) : [];
+    renderAttachmentChips();
+    const displayValue = attachments.length
+      ? `${value}\n\u{1F4CE} ${attachments.map((item) => item.name).join(", ")}`
+      : value;
+    addAssistantMessage("user", displayValue);
+    addAssistantMessage("assistant", "Estou organizando sua resposta e preparando o proximo passo.", { pending: true });
     const pendingIndex = memberApp.state.assistantThreads[key].length - 1;
     if (input) {
       input.value = "";
@@ -1914,10 +1921,14 @@ function wireModuleActions() {
     renderAssistantThread();
 
     try {
-      const result = await requestLessonAgentAnswer(module, stage, value, requestThread);
+      const result = await requestLessonAgentAnswer(module, stage, value, requestThread, attachments);
       updateAssistantMessage(pendingIndex, result.answer);
       applyAssistantProgress(result);
     } catch (error) {
+      if (attachments.length) {
+        assistantAttachments.pending.unshift(...attachments);
+        renderAttachmentChips();
+      }
       updateAssistantMessage(
         pendingIndex,
         error.message || "Nao consegui conectar ao assistente real agora. Confira a configuracao da OpenAI e os logs da stack."
@@ -1935,6 +1946,9 @@ function wireModuleActions() {
       document.querySelector("#assistant-submit")?.click();
     }
   });
+
+  // Botão secundário do overlay de conclusão do Módulo 1: reler o parecer antes do aceite
+  document.querySelector("#transition-review")?.addEventListener("click", dismissModule1OverlayForReview);
 
   // Botão "Continuar" do overlay de transição entre agentes
   document.querySelector("#transition-continue")?.addEventListener("click", () => {
@@ -2098,15 +2112,43 @@ function showModule1CompletionOverlay() {
   const title = document.querySelector("#transition-title");
   const subtitle = document.querySelector("#transition-subtitle");
   const btn = document.querySelector("#transition-continue");
+  const reviewBtn = document.querySelector("#transition-review");
 
   if (title) title.textContent = "Hipotese de negocio validada!";
-  if (subtitle) subtitle.textContent = "Seu Modulo 1 esta concluido. Avance para o Modulo 2 quando estiver pronto.";
+  if (subtitle) subtitle.textContent = "Sua hipotese passou pela revisao independente — o parecer esta na conversa. A palavra final e sua: avance quando estiver de acordo.";
   if (btn) btn.textContent = "Ir para o Modulo 2";
+  if (reviewBtn) reviewBtn.classList.remove("hidden");
 
   overlay.dataset.nextStageKey = "";
   overlay.dataset.isModule1Completion = "true";
   overlay.classList.remove("hidden");
   fireConfetti(false);
+}
+
+function dismissModule1OverlayForReview() {
+  // Aluno quer reler o parecer da revisão antes de dar o aceite: fecha o overlay
+  // e deixa um banner no chat com o botão de avançar para quando ele decidir.
+  const overlay = document.querySelector("#agent-transition-overlay");
+  if (overlay) {
+    overlay.classList.add("hidden");
+    overlay.dataset.isModule1Completion = "";
+    const btn = document.querySelector("#transition-continue");
+    if (btn) btn.textContent = "Continuar";
+    document.querySelector("#transition-review")?.classList.add("hidden");
+  }
+
+  const thread = document.querySelector("#assistant-thread");
+  if (thread && !document.querySelector("#module1-go-to-2")) {
+    thread.insertAdjacentHTML("beforeend", `
+      <div class="module1-completion-banner">
+        <p class="eyebrow">Modulo 1 concluido</p>
+        <p>Releia o parecer acima com calma. Quando estiver de acordo com a hipotese, avance.</p>
+        <button class="button button-primary" type="button" id="module1-go-to-2">Ir para o Modulo 2</button>
+      </div>
+    `);
+    document.querySelector("#module1-go-to-2")?.addEventListener("click", goToModule2);
+  }
+  if (thread) thread.scrollTop = thread.scrollHeight;
 }
 
 function goToModule2() {
@@ -2117,6 +2159,7 @@ function goToModule2() {
     // Restaura texto padrão do botão
     const btn = document.querySelector("#transition-continue");
     if (btn) btn.textContent = "Continuar";
+    document.querySelector("#transition-review")?.classList.add("hidden");
   }
   openModule("module-2");
 }
@@ -6006,10 +6049,18 @@ function loadMemberApp() {
       ...memberApp,
       ...JSON.parse(window.localStorage.getItem(memberStoreKey) || "{}")
     };
+    const state = normalizeMemberState(stored.state);
+    // Flags "pending" (indicador de digitando) não sobrevivem a um reload:
+    // a requisição que os criou já morreu junto com a página anterior.
+    for (const thread of Object.values(state.assistantThreads || {})) {
+      for (const message of thread || []) {
+        if (message?.pending) delete message.pending;
+      }
+    }
     return {
       ...stored,
       activeView: stored.activeView || "dashboard",
-      state: normalizeMemberState(stored.state)
+      state
     };
   } catch {
     return memberApp;
@@ -6077,24 +6128,104 @@ function ensureAssistantThread(module, lesson) {
   memberApp.state.assistantThreads[key] = [{ role: "assistant", text: opening }];
 }
 
-function addAssistantMessage(role, text) {
+// Anexos pendentes do chat (Módulo 1). Vivem só em memória: viram input_file/input_image
+// na próxima mensagem enviada e não são persistidos (grandes demais para o localStorage).
+const assistantAttachments = {
+  pending: [],
+  error: ""
+};
+
+const ATTACH_MAX_FILES = 4;
+const ATTACH_MAX_FILE_BYTES = 4 * 1024 * 1024;
+const ATTACH_MAX_TOTAL_BYTES = 5 * 1024 * 1024;
+const ATTACH_ALLOWED_TYPES = ["image/png", "image/jpeg", "image/webp", "image/gif", "application/pdf"];
+
+function readFileAsDataUrl(file) {
+  return new Promise((resolve, reject) => {
+    const reader = new FileReader();
+    reader.onload = () => resolve(reader.result);
+    reader.onerror = () => reject(reader.error);
+    reader.readAsDataURL(file);
+  });
+}
+
+function renderAttachmentChips() {
+  const chips = document.querySelector("#assistant-attach-chips");
+  if (!chips) return;
+  chips.innerHTML = [
+    ...assistantAttachments.pending.map((item, index) => `
+      <span class="attach-chip">${escapeHtml(item.name)} <button type="button" data-attach-index="${index}" aria-label="Remover anexo">&times;</button></span>
+    `),
+    assistantAttachments.error ? `<span class="attach-chip-error">${escapeHtml(assistantAttachments.error)}</span>` : ""
+  ].join("");
+}
+
+function wireAssistantAttachments() {
+  const button = document.querySelector("#assistant-attach");
+  const input = document.querySelector("#assistant-attach-input");
+  if (!button || !input) return;
+
+  button.addEventListener("click", () => input.click());
+
+  input.addEventListener("change", async () => {
+    assistantAttachments.error = "";
+    for (const file of Array.from(input.files || [])) {
+      if (assistantAttachments.pending.length >= ATTACH_MAX_FILES) {
+        assistantAttachments.error = `Maximo de ${ATTACH_MAX_FILES} arquivos por mensagem.`;
+        break;
+      }
+      if (!ATTACH_ALLOWED_TYPES.includes(file.type)) {
+        assistantAttachments.error = `"${file.name}" nao e imagem nem PDF.`;
+        continue;
+      }
+      if (file.size > ATTACH_MAX_FILE_BYTES) {
+        assistantAttachments.error = `"${file.name}" passa de 4MB. Envie uma versao menor.`;
+        continue;
+      }
+      const totalSize = assistantAttachments.pending.reduce((sum, item) => sum + item.size, 0);
+      if (totalSize + file.size > ATTACH_MAX_TOTAL_BYTES) {
+        assistantAttachments.error = "Limite total de 5MB por mensagem atingido.";
+        break;
+      }
+      try {
+        const dataUrl = await readFileAsDataUrl(file);
+        assistantAttachments.pending.push({ name: file.name, mimeType: file.type, size: file.size, dataUrl });
+      } catch {
+        assistantAttachments.error = `Nao consegui ler "${file.name}". Tente novamente.`;
+      }
+    }
+    input.value = "";
+    renderAttachmentChips();
+  });
+
+  document.querySelector("#assistant-attach-chips")?.addEventListener("click", (event) => {
+    const target = event.target.closest("[data-attach-index]");
+    if (!target) return;
+    assistantAttachments.pending.splice(Number(target.dataset.attachIndex), 1);
+    assistantAttachments.error = "";
+    renderAttachmentChips();
+  });
+}
+
+function addAssistantMessage(role, text, extra = {}) {
   const key = currentLessonKey();
   memberApp.state.assistantThreads[key] = memberApp.state.assistantThreads[key] || [];
-  memberApp.state.assistantThreads[key].push({ role, text, createdAt: new Date().toISOString() });
+  memberApp.state.assistantThreads[key].push({ role, text, ...extra, createdAt: new Date().toISOString() });
 }
 
 function updateAssistantMessage(index, text) {
   const key = currentLessonKey();
   const thread = memberApp.state.assistantThreads[key] || [];
   if (!thread[index]) return;
+  const { pending, ...rest } = thread[index];
   thread[index] = {
-    ...thread[index],
+    ...rest,
     text,
     updatedAt: new Date().toISOString()
   };
 }
 
-async function requestLessonAgentAnswer(module, stage, input, thread = null) {
+async function requestLessonAgentAnswer(module, stage, input, thread = null, attachments = []) {
   if (!memberApp.token || memberApp.token.startsWith("local-")) {
     return {
       answer: isLocalPreview()
@@ -6116,6 +6247,14 @@ async function requestLessonAgentAnswer(module, stage, input, thread = null) {
     message: input,
     thread: thread || memberApp.state.assistantThreads[key] || []
   };
+
+  if (attachments.length) {
+    body.attachments = attachments.map((item) => ({
+      name: item.name,
+      mimeType: item.mimeType,
+      dataUrl: item.dataUrl
+    }));
+  }
 
   if (isWizardModule(module)) {
     const steps = getLessonSteps(stage);
@@ -6187,10 +6326,9 @@ async function streamLessonAgentAnswer(body, key) {
       }
 
       if (event.type === "delta") {
+        // Streaming visual desligado de propósito: o aluno só vê o output final da etapa.
+        // O texto continua acumulando como fallback caso o evento "done" não chegue.
         accumulated += event.text;
-        // Atualiza a bolha do assistente em tempo real com cursor piscante
-        updateAssistantMessage(pendingIndex, accumulated + "▌");
-        renderAssistantThread();
       } else if (event.type === "done") {
         finalResult = {
           answer: event.answer || accumulated,
@@ -6257,10 +6395,12 @@ function renderAssistantThread() {
   const lesson = currentLesson();
   const key = currentLessonKey();
   document.querySelector("#assistant-title").textContent = "Assistente da etapa";
+  // Botão de anexo só existe na entrevista do Módulo 1 (validação de negócio/MVP existente)
+  document.querySelector("#assistant-attach-row")?.classList.toggle("hidden", module.id !== "module-1");
   root.innerHTML = (memberApp.state.assistantThreads[key] || []).map((message) => `
     <article class="assistant-message ${message.role === "user" ? "from-user" : "from-assistant"}">
       <strong>${message.role === "user" ? "Voce" : "Axon"}</strong>
-      <p>${escapeHtml(message.text)}</p>
+      <p>${escapeHtml(message.text)}${message.pending ? '<span class="typing-dots" aria-label="digitando"><span></span><span></span><span></span></span>' : ""}</p>
     </article>
   `).join("");
   root.scrollTop = root.scrollHeight;

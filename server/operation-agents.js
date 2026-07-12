@@ -89,6 +89,43 @@ const AGENT_IDS = AGENTS.map((agent) => agent.id);
 const AGENT_BY_ID = new Map(AGENTS.map((agent) => [agent.id, agent]));
 const PROMPT_CACHE = new Map();
 
+// Anexos do chat (Módulo 1): o browser envia data URLs e eles seguem direto à OpenAI
+// como input_image/input_file — sem parser no servidor, por decisão de produto.
+const ATTACHMENT_DATA_URL_PATTERN = /^data:(image\/(png|jpeg|webp|gif)|application\/pdf);base64,[A-Za-z0-9+/=]+$/;
+const ATTACHMENT_MAX_COUNT = 4;
+const ATTACHMENT_MAX_TOTAL_CHARS = 7.5 * 1024 * 1024; // ~5,5MB de arquivo em base64, sob o limite de 8MB do body
+
+function attachmentContentParts(attachments) {
+  const parts = [];
+  let totalChars = 0;
+
+  for (const item of (Array.isArray(attachments) ? attachments : []).slice(0, ATTACHMENT_MAX_COUNT)) {
+    const dataUrl = String(item?.dataUrl || "");
+    if (!ATTACHMENT_DATA_URL_PATTERN.test(dataUrl)) continue;
+    totalChars += dataUrl.length;
+    if (totalChars > ATTACHMENT_MAX_TOTAL_CHARS) break;
+
+    if (dataUrl.startsWith("data:application/pdf")) {
+      parts.push({
+        type: "input_file",
+        filename: sanitizeAttachmentName(item.name) || "documento.pdf",
+        file_data: dataUrl
+      });
+    } else {
+      parts.push({ type: "input_image", image_url: dataUrl });
+    }
+  }
+
+  return parts;
+}
+
+function sanitizeAttachmentName(name) {
+  return String(name || "")
+    .replace(/[^\w. \-()]/g, "_")
+    .trim()
+    .slice(0, 80);
+}
+
 export async function runOperationAgentTurn({ rootDir, query, member, payload }) {
   if (!process.env.OPENAI_API_KEY) {
     return {
@@ -166,7 +203,8 @@ export async function runOperationAgentTurn({ rootDir, query, member, payload })
               conversationThread: thread,
               userMessage: payload.message
             })
-          }
+          },
+          ...attachmentContentParts(payload.attachments)
         ]
       }
     ]
@@ -182,12 +220,13 @@ export async function runOperationAgentTurn({ rootDir, query, member, payload })
   }
 
   const parsed = parseAgentOutput(response, agent);
-  const status = normalizeStatus(parsed.status);
+  let status = normalizeStatus(parsed.status);
+  let answer = cleanAssistantMessage(parsed.assistant_message || parsed.summary_for_user || parsed.answer || response.output_text);
+  let transferBlock = normalizeTransferBlock(parsed.transfer_block, status);
+  ({ status, answer, transferBlock } = await applyHypothesisReview({ agent, status, answer, transferBlock, payload }));
   const nextAgentId = status === "result"
     ? nextAgentIdFor(activeAgentId)
     : "";
-  const answer = cleanAssistantMessage(parsed.assistant_message || parsed.summary_for_user || parsed.answer || response.output_text);
-  const transferBlock = normalizeTransferBlock(parsed.transfer_block, status);
   const projectSection = parsed.project_section || agent.section;
 
   await saveAgentRun(query, {
@@ -585,6 +624,137 @@ async function saveAgentRun(query, data) {
   );
 }
 
+// ─── Revisão independente da hipótese (Módulo 1) ────────────────────────────
+// Quando o Agente 01 conclui (status "result"), um segundo modelo (Claude) revisa
+// a entrevista inteira + hipótese ANTES de a entrega chegar ao aluno. Se reprovar,
+// o turno volta a "conversation" com lacunas objetivas — o Agente 01 pergunta só
+// aquilo na rodada seguinte. O parecer é sempre visível ao aluno, que dá o aceite
+// final. Sem ANTHROPIC_API_KEY ou em caso de falha, a conclusão segue sem revisão.
+
+const REVIEW_MARKER = "Revisão independente";
+const REVIEW_MARKER_PATTERN = /Revis[aã]o independente/i;
+
+async function applyHypothesisReview({ agent, status, answer, transferBlock, payload }) {
+  if (agent.id !== "business_modeling" || status !== "result") {
+    return { status, answer, transferBlock };
+  }
+
+  const thread = normalizeThread(payload.thread);
+  const priorReturns = thread.filter(
+    (message) => message.role === "assistant" && REVIEW_MARKER_PATTERN.test(message.text)
+  ).length;
+
+  const review = await reviewBusinessHypothesis({
+    thread,
+    userMessage: payload.message,
+    answer,
+    transferBlock,
+    priorReturns
+  });
+  if (!review) return { status, answer, transferBlock };
+
+  if (review.verdict === "aprovado") {
+    return {
+      status,
+      answer: `${answer}\n\n✅ ${REVIEW_MARKER}: ${review.parecer}`,
+      transferBlock
+    };
+  }
+
+  const lacunas = review.lacunas.length
+    ? `\n\nO que ainda falta:\n${review.lacunas.map((item) => `- ${item}`).join("\n")}`
+    : "";
+
+  return {
+    status: "conversation",
+    answer: `${answer}\n\n🔎 ${REVIEW_MARKER}: ${review.parecer}${lacunas}\n\nVamos fechar esses pontos antes de concluir?`,
+    transferBlock: emptyTransferBlock()
+  };
+}
+
+async function reviewBusinessHypothesis({ thread, userMessage, answer, transferBlock, priorReturns }) {
+  if (!process.env.ANTHROPIC_API_KEY) {
+    console.warn("Hypothesis review skipped: ANTHROPIC_API_KEY ausente");
+    return null;
+  }
+
+  const system = [
+    "Voce e o revisor independente do modulo de Modelagem de Negocio da AXN Consult.",
+    "O Agente entrevistador acredita ter concluido a etapa: o aluno escolheu uma hipotese de negocio.",
+    "Sua funcao e revisar a entrevista inteira e a entrega proposta e decidir se a hipotese esta pronta.",
+    "",
+    "Aprove somente se as tres condicoes forem verdadeiras:",
+    "1. A hipotese e economicamente viavel: a entrevista cita sinais concretos de mercado (concorrentes vendendo, categoria compravel, tickets praticados, disposicao de pagamento).",
+    "2. A hipotese conecta com competencia ou interesse real do aluno que apareceu na entrevista — nao e uma ideia genericamente boa para outra pessoa.",
+    "3. A hipotese e operacional e testavel por um iniciante, nao ampla ou vaga demais.",
+    "",
+    "Seja pragmatico: isto e uma hipotese para o aluno TESTAR, nao um plano de negocio. Devolva 'revisar' apenas por lacunas que comprometem materialmente a viabilidade ou a conexao com o aluno. Nao devolva por perfeccionismo.",
+    "Se devolucoesAnteriores for 2 ou mais, aprove salvo problema fundamental, registrando os riscos restantes no parecer.",
+    "",
+    "O campo 'parecer' sera exibido ao aluno: escreva 2 a 4 frases dirigidas a ele, em tom respeitoso e direto, sem jargao e sem mencionar agentes, prompts ou sistemas.",
+    "O campo 'lacunas' (apenas quando verdict for 'revisar') lista no maximo 3 itens objetivos, cada um algo que o aluno consegue responder na conversa.",
+    "",
+    'Responda APENAS com JSON valido neste formato: {"verdict":"aprovado","parecer":"...","lacunas":[]} ou {"verdict":"revisar","parecer":"...","lacunas":["..."]}'
+  ].join("\n");
+
+  const controller = new AbortController();
+  const timeout = setTimeout(() => controller.abort(), Number(process.env.ANTHROPIC_VALIDATOR_TIMEOUT_MS || 45000));
+
+  try {
+    const response = await fetch("https://api.anthropic.com/v1/messages", {
+      method: "POST",
+      headers: {
+        "x-api-key": process.env.ANTHROPIC_API_KEY,
+        "anthropic-version": "2023-06-01",
+        "content-type": "application/json"
+      },
+      body: JSON.stringify({
+        model: process.env.ANTHROPIC_VALIDATOR_MODEL || "claude-sonnet-5",
+        max_tokens: 1024,
+        system,
+        messages: [
+          {
+            role: "user",
+            content: JSON.stringify({
+              entrevista: thread,
+              ultimaMensagemDoAluno: userMessage,
+              entregaProposta: answer,
+              blocoEstruturado: transferBlock,
+              devolucoesAnteriores: priorReturns
+            })
+          }
+        ]
+      }),
+      signal: controller.signal
+    });
+
+    if (!response.ok) {
+      const data = await response.json().catch(() => ({}));
+      console.warn("Hypothesis review returned", response.status, data);
+      return null;
+    }
+
+    const data = await response.json();
+    const text = data.content?.[0]?.text || "";
+    const parsed = JSON.parse(extractJsonText(text));
+    if (!["aprovado", "revisar"].includes(parsed.verdict) || !parsed.parecer) {
+      console.warn("Hypothesis review returned unexpected shape", text.slice(0, 200));
+      return null;
+    }
+
+    return {
+      verdict: parsed.verdict,
+      parecer: String(parsed.parecer).trim(),
+      lacunas: Array.isArray(parsed.lacunas) ? parsed.lacunas.map((item) => String(item).trim()).filter(Boolean) : []
+    };
+  } catch (error) {
+    console.warn("Hypothesis review failed:", error.message);
+    return null;
+  } finally {
+    clearTimeout(timeout);
+  }
+}
+
 // ─── Assistente técnico (Módulos 3+) ────────────────────────────────────────
 
 export async function runTechAssistantTurn({ query, member, payload }) {
@@ -752,7 +922,8 @@ export async function streamOperationAgentTurn({ rootDir, query, member, payload
               conversationThread: thread,
               userMessage: payload.message
             })
-          }
+          },
+          ...attachmentContentParts(payload.attachments)
         ]
       }
     ],
@@ -765,11 +936,11 @@ export async function streamOperationAgentTurn({ rootDir, query, member, payload
 
   await callOpenAIStream(openaiRequest, onDelta, async (fullText, responseId) => {
     const parsed = parseAgentOutput({ output_text: fullText }, agent);
-    const status = normalizeStatus(parsed.status);
+    let status = normalizeStatus(parsed.status);
+    let answer = cleanAssistantMessage(parsed.assistant_message || parsed.summary_for_user || parsed.answer || fullText);
+    let transferBlock = normalizeTransferBlock(parsed.transfer_block, status);
+    ({ status, answer, transferBlock } = await applyHypothesisReview({ agent, status, answer, transferBlock, payload }));
     const nextAgentId = status === "result" ? nextAgentIdFor(activeAgentId) : "";
-    const answer = cleanAssistantMessage(parsed.assistant_message || parsed.summary_for_user || parsed.answer || fullText);
-
-    const transferBlock = normalizeTransferBlock(parsed.transfer_block, status);
     const projectSection = parsed.project_section || agent.section;
 
     await saveAgentRun(query, {

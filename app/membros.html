@@ -138,6 +138,12 @@
                     <h3 id="assistant-title">Conversa guiada</h3>
                   </div>
                   <div class="assistant-thread" id="assistant-thread" aria-live="polite"></div>
+                  <div class="assistant-attach-row hidden" id="assistant-attach-row">
+                    <button class="assistant-attach-button" type="button" id="assistant-attach">&#128206; Anexar arquivo</button>
+                    <span class="assistant-attach-hint">Imagens ou PDF do seu negocio, se ja tiver um.</span>
+                    <div class="assistant-attach-chips" id="assistant-attach-chips"></div>
+                    <input type="file" id="assistant-attach-input" class="hidden" multiple accept="image/png,image/jpeg,image/webp,image/gif,application/pdf" />
+                  </div>
                   <div class="assistant-input-row">
                     <textarea id="assistant-input" rows="3" placeholder="Digite sua resposta, duvida ou contexto do seu negocio."></textarea>
                     <button class="button button-primary" type="button" id="assistant-submit">Enviar</button>
@@ -235,6 +241,7 @@
         <p class="agent-overlay-title" id="transition-title"></p>
         <p class="agent-overlay-subtitle" id="transition-subtitle"></p>
         <button class="button button-primary" type="button" id="transition-continue">Continuar</button>
+        <button class="button button-secondary hidden" type="button" id="transition-review">Ler o parecer antes de avancar</button>
       </div>
     </div>
 
