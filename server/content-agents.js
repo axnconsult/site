@@ -57,8 +57,11 @@ async function loadStrategicDocument(query, member, projectId) {
   return lines.join("\n");
 }
 
+// Geração de conteúdo do Módulo 4 (grade, roteiros, peça de campanha) foi
+// aposentada em 2026-07: a rotina de divulgação vive nos fluxos n8n do aluno,
+// gerados no painel de gestão (buildGradePostagensWorkflowJson / buildPecasWorkflowJson).
 export async function streamContentGeneration({ rootDir, query, member, payload, onDelta, onDone }) {
-  const { agentType, project, context } = payload;
+  const { agentType, project } = payload;
   const projectId = project?.id;
 
   if (!process.env.OPENAI_API_KEY) {
@@ -75,55 +78,10 @@ export async function streamContentGeneration({ rootDir, query, member, payload,
     strategicDoc = "Planejamento estratégico não disponível.";
   }
 
-  const today = new Date().toLocaleDateString("pt-BR");
-  // A grade começa na segunda-feira da semana seguinte — dá folga para o aluno
-  // terminar a implementação guiada antes do primeiro post
-  const gridStart = new Date();
-  const daysUntilNextMonday = ((8 - gridStart.getDay()) % 7) || 7;
-  gridStart.setDate(gridStart.getDate() + daysUntilNextMonday);
-  const gridStartDate = gridStart.toLocaleDateString("pt-BR");
-
-  const FORMAT_MAP = {
-    roteiros_reels:     "Reels / Shorts",
-    roteiros_carrossel: "Carrossel",
-    roteiros_feed:      "Feed",
-    roteiros_stories:   "Stories"
-  };
-
   let promptFile;
   let systemAddendum;
 
-  if (agentType === "grade_postagens") {
-    promptFile = "7 - AXN _ Grade de Postagens.md";
-    systemAddendum = [
-      "",
-      "## Contexto de execução",
-      "",
-      `Hoje é ${today}.`,
-      `Data de início da grade: ${gridStartDate} (segunda-feira). O primeiro dia da grade é essa data, e os 28 dias correm a partir dela.`,
-      "",
-      "## Planejamento estratégico do empreendimento",
-      "",
-      strategicDoc
-    ].join("\n");
-  } else if (FORMAT_MAP[agentType]) {
-    const format = FORMAT_MAP[agentType];
-    promptFile = "8 - AXN _ Conteúdo de Posts.md";
-    const gradeSection = context?.grade
-      ? `\n\n## Grade de postagens aprovada\n\n${context.grade}`
-      : "";
-    systemAddendum = [
-      "",
-      "## Formato solicitado pelo wizard",
-      "",
-      `Gere SOMENTE o formato: **${format}**`,
-      "",
-      "## Planejamento estratégico",
-      "",
-      strategicDoc,
-      gradeSection
-    ].join("\n");
-  } else if (agentType === "site_prd") {
+  if (agentType === "site_prd") {
     promptFile = "10 - AXN _ PRD do Site.md";
     systemAddendum = [
       "",
@@ -190,181 +148,6 @@ export async function streamContentGeneration({ rootDir, query, member, payload,
   };
 
   await callOpenAIChatStream(openaiRequest, onDelta, onDone);
-}
-
-export async function generateCampaignImage({ rootDir, query, member, payload }) {
-  const { project, feedback, previousImage, customBrief } = payload;
-  const projectId = project?.id;
-
-  if (!process.env.OPENAI_API_KEY) {
-    return { ok: false, error: "openai_not_configured" };
-  }
-
-  // Ajuste iterativo: se há feedback e a imagem anterior, edita preservando a
-  // composição em vez de gerar do zero. Se a edição falhar, cai na regeneração.
-  if (feedback && previousImage) {
-    const edited = await editCampaignImage({ previousImage, feedback });
-    if (edited) return edited;
-  }
-
-  let strategicDoc;
-  try {
-    strategicDoc = await loadStrategicDocument(query, member, projectId);
-  } catch (error) {
-    console.warn("content-agents: failed to load strategic document for image", error.message);
-    strategicDoc = "Planejamento estratégico não disponível.";
-  }
-
-  let agent9Prompt;
-  try {
-    agent9Prompt = await loadAgentPrompt(rootDir, "9 - AXN _ Comunicação Visual.md");
-  } catch (error) {
-    console.warn("content-agents: Agent 9 prompt file missing", error.message);
-    return { ok: false, error: "prompt_file_missing" };
-  }
-  const systemForImagePrompt = agent9Prompt + "\n\n## Planejamento estratégico\n\n" + strategicDoc;
-
-  const briefBlock = customBrief
-    ? `\n\nO empreendedor forneceu este direcionamento próprio (logo, nome, conceito ou ideia de peça) — incorpore-o com prioridade sobre suas escolhas criativas, mantendo a identidade visual do planejamento: "${customBrief}"`
-    : "";
-  const userMessage = (feedback
-    ? `Gere um novo prompt de imagem incorporando este feedback: "${feedback}"`
-    : "Gere o prompt de imagem para a peça de campanha.") + briefBlock;
-
-  let imagePrompt;
-  try {
-    const promptResponse = await fetch("https://api.openai.com/v1/chat/completions", {
-      method: "POST",
-      headers: {
-        Authorization: `Bearer ${process.env.OPENAI_API_KEY}`,
-        "Content-Type": "application/json"
-      },
-      body: JSON.stringify({
-        model: process.env.OPENAI_CONTENT_MODEL || "gpt-4.1",
-        messages: [
-          { role: "system", content: systemForImagePrompt },
-          { role: "user", content: userMessage }
-        ],
-        max_tokens: 600
-      })
-    });
-
-    if (!promptResponse.ok) {
-      const errData = await promptResponse.json().catch(() => ({}));
-      console.warn("Agent 9 prompt generation failed", promptResponse.status, errData);
-      return { ok: false, error: "image_prompt_failed" };
-    }
-
-    const promptData = await promptResponse.json();
-    imagePrompt = (promptData.choices?.[0]?.message?.content || "").trim();
-  } catch (error) {
-    console.warn("Agent 9 call failed:", error.message);
-    return { ok: false, error: "image_prompt_failed" };
-  }
-
-  if (!imagePrompt) {
-    return { ok: false, error: "image_prompt_empty" };
-  }
-
-  // gpt-image-2 é o modelo atual (abr/2026); cadeia de fallback para contas
-  // sem acesso: gpt-image-2 → gpt-image-1 → dall-e-3
-  const primaryModel = process.env.OPENAI_IMAGE_MODEL || "gpt-image-2";
-  const configFor = (model) => model === "dall-e-3"
-    ? { model, size: "1024x1792", response_format: "url" }
-    : { model, size: "1024x1536" };
-  const seen = new Set();
-  const attempts = [primaryModel, "gpt-image-1", "dall-e-3"]
-    .filter((model) => !seen.has(model) && seen.add(model))
-    .map(configFor);
-
-  let lastDetail = "";
-
-  for (const attempt of attempts) {
-    const body = {
-      model: attempt.model,
-      prompt: imagePrompt,
-      n: 1,
-      size: attempt.size
-    };
-    if (attempt.response_format) body.response_format = attempt.response_format;
-
-    try {
-      const imageResponse = await fetch("https://api.openai.com/v1/images/generations", {
-        method: "POST",
-        headers: {
-          Authorization: `Bearer ${process.env.OPENAI_API_KEY}`,
-          "Content-Type": "application/json"
-        },
-        body: JSON.stringify(body)
-      });
-
-      const imageData = await imageResponse.json().catch(() => ({}));
-
-      if (!imageResponse.ok) {
-        lastDetail = imageData.error?.message || `HTTP ${imageResponse.status}`;
-        console.warn(`Image generation failed (${attempt.model})`, imageResponse.status, lastDetail);
-        continue;
-      }
-
-      const item = imageData.data?.[0] || {};
-      const url = item.url || (item.b64_json ? `data:image/png;base64,${item.b64_json}` : "");
-
-      if (url) {
-        return { ok: true, url, prompt: imagePrompt, model: attempt.model };
-      }
-      lastDetail = "resposta da API sem imagem";
-    } catch (error) {
-      lastDetail = error.message;
-      console.warn(`Image generation request failed (${attempt.model}):`, error.message);
-    }
-  }
-
-  return { ok: false, error: "image_generation_failed", detail: lastDetail };
-}
-
-async function editCampaignImage({ previousImage, feedback }) {
-  const match = /^data:image\/(png|jpeg|webp);base64,(.+)$/.exec(String(previousImage || ""));
-  if (!match) return null;
-
-  const buffer = Buffer.from(match[2], "base64");
-  const primaryModel = process.env.OPENAI_IMAGE_MODEL || "gpt-image-2";
-  // dall-e-3 não suporta edição — só os modelos gpt-image
-  const seen = new Set();
-  const models = [primaryModel, "gpt-image-1"]
-    .filter((model) => model !== "dall-e-3" && !seen.has(model) && seen.add(model));
-
-  for (const model of models) {
-    try {
-      const form = new FormData();
-      form.append("model", model);
-      form.append("image", new Blob([buffer], { type: `image/${match[1]}` }), "previous.png");
-      form.append("prompt", `Apply ONLY this requested change and keep everything else in the image exactly the same (composition, people, colors, text): ${feedback}`);
-      form.append("size", "1024x1536");
-
-      const response = await fetch("https://api.openai.com/v1/images/edits", {
-        method: "POST",
-        headers: { Authorization: `Bearer ${process.env.OPENAI_API_KEY}` },
-        body: form
-      });
-
-      const data = await response.json().catch(() => ({}));
-
-      if (!response.ok) {
-        console.warn(`Image edit failed (${model})`, response.status, data.error?.message || "");
-        continue;
-      }
-
-      const item = data.data?.[0] || {};
-      const url = item.url || (item.b64_json ? `data:image/png;base64,${item.b64_json}` : "");
-      if (url) {
-        return { ok: true, url, prompt: feedback, model, edited: true };
-      }
-    } catch (error) {
-      console.warn(`Image edit request failed (${model}):`, error.message);
-    }
-  }
-
-  return null;
 }
 
 async function callOpenAIChatStream(body, onDelta, onDone) {

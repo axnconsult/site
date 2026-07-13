@@ -40,12 +40,10 @@ const COURSE_MODULES = [
     id: "module-4",
     number: 4,
     title: "Presenca Comercial",
-    summary: "Use IA para criar grade de postagens, roteiros por formato e a primeira peca de campanha — tudo a partir do seu planejamento dos modulos 1 e 2.",
-    result: "Grade, roteiros e peca de campanha criados e exportados",
+    summary: "Entenda como sua presenca comercial vai operar de forma continua no Painel de Gestao — grade de postagens e pecas geradas com a sua chave, no seu ambiente — e prepare a Fabrica de Videos.",
+    result: "Estrategia de divulgacao compreendida e Fabrica de Videos configurada",
     stages: [
-      ["Estrategia de divulgacao", "Agentes leem seu planejamento e geram uma grade estrategica de 28 dias.", "technical", null, ["grade-postagens"]],
-      ["Roteiros e textos", "Agente converte a grade em roteiros prontos para producao por formato.", "technical", null, ["roteiros-textos"]],
-      ["Peca de campanha", "IA gera a primeira arte visual de divulgacao para aprovacao.", "technical", null, ["peca-campanha"]],
+      ["Estrategia de divulgacao", "Conheca o modelo: grade estrategica de 28 dias e pecas por formato, geradas continuamente na aba Marketing do seu painel.", "technical", null, ["estrategia-divulgacao"]],
       ["Fabrica de Videos — setup", "Crie sua conta HeyGen, escolha apresentador e voz, e valide a configuracao.", "technical", null, ["heygen-setup"]]
     ]
   },
@@ -65,15 +63,15 @@ const COURSE_MODULES = [
     id: "module-6",
     number: 6,
     title: "Operacao Assistida",
-    summary: "Conecte o WhatsApp ao atendimento automatico, registre os leads do site, ative as Fabricas de Carrosseis e de Videos e ganhe um Conselho de IA para decidir com dados.",
-    result: "Atendimento automatico no ar, Fabricas de Carrosseis e de Videos ativas e Conselho de IA acompanhando o negocio",
+    summary: "Conecte o WhatsApp ao atendimento automatico, registre os leads do site, publique o Painel de Gestao em 3 areas — Administracao, Marketing e Vendas — e ative as Fabricas de Carrosseis e de Videos.",
+    result: "Atendimento automatico no ar, painel com grade e pecas funcionando e Fabricas de Carrosseis e de Videos ativas",
     stages: [
       ["Conectar o WhatsApp", "Crie a instancia na Evolution API, escaneie o QR code e integre ao Chatwoot.", "technical", null, ["whatsapp-connect"]],
       ["Leads e vendas do site", "Ative os webhooks que registram leads do formulario e vendas do checkout no seu banco.", "technical", null, ["leads-webhook", "crm"]],
       ["Agente de atendimento", "Gere o prompt personalizado do seu atendente de IA e ative o fluxo que responde o WhatsApp.", "technical", null, ["atendimento-agente"]],
-      ["Fabrica de Carrosseis — ativar", "Ative o fluxo que transforma os carrosseis do Modulo 4 em imagens prontas, entregues no seu WhatsApp.", "technical", null, ["fabrica-carrosseis-ativar"]],
-      ["Fabrica de Videos — ativar", "Ative o fluxo que transforma os roteiros do Modulo 4 em videos prontos, entregues no seu WhatsApp.", "technical", null, ["fabrica-videos-ativar"]],
-      ["Painel e Conselho de IA", "Publique o painel de gestao no seu dominio com dashboard de leads e o Conselho de 3 especialistas.", "technical", null, ["painel-conselho"]]
+      ["Painel e Conselho de IA", "Publique o painel de gestao em 3 areas — Administracao, Marketing e Vendas — com grade de postagens, pecas e o Conselho de IA.", "technical", null, ["painel-conselho"]],
+      ["Fabrica de Carrosseis — ativar", "Ative o fluxo que transforma os carrosseis gerados no painel em imagens prontas, entregues no seu WhatsApp.", "technical", null, ["fabrica-carrosseis-ativar"]],
+      ["Fabrica de Videos — ativar", "Ative o fluxo que transforma os roteiros gerados no painel em videos prontos, entregues no seu WhatsApp.", "technical", null, ["fabrica-videos-ativar"]]
     ]
   }
 ];
@@ -1139,101 +1137,31 @@ networks:
   // ─── Módulo 4 — Presença Comercial ──────────────────────────────────────────
 
   {
-    id: "grade-postagens",
-    title: "Grade de Postagens",
-    objective: "Gerar uma grade estrategica de 28 dias com base no planejamento dos modulos 1 e 2.",
+    id: "estrategia-divulgacao",
+    title: "Estrategia de Divulgacao",
+    objective: "Entender como a sua presenca comercial vai operar de forma continua — e por que ela vive no seu Painel de Gestao, nao aqui no app.",
     tutorial: [
       {
-        heading: "1. Como funciona",
-        body: `<p>O agente lê o seu planejamento estratégico e monta uma grade de conteúdo para 28 dias, com tema, formato, plataforma e pilar de conteúdo definidos para cada postagem.</p>
-<p>Você não precisa preencher nada — o agente usa o que você já construiu nos módulos anteriores.</p>`
+        heading: "1. Presenca comercial e rotina, nao entrega unica",
+        body: `<p>Divulgar o seu negócio não é uma tarefa que se conclui — é uma rotina que se repete: planejar o que postar, produzir as peças, publicar e ajustar. Por isso, essa capacidade não fica aqui no app (que você usa uma vez, durante a implantação): ela é instalada <strong>no seu ambiente</strong>, para você usar continuamente depois de formado.</p>
+<p>Quem executa é a infraestrutura que você já montou: os fluxos rodam no <strong>seu n8n</strong>, chamam a IA com a <strong>sua chave OpenAI</strong> (módulo 3) e gravam tudo no <strong>seu banco de dados</strong>. Sem depender de ninguém — nem de nós.</p>`
       },
       {
-        heading: "2. Gerar grade de 28 dias",
-        body: `<p>Clique para gerar. O processo leva alguns segundos.</p>`,
-        generate: {
-          id: "grade_postagens",
-          type: "text",
-          label: "Gerar grade de postagens",
-          loadingMessage: "Criando sua grade de 28 dias..."
-        }
+        heading: "2. Como vai funcionar no seu Painel de Gestao",
+        body: `<p>No módulo 6 você publica o seu <strong>Painel de Gestão</strong> em 3 áreas — Administração, Marketing e Vendas. A rotina de divulgação vive na aba <strong>Marketing</strong>:</p>
+<ul>
+  <li><strong>Grade de Postagens</strong> — a IA lê seu planejamento estratégico e propõe uma grade de 28 dias (temas, formatos e frequência realista). Você revisa, pede ajustes e <strong>aprova</strong> — a grade aprovada fica salva no seu banco.</li>
+  <li><strong>Peças de divulgação</strong> — um botão para cada formato (Reels/Shorts, Carrossel, Post de feed, Stories) gera os roteiros e textos de todos os dias daquele formato na grade aprovada. Precisou de algo fora da grade? Gere uma <strong>peça avulsa</strong> com seu próprio direcionamento.</li>
+</ul>
+<p>E quando a peça precisa virar mídia, entram as <strong>Fábricas</strong>: o roteiro de Reels vira vídeo com seu apresentador virtual (Fábrica de Vídeos) e o carrossel vira 5 imagens prontas (Fábrica de Carrosséis) — os dois entregues no seu WhatsApp.</p>`
+      },
+      {
+        heading: "3. O que fazer agora",
+        body: `<p>Neste módulo, só uma preparação: a próxima etapa configura a <strong>Fábrica de Vídeos</strong> (conta HeyGen, apresentador virtual e voz). O restante — importar os fluxos, publicar o painel e gerar sua primeira grade — acontece no módulo 6, quando toda a base estiver pronta.</p>`
       }
     ],
-    validation: "Grade revisada e aprovada.",
-    done: "Grade de 28 dias criada."
-  },
-  {
-    id: "roteiros-textos",
-    title: "Roteiros e Textos",
-    objective: "Converter a grade em roteiros e textos prontos para producao por formato.",
-    tutorial: [
-      {
-        heading: "1. Reels e Shorts",
-        body: `<p>O mesmo roteiro serve para Instagram Reels e YouTube Shorts — fala direta para a câmera, sem descrição de cenas.</p>`,
-        generate: {
-          id: "roteiros_reels",
-          type: "text",
-          label: "Gerar roteiros de Reels / Shorts",
-          loadingMessage: "Escrevendo os roteiros de Reels..."
-        }
-      },
-      {
-        heading: "2. Carrossel",
-        body: `<p>Conteúdo slide a slide com prompt de imagem para geração por IA.</p>`,
-        generate: {
-          id: "roteiros_carrossel",
-          type: "text",
-          label: "Gerar roteiros de Carrossel",
-          loadingMessage: "Montando os carrosseis..."
-        }
-      },
-      {
-        heading: "3. Feed (post único)",
-        body: `<p>Headline, prompt de imagem e legenda para cada post de feed da grade.</p>`,
-        generate: {
-          id: "roteiros_feed",
-          type: "text",
-          label: "Gerar posts de Feed",
-          loadingMessage: "Criando os posts de feed..."
-        }
-      },
-      {
-        heading: "4. Stories",
-        body: `<p>Sequências de 3 a 5 stories com sugestão de interação para cada dia programado.</p>`,
-        generate: {
-          id: "roteiros_stories",
-          type: "text",
-          label: "Gerar Stories",
-          loadingMessage: "Escrevendo as sequencias de stories..."
-        }
-      }
-    ],
-    validation: "Roteiros revisados para todos os formatos.",
-    done: "Roteiros gerados para todos os formatos."
-  },
-  {
-    id: "peca-campanha",
-    title: "Peca de Campanha",
-    objective: "Gerar a primeira arte visual de divulgacao com base na identidade da sua marca.",
-    tutorial: [
-      {
-        heading: "1. O que sera gerado",
-        body: `<p>O agente lê a Identidade Visual do seu planejamento e cria um prompt detalhado para gerar uma imagem vertical — formato Stories e Reels.</p>
-<p>Se a primeira versão não agradar, você pode pedir ajustes e gerar uma nova versão.</p>`
-      },
-      {
-        heading: "2. Gerar peca de campanha",
-        body: `<p>Clique para gerar. A criação leva de 1 a 2 minutos — aguarde na página.</p>`,
-        generate: {
-          id: "campanha_image",
-          type: "image",
-          label: "Gerar peca de campanha",
-          loadingMessage: "Criando sua peca... isso leva de 1 a 2 minutos. Pode deixar a pagina aberta e aguardar."
-        }
-      }
-    ],
-    validation: "Peca aprovada e baixada.",
-    done: "Peca de campanha criada e aprovada."
+    validation: "Modelo de presenca comercial entendido: grade e pecas no painel, fabricas para video e carrossel.",
+    done: "Estrategia de divulgacao compreendida."
   },
   {
     id: "heygen-setup",
@@ -1327,13 +1255,12 @@ networks:
 <ul>
   <li><strong>Planejamento estratégico</strong> (.md — módulo 2)</li>
   <li><strong>Documento da infraestrutura</strong> (.md — módulo 3)</li>
-  <li><strong>Peça de campanha</strong> (.png — módulo 4)</li>
   <li><strong>Pixels</strong> — o arquivo de texto com os códigos do Google Tag e Meta Pixel (módulo 3)</li>
 </ul>
 <p>No app do Claude, abra essa pasta como projeto. Assim ele enxerga todos os seus documentos ao construir o site.</p>`
       }
     ],
-    validation: "App do Claude instalado, logado, e pasta do projeto com os 4 arquivos.",
+    validation: "App do Claude instalado, logado, e pasta do projeto com os 3 arquivos.",
     done: "Claude pronto para trabalhar com os documentos do seu negocio."
   },
   {
@@ -1586,15 +1513,65 @@ networks:
     done: "Atendente de IA respondendo o WhatsApp do negocio."
   },
   {
+    id: "painel-conselho",
+    title: "Painel e Conselho de IA",
+    objective: "Importar os fluxos do painel e publicar o seu centro de gestao em 3 areas — Administracao, Marketing e Vendas — no seu dominio.",
+    tutorial: [
+      {
+        heading: "1. Importe e ative os quatro fluxos do painel",
+        body: `<p><strong>Pré-requisito:</strong> estes fluxos usam a credencial <strong>Postgres negocio</strong>, criada na etapa "Leads do site" (passo 2), e a credencial <strong>OpenAI</strong> do módulo 3. Se ainda não completou a etapa de leads, volte lá primeiro.</p>
+<p>Baixe, importe no n8n e <strong>ative</strong> os quatro fluxos (em todos, selecione a credencial <strong>Postgres negocio</strong> nos nós de banco; nos fluxos com nó de IA, selecione também a credencial <strong>OpenAI</strong> do módulo 3):</p>
+<p><button class="button button-primary" type="button" id="download-n8n-metricas">Baixar fluxo de metricas (.json)</button></p>
+<p><button class="button button-primary" type="button" id="download-n8n-conselho">Baixar fluxo do Conselho (.json)</button></p>
+<p><button class="button button-primary" type="button" id="download-n8n-grade">Baixar fluxo da Grade de Postagens (.json)</button></p>
+<p><button class="button button-primary" type="button" id="download-n8n-pecas">Baixar fluxo de Pecas de Divulgacao (.json)</button></p>
+<p>O primeiro alimenta o dashboard. O segundo é o Conselho de IA — os especialistas de Administração, Marketing e Vendas, cada um na sua aba. Os dois últimos são a rotina de divulgação que você conheceu no módulo 4: a grade de 28 dias e as peças por formato.</p>`
+      },
+      {
+        heading: "2. Gere o PRD do painel",
+        body: `<p>Como no módulo 5: o agente monta o PRD do seu painel de gestão — página protegida por senha em <code>gestao.{{domain}}</code>, organizada em <strong>3 abas</strong>:</p>
+<ul>
+  <li><strong>Administração</strong> — os números do negócio e o chat com o conselheiro que conhece todo o seu planejamento estratégico.</li>
+  <li><strong>Marketing</strong> — a <strong>Grade de Postagens</strong> (gerar → pedir ajustes → aprovar), a geração de <strong>peças por formato</strong> (Reels, Carrossel, Feed, Stories) + peça avulsa, o chat com o conselheiro de marketing e os cards das <strong>Fábricas</strong>.</li>
+  <li><strong>Vendas</strong> — leads e conversões recentes e o chat com o conselheiro de vendas.</li>
+</ul>
+<p><strong>Nota sobre as Fábricas:</strong> os cards de Vídeos e Carrosséis já nascem no painel, mas só funcionam depois que você ativar os fluxos nas duas próximas etapas — até lá, eles avisam que a Fábrica ainda não foi ativada.</p>`,
+        generate: {
+          id: "painel_prd",
+          type: "text",
+          label: "Gerar PRD do painel",
+          loadingMessage: "Montando o PRD do seu painel de gestao..."
+        }
+      },
+      {
+        heading: "3. Cole no Claude e acompanhe",
+        body: `<p>Abra o app do Claude na pasta do projeto (a mesma do módulo 5) e cole o PRD.</p>
+<p>O Claude vai verificar os fluxos, pedir a senha root da VPS, pedir para você escolher <strong>usuário e senha do painel</strong>, inserir seu planejamento estratégico no banco (é ele que alimenta os agentes), construir a página e publicar. Se algo ficar parado por mais de 5 minutos ou der erro, cole a mensagem aqui no assistente.</p>`
+      },
+      {
+        heading: "4. Conheça seu painel — e gere sua primeira grade",
+        body: `<p>Abra <a href="https://gestao.{{domain}}" target="_blank" rel="noopener">https://gestao.{{domain}}</a>, entre com o usuário e senha que você escolheu e percorra as 3 abas:</p>
+<ul>
+  <li><strong>Administração</strong> — os números carregam e o chat responde; experimente: <em>"Com os dados que temos até aqui, onde devo focar minha energia esta semana?"</em></li>
+  <li><strong>Marketing</strong> — clique em <strong>Gerar grade</strong>: a IA lê seu planejamento e propõe 28 dias de conteúdo. Peça um ajuste (ex.: <em>"menos stories, mais Reels"</em>) e, quando estiver boa, <strong>aprove</strong>. Com a grade aprovada, gere as peças de um formato (ex.: Reels) e veja os roteiros prontos.</li>
+  <li><strong>Vendas</strong> — os leads recentes aparecem e o conselheiro de vendas responde.</li>
+</ul>
+<p>Sua rotina de divulgação está no ar. Nas duas próximas etapas você ativa as <strong>Fábricas</strong> — e os carrosséis e roteiros gerados aqui viram imagens e vídeos prontos no seu WhatsApp.</p>`
+      }
+    ],
+    validation: "Painel abrindo com login, 3 abas funcionando e grade de postagens gerada e aprovada.",
+    done: "Painel de gestao no ar: Conselho por dominio, grade aprovada e pecas na aba Marketing."
+  },
+  {
     id: "fabrica-carrosseis-ativar",
     title: "Fabrica de Carrosseis — ativar",
-    objective: "Ativar o fluxo que transforma um carrossel do Modulo 4 em 5 imagens prontas (4:5), entregues no seu WhatsApp.",
+    objective: "Ativar o fluxo que transforma um carrossel gerado no seu painel em 5 imagens prontas (4:5), entregues no seu WhatsApp.",
     tutorial: [
       {
         heading: "1. O que voce esta ativando",
-        body: `<p>A Fabrica de Carrosseis fecha o ciclo dos carrosseis do Modulo 4: voce <strong>cola as linhas de UM carrossel</strong> da tabela do agente de conteudo (os 5 slides + a linha Legenda), e em poucos minutos recebe no seu WhatsApp as <strong>5 imagens prontas</strong> — no formato retrato 4:5 do Instagram, com o texto de cada slide ja desenhado na arte — mais a <strong>legenda do post</strong> para copiar.</p>
+        body: `<p>A Fabrica de Carrosseis fecha o ciclo dos carrosseis da aba <strong>Marketing</strong> do seu painel: voce <strong>cola as linhas de UM carrossel</strong> da tabela gerada la (os 5 slides + a linha Legenda), e em poucos minutos recebe no seu WhatsApp as <strong>5 imagens prontas</strong> — no formato retrato 4:5 do Instagram, com o texto de cada slide ja desenhado na arte — mais a <strong>legenda do post</strong> para copiar.</p>
 <p>Por dentro, o fluxo: interpreta as linhas coladas → gera cada slide com IA de imagem (gpt-image-2, texto renderizado na propria arte, mesma direcao visual em todos) → entrega as imagens uma a uma no WhatsApp → registra no seu banco. <strong>Custo transparente:</strong> ~US$ 1 por carrossel de 5 slides, direto do seu credito OpenAI (a mesma conta do modulo 3 — nenhuma conta nova).</p>
-<p><strong>Pre-requisito:</strong> credencial OpenAI criada no n8n (modulo 3) e o carrossel gerado no Modulo 4.</p>`
+<p><strong>Pre-requisito:</strong> credencial OpenAI criada no n8n (modulo 3) e um carrossel gerado na aba Marketing do painel (etapa anterior).</p>`
       },
       {
         heading: "2. Confira seu WhatsApp",
@@ -1615,9 +1592,9 @@ networks:
         heading: "4. Pegue o endereco do formulario e gere o primeiro carrossel",
         body: `<p>Ao importar, o n8n troca o endereco do formulario por um codigo aleatorio (comportamento padrao dele). Para a URL fixa: abra o no <strong>Formulario Carrosseis</strong>, digite <code>fabrica-de-carrosseis</code> no campo <strong>Form Path</strong> e salve. Seu formulario fica em:</p>
 <p><code>https://workflows.{{domain}}/form/fabrica-de-carrosseis</code></p>
-<p>Abra o formulario e cole as <strong>linhas de UM carrossel</strong> da tabela do Modulo 4 — do slide <code>Capa (1)</code> ate a linha <code>Legenda</code>. As 5 imagens chegam uma a uma no seu WhatsApp (~2 a 4 minutos), seguidas da legenda. Cada envio consome ~US$ 1 do seu credito OpenAI.</p>
+<p>Abra o formulario e cole as <strong>linhas de UM carrossel</strong> da tabela gerada na aba Marketing do painel — do slide <code>Capa (1)</code> ate a linha <code>Legenda</code>. As 5 imagens chegam uma a uma no seu WhatsApp (~2 a 4 minutos), seguidas da legenda. Cada envio consome ~US$ 1 do seu credito OpenAI.</p>
 <p>Se nada chegar em 5 minutos, abra o n8n → <strong>Executions</strong> e veja onde o fluxo parou (o erro mais comum e credito zerado na OpenAI).</p>
-<p>💡 Na etapa do Painel, o seu painel de gestao ganha um formulario da Fabrica de Carrosseis — dai em diante voce gera por la, sem abrir o n8n.</p>`
+<p>💡 O card da Fabrica de Carrosseis ja esta no seu painel — agora que o fluxo esta ativo, voce pode colar o carrossel por la, sem abrir o n8n (este formulario continua como alternativa).</p>`
       },
       {
         heading: "5. Publique",
@@ -1633,11 +1610,11 @@ networks:
   {
     id: "fabrica-videos-ativar",
     title: "Fabrica de Videos — ativar",
-    objective: "Ativar o fluxo que transforma um roteiro do Modulo 4 em video pronto, entregue no seu WhatsApp.",
+    objective: "Ativar o fluxo que transforma um roteiro gerado no seu painel em video pronto, entregue no seu WhatsApp.",
     tutorial: [
       {
         heading: "1. O que voce esta ativando",
-        body: `<p>A Fabrica de Videos fecha o ciclo que voce comecou no Modulo 4: voce <strong>cola um roteiro de Reels/Shorts</strong> em um formulario, e em ~3 minutos recebe no seu WhatsApp o <strong>video vertical pronto</strong> — seu apresentador falando o roteiro, com legenda embutida — mais a <strong>legenda do post</strong> pronta para copiar.</p>
+        body: `<p>A Fabrica de Videos fecha o ciclo que voce comecou no Modulo 4: voce <strong>cola um roteiro de Reels/Shorts</strong> gerado na aba Marketing do seu painel, e em ~3 minutos recebe no seu WhatsApp o <strong>video vertical pronto</strong> — seu apresentador falando o roteiro, com legenda embutida — mais a <strong>legenda do post</strong> pronta para copiar.</p>
 <p>Por dentro, o fluxo: ajusta o roteiro para a fala soar natural (pausas e ritmo via pontuacao) → pede o video ao HeyGen → espera o render → entrega no WhatsApp → registra no seu banco. <strong>Custo transparente:</strong> ~US$ 1 por video de ~20s, direto do seu credito de API no HeyGen.</p>
 <p><strong>Pre-requisito:</strong> a etapa "Fabrica de Videos — setup" do Modulo 4 concluida (conta HeyGen, apresentador e voz validados).</p>`
       },
@@ -1661,14 +1638,15 @@ networks:
         body: `<p>Ao importar, o n8n troca o endereco do formulario por um codigo aleatorio (comportamento padrao dele). Para deixar sua URL fixa e bonita: abra o no <strong>Formulario Fabrica</strong>, localize o campo <strong>Form Path</strong> e digite <code>fabrica-de-videos</code>. Salve. Seu formulario fica em:</p>
 <p><code>https://workflows.{{domain}}/form/fabrica-de-videos</code></p>
 <p>(Se preferir, use a <strong>Production URL</strong> exibida no proprio no — funciona do mesmo jeito.) <strong>Salve o endereco nos favoritos</strong> — e por aqui que voce gera video daqui em diante.</p>
-<p>Abra o formulario, cole um <strong>bloco inteiro</strong> de roteiro de Reels do Modulo 4 (do 🎬 ate a legenda — a legenda vira o texto do post) e envie. Em ~3 minutos chegam no seu WhatsApp o video e a legenda. Cada envio consome ~US$ 1 do seu credito HeyGen.</p>
+<p>Abra o formulario, cole um <strong>bloco inteiro</strong> de roteiro de Reels gerado na aba Marketing do painel (do 🎬 ate a legenda — a legenda vira o texto do post) e envie. Em ~3 minutos chegam no seu WhatsApp o video e a legenda. Cada envio consome ~US$ 1 do seu credito HeyGen.</p>
 <p>Se nada chegar em 5 minutos, abra o n8n → <strong>Executions</strong> e veja onde o fluxo parou (o erro mais comum e credito de API zerado no HeyGen).</p>
-<p>💡 Na proxima etapa, o seu <strong>Painel de gestao</strong> ganha um card "Fabrica de Videos" — dai em diante voce gera video por la, sem abrir o n8n (o formulario continua funcionando como alternativa).</p>`
+<p>💡 O card da Fabrica de Videos ja esta no seu painel — agora que o fluxo esta ativo, voce pode colar o roteiro por la, sem abrir o n8n (este formulario continua como alternativa).</p>`
       },
       {
         heading: "5. Publique — do jeito manual ou automatico (Metricool)",
         body: `<p>Recomendamos o <strong>Metricool</strong> para agendar e publicar: no plano gratuito, baixe o video do WhatsApp, suba no planner com a legenda e agende — 2 minutos por post, e voce revisa tudo antes de ir ao ar.</p>
-<p><strong>Opcional — rascunho automatico:</strong> se voce assinar o plano <strong>Advanced</strong> do Metricool (que libera a API), a Fabrica cria cada video como <strong>rascunho no seu planner</strong> automaticamente — voce so revisa e confirma. Para ativar, preencha os 3 campos abaixo (no Metricool: <strong>Configuracoes da conta → API</strong> mostra o userToken e o userId; o blogId e o numero da marca, visivel na URL quando voce abre a marca no painel) e <strong>baixe e reimporte o fluxo</strong> no passo 3:</p>`,
+<p><strong>Opcional — rascunho automatico:</strong> se voce assinar o plano <strong>Advanced</strong> do Metricool (que libera a API), a Fabrica cria cada video como <strong>rascunho no seu planner</strong> automaticamente — voce so revisa e confirma. Para ativar, preencha os 3 campos abaixo (no Metricool: <strong>Configuracoes da conta → API</strong> mostra o userToken e o userId; o blogId e o numero da marca, visivel na URL quando voce abre a marca no painel) e <strong>baixe e reimporte o fluxo</strong> no passo 3:</p>
+<p>🎓 <strong>Jornada completa:</strong> estratégia validada, infraestrutura própria, site vendendo, atendimento automático, um conselho de especialistas de plantão e uma linha de produção de conteúdo — grade, peças, vídeos e carrosséis — rodando no seu ambiente. Agora é operar, medir e crescer.</p>`,
         fields: ["metricoolToken", "metricoolUserId", "metricoolBlogId"]
       }
     ],
@@ -1682,49 +1660,6 @@ networks:
     validation: "Video de teste gerado pelo formulario e recebido no WhatsApp.",
     done: "Fabrica ativa: roteiro colado vira video no WhatsApp (e rascunho no Metricool, se configurado)."
   },
-  {
-    id: "painel-conselho",
-    title: "Painel e Conselho de IA",
-    objective: "Ativar os fluxos de dados e publicar o painel de gestao com o Conselho de IA no seu dominio.",
-    tutorial: [
-      {
-        heading: "1. Importe e ative os dois fluxos do painel",
-        body: `<p><strong>Pré-requisito:</strong> estes fluxos usam a credencial <strong>Postgres negocio</strong>, criada na etapa "Leads do site" (passo 2), e a credencial <strong>OpenAI</strong> do módulo 3. Se ainda não completou a etapa de leads, volte lá primeiro.</p>
-<p>Baixe, importe no n8n e <strong>ative</strong> os dois fluxos (em ambos, selecione a credencial <strong>Postgres negocio</strong> nos nós de banco; no fluxo do Conselho, selecione também a credencial <strong>OpenAI</strong> no nó de IA):</p>
-<p><button class="button button-primary" type="button" id="download-n8n-metricas">Baixar fluxo de metricas (.json)</button></p>
-<p><button class="button button-primary" type="button" id="download-n8n-conselho">Baixar fluxo do Conselho (.json)</button></p>
-<p>O primeiro alimenta o dashboard; o segundo é o Conselho de IA — três especialistas (administração, marketing e vendas) que analisam seus dados e fecham uma recomendação.</p>`
-      },
-      {
-        heading: "2. Gere o PRD do painel",
-        body: `<p>Como no módulo 5: o agente monta o PRD do seu painel de gestão — página protegida por senha em <code>gestao.{{domain}}</code> com os números do negócio, o chat do Conselho e o balcão das <strong>Fábricas</strong> (cole o roteiro ou o carrossel no card e o resultado chega no seu WhatsApp — sem abrir o n8n).</p>
-<p><strong>Pré-requisito dos cards das Fábricas:</strong> as etapas das Fábricas concluídas, com os workflows "Fabrica de Carrosseis" e "Fabrica de Videos" ATIVOS no n8n. Se você pulou alguma, o painel funciona mesmo assim — o card só avisa que a Fábrica ainda não foi ativada.</p>`,
-        generate: {
-          id: "painel_prd",
-          type: "text",
-          label: "Gerar PRD do painel",
-          loadingMessage: "Montando o PRD do seu painel de gestao..."
-        }
-      },
-      {
-        heading: "3. Cole no Claude e acompanhe",
-        body: `<p>Abra o app do Claude na pasta do projeto (a mesma do módulo 5) e cole o PRD.</p>
-<p>O Claude vai verificar os fluxos, pedir a senha root da VPS, pedir para você escolher <strong>usuário e senha do painel</strong>, construir a página e publicar. Se algo ficar parado por mais de 5 minutos ou der erro, cole a mensagem aqui no assistente.</p>`
-      },
-      {
-        heading: "4. Conheça seu Conselho",
-        body: `<p>Abra <a href="https://gestao.{{domain}}" target="_blank" rel="noopener">https://gestao.{{domain}}</a>, entre com o usuário e senha que você escolheu e confirme:</p>
-<ul>
-  <li>Os números de leads carregam no dashboard</li>
-  <li>O chat responde — experimente: <em>"Com os dados que temos até aqui, onde devo focar minha energia esta semana?"</em></li>
-  <li>Os cards <strong>Fábrica de Carrosséis</strong> e <strong>Fábrica de Vídeos</strong> aparecem — quando quiser, gere por eles (cada envio é uma geração real, ~US$ 1 do crédito OpenAI ou HeyGen)</li>
-</ul>
-<p>🎓 <strong>Jornada completa:</strong> estratégia validada, infraestrutura própria, conteúdo programado, site vendendo, atendimento automático e um conselho de especialistas de plantão. Agora é operar, medir e crescer.</p>`
-      }
-    ],
-    validation: "Painel abrindo com login, metricas carregando e Conselho respondendo.",
-    done: "Painel de gestao no ar com o Conselho de IA ativo."
-  }
 ];
 
 const DEFAULT_MEMBER_STATE = {
@@ -1756,7 +1691,7 @@ const DEFAULT_MEMBER_STATE = {
   updatedAt: null
 };
 
-// Cache de conteúdo gerado no Módulo 4 — vive apenas na sessão, não é persistido
+// Cache de conteúdo gerado pelos agentes (prompt de atendimento, PRDs) — vive apenas na sessão
 const contentCache = {};
 
 const memberStoreKey = "axonMemberApp";
@@ -2679,6 +2614,8 @@ function renderLessonStage(lesson, steps) {
     ["#download-n8n-vendas-stripe", buildVendasStripeWorkflowJson, "vendas-stripe.json"],
     ["#download-n8n-metricas", buildMetricsWorkflowJson, "painel-metricas.json"],
     ["#download-n8n-conselho", buildConselhoWorkflowJson, "conselho-de-ia.json"],
+    ["#download-n8n-grade", buildGradePostagensWorkflowJson, "grade-de-postagens.json"],
+    ["#download-n8n-pecas", buildPecasWorkflowJson, "pecas-de-divulgacao.json"],
     ["#download-n8n-fabrica-videos", buildFabricaVideosWorkflowJson, "fabrica-de-videos.json"],
     ["#download-n8n-fabrica-carrosseis", buildFabricaCarrosseisWorkflowJson, "fabrica-de-carrosseis.json"]
   ];
@@ -2696,7 +2633,7 @@ function renderLessonStage(lesson, steps) {
     });
   });
 
-  // Botões de geração de conteúdo (Módulo 4)
+  // Botões de geração de conteúdo (prompt de atendimento, PRDs)
   document.querySelectorAll(".btn-generate").forEach((button) => {
     button.addEventListener("click", () => handleGenerateClick(button));
   });
@@ -2714,41 +2651,6 @@ function renderLessonStage(lesson, steps) {
     if (block.generate?.type === "text" && contentCache[block.generate.id]) {
       renderGenerateResult(block.generate.id);
     }
-  });
-
-  document.querySelectorAll(".btn-generate-feedback").forEach((button) => {
-    button.addEventListener("click", () => {
-      const genId = button.dataset.generateId;
-      document.querySelector(`#generate-feedback-${genId}`)?.classList.toggle("hidden");
-    });
-  });
-
-  document.querySelectorAll(".btn-approve-image").forEach((button) => {
-    button.addEventListener("click", async () => {
-      const genId = button.dataset.generateId;
-      const imageUrl = contentCache[genId];
-      if (!imageUrl) return;
-      try {
-        // data URLs baixam direto; URLs remotas passam por blob para forçar o download
-        const href = imageUrl.startsWith("data:")
-          ? imageUrl
-          : URL.createObjectURL(await (await fetch(imageUrl)).blob());
-        const link = document.createElement("a");
-        link.href = href;
-        link.download = "peca-campanha.png";
-        document.body.appendChild(link);
-        link.click();
-        link.remove();
-        if (!imageUrl.startsWith("data:")) URL.revokeObjectURL(href);
-      } catch {
-        // fetch bloqueado por CORS — abre em nova aba para salvar manualmente
-        window.open(imageUrl, "_blank");
-      }
-    });
-  });
-
-  document.querySelectorAll(".btn-regenerate").forEach((button) => {
-    button.addEventListener("click", () => handleGenerateClick(button));
   });
 
 }
@@ -2787,8 +2689,7 @@ async function handleGenerateClick(button) {
         body: JSON.stringify({
           token: memberApp.token,
           project: memberApp.state.project,
-          agentType: genId,
-          context: { grade: contentCache.grade_postagens || "" }
+          agentType: genId
         })
       });
 
@@ -2835,47 +2736,6 @@ async function handleGenerateClick(button) {
       }
 
       renderGenerateResult(genId);
-      statusEl?.classList.add("hidden");
-    } else if (genType === "image") {
-      const feedbackEl = document.querySelector(`#generate-feedback-${genId}`);
-      const feedbackInput = feedbackEl?.querySelector(".generate-feedback-input");
-      const feedback = feedbackInput?.value?.trim() || "";
-
-      // Com feedback + imagem anterior, o servidor edita a peça preservando a
-      // composição (images/edits) em vez de gerar tudo do zero
-      const previous = String(contentCache[genId] || "");
-      const customBrief = document.querySelector(`#generate-brief-${genId}`)?.value?.trim() || "";
-      const response = await fetch("/api/content/image", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          token: memberApp.token,
-          project: memberApp.state.project,
-          feedback,
-          customBrief,
-          previousImage: feedback && previous.startsWith("data:") ? previous : ""
-        })
-      });
-
-      if (response.status === 404) {
-        throw new Error("O servidor ainda nao tem esta funcao. Atualize a stack do site (deploy da versao mais recente) e tente de novo.");
-      }
-
-      const data = await response.json().catch(() => ({}));
-
-      if (!data.ok || !data.url) {
-        const base = errorMessageForCode(data.error || "image_generation_failed");
-        throw new Error(data.detail ? `${base} (${data.detail})` : base);
-      }
-
-      contentCache[genId] = data.url;
-
-      const imgEl = document.querySelector(`#generate-image-${genId}`);
-      if (imgEl) imgEl.src = data.url;
-      if (resultEl) resultEl.classList.remove("hidden");
-      if (feedbackEl) feedbackEl.classList.add("hidden");
-      if (feedbackInput) feedbackInput.value = "";
-
       statusEl?.classList.add("hidden");
     }
   } catch (error) {
@@ -3029,7 +2889,7 @@ async function handleHeygenTestClick() {
   }
 }
 
-// ─── Renderização do conteúdo gerado (Módulo 4) ─────────────────────────────
+// ─── Renderização do conteúdo gerado pelos agentes ──────────────────────────
 
 function renderGenerateResult(genId) {
   const resultEl = document.querySelector(`#generate-result-${genId}`);
@@ -3039,29 +2899,7 @@ function renderGenerateResult(genId) {
   resultEl.classList.remove("hidden");
   resultEl.classList.add("is-rendered");
 
-  if (genId === "grade_postagens") {
-    // A tabela de 28 dias vai para download em CSV; o app mostra só a parte narrativa
-    const { narrative, tableMd } = splitGeneratedTable(full);
-    const hasTable = tableMd.split("\n").length >= 3;
-    resultEl.innerHTML = markdownToHtml(narrative) + (hasTable
-      ? `<div class="generate-actions">
-           <button class="button button-primary" type="button" data-download-grade>Baixar grade de 28 dias (.csv)</button>
-           <p class="generate-note">A grade completa está no arquivo — abra no Excel ou Google Sheets.</p>
-         </div>`
-      : "");
-    resultEl.querySelector("[data-download-grade]")?.addEventListener("click", () => {
-      const grade = splitGeneratedTable(contentCache.grade_postagens || "");
-      const blob = new Blob([gradeTableToCsv(grade.tableMd)], { type: "text/csv;charset=utf-8" });
-      const url = URL.createObjectURL(blob);
-      const link = document.createElement("a");
-      link.href = url;
-      link.download = "grade-postagens-28-dias.csv";
-      document.body.appendChild(link);
-      link.click();
-      link.remove();
-      URL.revokeObjectURL(url);
-    });
-  } else if (genId === "atendimento_prompt") {
+  if (genId === "atendimento_prompt") {
     // Prompt do atendente: editável — a versão do campo é embutida no download do fluxo
     resultEl.innerHTML = `
       <p><strong>Prompt do atendente pronto.</strong> Revise e ajuste à vontade no campo abaixo — o texto que estiver aqui é o que será embutido no fluxo de atendimento que você baixa no próximo passo.</p>
@@ -3104,82 +2942,8 @@ function renderGenerateResult(genId) {
       URL.revokeObjectURL(url);
     });
   } else {
-    // Roteiros: tela limpa — só confirmação + botão de download
-    // (Carrossel vira planilha CSV; os demais formatos saem em .md)
-    const downloads = {
-      roteiros_reels:     { file: "roteiros-reels-shorts.md", label: "Baixar roteiros de Reels / Shorts (.md)", kind: "md", name: "Roteiros de Reels / Shorts" },
-      roteiros_carrossel: { file: "carrosseis.csv",           label: "Baixar carrosseis (.csv)",                kind: "csv", name: "Carrosseis" },
-      roteiros_feed:      { file: "posts-feed.md",            label: "Baixar posts de Feed (.md)",              kind: "md", name: "Posts de Feed" },
-      roteiros_stories:   { file: "roteiros-stories.md",      label: "Baixar roteiros de Stories (.md)",        kind: "md", name: "Roteiros de Stories" }
-    };
-    const download = downloads[genId];
-    if (!download) {
-      resultEl.innerHTML = markdownToHtml(full);
-      return;
-    }
-    resultEl.innerHTML = `
-      <p><strong>${escapeHtml(download.name)} prontos.</strong> Baixe o arquivo, revise e guarde junto do seu planejamento — o conteúdo não fica salvo no app.</p>
-      <div class="generate-actions">
-        <button class="button button-primary" type="button" data-download-text>${escapeHtml(download.label)}</button>
-      </div>`;
-    resultEl.querySelector("[data-download-text]")?.addEventListener("click", () => {
-      const raw = contentCache[genId] || "";
-      const isCsv = download.kind === "csv";
-      const content = isCsv ? gradeTableToCsv(splitGeneratedTable(raw).tableMd) : raw;
-      const mime = isCsv ? "text/csv;charset=utf-8" : "text/markdown;charset=utf-8";
-      const blob = new Blob([content], { type: mime });
-      const url = URL.createObjectURL(blob);
-      const link = document.createElement("a");
-      link.href = url;
-      link.download = download.file;
-      document.body.appendChild(link);
-      link.click();
-      link.remove();
-      URL.revokeObjectURL(url);
-    });
+    resultEl.innerHTML = markdownToHtml(full);
   }
-}
-
-function splitGeneratedTable(text) {
-  const lines = String(text || "").split("\n");
-  const table = [];
-  const rest = [];
-  for (const line of lines) {
-    const trimmed = line.trim();
-    if (/^\|.*\|$/.test(trimmed)) {
-      table.push(trimmed);
-    } else if (trimmed === "```" || trimmed === "```markdown") {
-      // fences que às vezes cercam a tabela — descarta
-    } else {
-      rest.push(line);
-    }
-  }
-  return {
-    tableMd: table.join("\n"),
-    narrative: rest.join("\n").replace(/\n{3,}/g, "\n\n").trim()
-  };
-}
-
-function gradeTableToCsv(tableMd) {
-  const rows = [];
-  let headerRow = "";
-  for (const line of String(tableMd || "").split("\n")) {
-    if (!line.includes("|")) continue;
-    // pula linha separadora do markdown (|---|---|)
-    if (/^[\s|:-]+$/.test(line)) continue;
-    const cells = line
-      .replace(/^\|/, "")
-      .replace(/\|$/, "")
-      .split("|")
-      .map((cell) => cell.trim().replace(/\*\*/g, ""));
-    const row = cells.map((cell) => (/[";\n]/.test(cell) ? `"${cell.replace(/"/g, '""')}"` : cell)).join(";");
-    // se o agente emitir varias tabelas, o cabecalho repetido e descartado
-    if (!headerRow) headerRow = row;
-    else if (row === headerRow) continue;
-    rows.push(row);
-  }
-  // BOM para o Excel abrir acentos corretamente; ';' é o separador padrão pt-BR
-  return String.fromCharCode(0xfeff) + rows.join("\r\n");
 }
 
 function markdownToHtml(md) {
@@ -4530,7 +4294,7 @@ function buildFabricaVideosWorkflowJson() {
         parameters: {
           path: "fabrica-de-videos",
           formTitle: "Fabrica de Videos",
-          formDescription: "Cole um roteiro de Reels/Shorts do Modulo 4 (o bloco inteiro, do 🎬 ate a legenda). O video pronto chega no seu WhatsApp em ~3 minutos. Custo: ~US$ 1 do seu credito HeyGen.",
+          formDescription: "Cole um roteiro de Reels/Shorts gerado na aba Marketing do seu painel (o bloco inteiro, do 🎬 ate a legenda). O video pronto chega no seu WhatsApp em ~3 minutos. Custo: ~US$ 1 do seu credito HeyGen.",
           formFields: {
             values: [
               {
@@ -4571,7 +4335,7 @@ function buildFabricaVideosWorkflowJson() {
             "// Normaliza as duas origens: formulario n8n (teste da etapa) e card do Painel (webhook)",
             "const j = $input.first().json;",
             "const roteiro = String((j.body && j.body.roteiro) || j['Roteiro do video'] || '').trim();",
-            "if (!roteiro) throw new Error('Roteiro vazio — cole o bloco completo do Modulo 4.');",
+            "if (!roteiro) throw new Error('Roteiro vazio — cole o bloco completo gerado na aba Marketing do painel.');",
             "return [{ json: { roteiro } }];"
           ].join("\n")
         },
@@ -4982,7 +4746,7 @@ function buildFabricaCarrosseisWorkflowJson() {
           content: [
             "# 🖼️ FÁBRICA DE CARROSSÉIS — LEIA PRIMEIRO",
             "",
-            "Cole as linhas de UM carrossel do Módulo 4 (do slide Capa até a linha Legenda) e receba as 5 imagens prontas (4:5, texto já na arte) + a legenda no seu WhatsApp.",
+            "Cole as linhas de UM carrossel gerado na aba Marketing do painel (do slide Capa até a linha Legenda) e receba as 5 imagens prontas (4:5, texto já na arte) + a legenda no seu WhatsApp.",
             "",
             "✅ ATIVAÇÃO (uma vez)",
             "1. Nós 'Prepara slides (IA)' e 'Gera imagem (IA)' →",
@@ -5018,7 +4782,7 @@ function buildFabricaCarrosseisWorkflowJson() {
         parameters: {
           path: "fabrica-de-carrosseis",
           formTitle: "Fabrica de Carrosseis",
-          formDescription: "Cole as linhas de UM carrossel do Modulo 4 (do slide Capa ate a linha Legenda). As 5 imagens prontas chegam no seu WhatsApp em ~3 minutos. Custo: ~US$ 1 do seu credito OpenAI.",
+          formDescription: "Cole as linhas de UM carrossel gerado na aba Marketing do seu painel (do slide Capa ate a linha Legenda). As 5 imagens prontas chegam no seu WhatsApp em ~3 minutos. Custo: ~US$ 1 do seu credito OpenAI.",
           formFields: {
             values: [
               {
@@ -5059,7 +4823,7 @@ function buildFabricaCarrosseisWorkflowJson() {
             "// Normaliza as duas origens: formulario n8n (teste da etapa) e card do Painel (webhook)",
             "const j = $input.first().json;",
             "const conteudo = String((j.body && (j.body.carrossel || j.body.roteiro)) || j['Linhas do carrossel'] || '').trim();",
-            "if (!conteudo) throw new Error('Conteudo vazio — cole as linhas do carrossel do Modulo 4.');",
+            "if (!conteudo) throw new Error('Conteudo vazio — cole as linhas do carrossel gerado na aba Marketing do painel.');",
             "return [{ json: { conteudo } }];"
           ].join("\n")
         },
@@ -5119,7 +4883,7 @@ function buildFabricaCarrosseisWorkflowJson() {
             "  .map((c) => c.text || '')",
             "  .join('').trim();",
             "let dados;",
-            "try { dados = JSON.parse(bruto); } catch { throw new Error('Nao consegui interpretar o carrossel — cole as linhas da tabela do Modulo 4.'); }",
+            "try { dados = JSON.parse(bruto); } catch { throw new Error('Nao consegui interpretar o carrossel — cole as linhas da tabela gerada na aba Marketing do painel.'); }",
             "const slides = Array.isArray(dados.slides) ? dados.slides.slice(0, 6) : [];",
             "if (!slides.length) throw new Error('Nenhum slide encontrado — cole as linhas da tabela, do slide Capa ate a Legenda.');",
             "const legenda = String(dados.legenda || 'Carrossel novo no ar!');",
@@ -5332,9 +5096,11 @@ function buildMetricsWorkflowJson() {
 }
 
 // DDL das tabelas de conversas do Conselho (usado em várias queries)
+// O alter garante a coluna dominio em bancos criados antes das abas do painel
 const CONSELHO_DDL = [
   "create table if not exists conselho_contexto (id serial primary key, conteudo text, criado_em timestamptz default now());",
-  "create table if not exists conselho_conversas (id serial primary key, titulo text, criado_em timestamptz default now(), atualizado_em timestamptz default now());",
+  "create table if not exists conselho_conversas (id serial primary key, titulo text, dominio text default 'conselho', criado_em timestamptz default now(), atualizado_em timestamptz default now());",
+  "alter table conselho_conversas add column if not exists dominio text default 'conselho';",
   "create table if not exists conselho_mensagens (id serial primary key, conversa_id int, papel text, conteudo text, criado_em timestamptz default now());",
   "create table if not exists site_leads (id serial primary key, nome text, email text, whatsapp text, mensagem text, criado_em timestamptz default now());",
   CONVERSOES_DDL
@@ -5342,29 +5108,54 @@ const CONSELHO_DDL = [
 
 // Webhook POST /webhook/conselho — Conselho de IA persistente (roteador por action)
 // actions: listar (conversas) · carregar (mensagens de uma conversa) · perguntar (default)
+// body.dominio (administracao|marketing|vendas) escolhe o especialista da aba do painel;
+// sem dominio, os três conselheiros respondem juntos (Conselho pleno)
 function buildConselhoWorkflowJson() {
   const projectName = memberApp.state.project.name || "o negócio";
 
-  // Prompt do Conselho embutido no nó Code "Monta mensagens" (linhas de um array JS)
-  const promptLines = [
-    `Você é o Conselho de IA de ${projectName} — três conselheiros, um por domínio do negócio:`,
-    "- Administração: fluxo de caixa, precificação, capacidade de entrega, organização da operação.",
-    "- Marketing: aquisição, conteúdo, tráfego, posicionamento e conversão.",
-    "- Vendas: funil, follow-up de leads, atendimento, fechamento e recuperação.",
-    "",
-    "QUEM RESPONDE:",
-    "- Se a pergunta cita um ou mais domínios pelo nome (Administração, Marketing, Vendas), APENAS os citados respondem.",
-    "- Se nenhum domínio é citado, os três respondem.",
-    "- A linha 'Recomendação do Conselho' só aparece quando os três participam OU quando o usuário pede uma recomendação/decisão. Com um ou dois conselheiros, encerre sem essa linha.",
+  // Prompts por persona embutidos no nó Code "Monta mensagens"
+  const CONSELHO_REGRAS = [
     "",
     "Baseie-se no CONTEXTO ESTRATÉGICO e nas MÉTRICAS fornecidas — nunca invente números. Use o histórico da conversa para dar continuidade.",
-    "",
-    "Formato (WhatsApp-friendly, máx ~250 palavras): cada conselheiro que responde começa com o domínio em negrito (ex.: **Administração**) e escreve 1-3 frases. Quando aplicável, feche com '**Recomendação do Conselho**: UMA ação prioritária e executável, com o porquê.'",
     "Os conselheiros não têm nomes de pessoas — nunca invente nomes humanos para eles.",
-    "Se faltar dado, diga o que medir e como coletar. Português, direto, sem jargões."
+    "Se faltar dado, diga o que medir e como coletar. Português, direto, sem jargões. Máximo ~250 palavras."
   ];
-  // Serializa as linhas do prompt como um array JS literal para dentro do jsCode
-  const promptJsArray = JSON.stringify(promptLines);
+  const CONSELHO_PERSONAS = {
+    conselho: [
+      `Você é o Conselho de IA de ${projectName} — três conselheiros, um por domínio do negócio:`,
+      "- Administração: fluxo de caixa, precificação, capacidade de entrega, organização da operação.",
+      "- Marketing: aquisição, conteúdo, tráfego, posicionamento e conversão.",
+      "- Vendas: funil, follow-up de leads, atendimento, fechamento e recuperação.",
+      "",
+      "QUEM RESPONDE:",
+      "- Se a pergunta cita um ou mais domínios pelo nome (Administração, Marketing, Vendas), APENAS os citados respondem.",
+      "- Se nenhum domínio é citado, os três respondem.",
+      "- A linha 'Recomendação do Conselho' só aparece quando os três participam OU quando o usuário pede uma recomendação/decisão. Com um ou dois conselheiros, encerre sem essa linha.",
+      "",
+      "Formato: cada conselheiro que responde começa com o domínio em negrito (ex.: **Administração**) e escreve 1-3 frases. Quando aplicável, feche com '**Recomendação do Conselho**: UMA ação prioritária e executável, com o porquê.'"
+    ],
+    administracao: [
+      `Você é o Conselheiro de Administração de ${projectName}. Seu domínio: fluxo de caixa, precificação, capacidade de entrega, organização da operação e rotina do negócio.`,
+      "Você conhece o planejamento estratégico completo do negócio (fornecido no contexto) — use-o para responder com precisão sobre o que já foi definido.",
+      "Responda sozinho, como especialista do seu domínio — sem simular outros conselheiros.",
+      "Se a pergunta for claramente de outro domínio (marketing ou vendas), responda o que puder pelo ângulo da administração e sugira levar o tema à aba correspondente do painel."
+    ],
+    marketing: [
+      `Você é o Conselheiro de Marketing de ${projectName}. Seu domínio: aquisição, conteúdo e presença digital, tráfego, posicionamento e conversão.`,
+      "É nesta aba que o empreendedor gera a Grade de Postagens e as peças de divulgação — quando ele pedir, ajude a decidir temas, formatos e prioridades para o momento atual do negócio.",
+      "Responda sozinho, como especialista do seu domínio — sem simular outros conselheiros.",
+      "Se a pergunta for claramente de outro domínio (administração ou vendas), responda o que puder pelo ângulo do marketing e sugira levar o tema à aba correspondente do painel."
+    ],
+    vendas: [
+      `Você é o Conselheiro de Vendas de ${projectName}. Seu domínio: funil, follow-up de leads, atendimento, fechamento e recuperação de clientes.`,
+      "Use as MÉTRICAS fornecidas (leads e conversões) para ancorar a conversa nos resultados reais e discutir revisões de estratégia de vendas.",
+      "Responda sozinho, como especialista do seu domínio — sem simular outros conselheiros.",
+      "Se a pergunta for claramente de outro domínio (administração ou marketing), responda o que puder pelo ângulo de vendas e sugira levar o tema à aba correspondente do painel."
+    ]
+  };
+  // Serializa personas e regras como literais JS para dentro do jsCode
+  const personasJs = JSON.stringify(CONSELHO_PERSONAS);
+  const regrasJs = JSON.stringify(CONSELHO_REGRAS);
 
   const pgCred = { postgres: { id: "SUBSTITUA_PELO_ID_DA_CREDENCIAL", name: "Postgres negocio" } };
 
@@ -5423,9 +5214,9 @@ function buildConselhoWorkflowJson() {
           operation: "executeQuery",
           query: [
             CONSELHO_DDL,
-            "select coalesce(json_agg(json_build_object('id', id, 'titulo', titulo, 'atualizado_em', to_char(atualizado_em,'DD/MM HH24:MI')) order by atualizado_em desc), '[]'::json) as conversas from conselho_conversas;"
+            "select coalesce(json_agg(json_build_object('id', id, 'titulo', titulo, 'atualizado_em', to_char(atualizado_em,'DD/MM HH24:MI')) order by atualizado_em desc), '[]'::json) as conversas from conselho_conversas where coalesce(dominio, 'conselho') = $1;"
           ].join("\n"),
-          options: {}
+          options: { queryReplacement: "={{ ['administracao','marketing','vendas'].includes(String($json.body.dominio || '').toLowerCase()) ? String($json.body.dominio).toLowerCase() : 'conselho' }}" }
         },
         id: "lista-conversas",
         name: "Lista conversas",
@@ -5459,7 +5250,9 @@ function buildConselhoWorkflowJson() {
             "const pergunta = String(b.pergunta || '').trim();",
             "const conversaId = Number(b.conversation_id || 0) || 0;",
             "const titulo = pergunta.slice(0, 48) || 'Nova conversa';",
-            "return [{ json: { pergunta, conversaId, titulo } }];"
+            "const pedido = String(b.dominio || '').toLowerCase();",
+            "const dominio = ['administracao','marketing','vendas'].includes(pedido) ? pedido : 'conselho';",
+            "return [{ json: { pergunta, conversaId, titulo, dominio } }];"
           ].join("\n")
         },
         id: "prep-pergunta",
@@ -5474,7 +5267,7 @@ function buildConselhoWorkflowJson() {
           query: [
             CONSELHO_DDL,
             "with nova as (",
-            "  insert into conselho_conversas (titulo) select $1 where $2 = 0 returning id",
+            "  insert into conselho_conversas (titulo, dominio) select $1, $4 where $2 = 0 returning id",
             "), cid as (",
             "  select coalesce((select id from nova), $2) as id",
             "), ins as (",
@@ -5482,7 +5275,7 @@ function buildConselhoWorkflowJson() {
             ")",
             "select id as conversa_id from cid;"
           ].join("\n"),
-          options: { queryReplacement: "={{ $json.titulo }},{{ $json.conversaId }},{{ $json.pergunta }}" }
+          options: { queryReplacement: "={{ $json.titulo }},{{ $json.conversaId }},{{ $json.pergunta }},{{ $json.dominio }}" }
         },
         id: "abre-conversa",
         name: "Abre conversa e salva pergunta",
@@ -5516,7 +5309,10 @@ function buildConselhoWorkflowJson() {
           jsCode: [
             "const d = $input.first().json;",
             "const historico = d.historico || [];",
-            "const promptLines = " + promptJsArray + ";",
+            "const dominio = $('Prep pergunta').first().json.dominio || 'conselho';",
+            "const personas = " + personasJs + ";",
+            "const regras = " + regrasJs + ";",
+            "const promptLines = (personas[dominio] || personas.conselho).concat(regras);",
             "const sys = promptLines.join('\\n')",
             "  + '\\n\\n## Contexto estrategico do negocio\\n' + (d.contexto || '')",
             "  + '\\n\\n## Metricas atuais\\n'",
@@ -5629,6 +5425,676 @@ function buildConselhoWorkflowJson() {
   return JSON.stringify(workflow, null, 2);
 }
 
+// DDLs das tabelas de conteúdo do painel (aba Marketing)
+const GRADE_DDL = "create table if not exists grade_postagens (id serial primary key, conteudo text, status text default 'proposta', criado_em timestamptz default now(), atualizado_em timestamptz default now());";
+const PECAS_DDL = "create table if not exists pecas_geradas (id serial primary key, tipo text, titulo text, conteudo text, imagem_b64 text, criado_em timestamptz default now());";
+const CONTEXTO_DDL = "create table if not exists conselho_contexto (id serial primary key, conteudo text, criado_em timestamptz default now());";
+
+// Webhook POST /webhook/grade-postagens — Grade de Postagens da aba Marketing do painel
+// actions: carregar (grade atual + status) · aprovar (body.grade_id) · gerar/ajustar (default;
+// body.feedback regenera a grade atual aplicando o ajuste, body.orientacoes direciona a 1ª geração)
+// Contexto estratégico vem de conselho_contexto; grade proposta/aprovada persiste em grade_postagens
+function buildGradePostagensWorkflowJson() {
+  // Prompt adaptado do Agente 7 (source-material/Agents/7 - AXN _ Grade de Postagens.md)
+  const GRADE_PROMPT = [
+    "Você é o Estrategista Sênior de Conteúdo da Axn. Sua missão é definir a estratégia mínima e eficaz de conteúdo orgânico no Instagram e YouTube Shorts para que o perfil do empreendedor seja descoberto pelo público certo, compreendido como solução para uma dor real e gere autoridade e confiança — sem exigir frequência excessiva ou irrealista.",
+    "Você trabalha com conteúdo estratégico, não com volume. Você NÃO escreve roteiros, legendas ou copies — você define frequência, temas e formatos.",
+    "",
+    "O planejamento estratégico do negócio e a data de início da grade são fornecidos abaixo — não peça essas informações ao usuário. Extraia do planejamento: produto/serviço e transformação entregue, persona e dores, diferencial e posicionamento, objeções do público e tom de voz da marca.",
+    "",
+    "REGRAS:",
+    "- Nunca pergunte quantas vezes o empreendedor quer postar.",
+    "- Nunca preencha dias com conteúdo vazio só para completar o calendário — dias sem estratégia clara são ⛔ DAY OFF.",
+    "- Classifique o nicho antes de montar a grade: Alta Frequência (lifestyle, entretenimento, varejo B2C → 5-7 posts/semana) ou Alta Confiança (consultoria, serviços, B2B, saúde, educação → 3-4 posts/semana). Regra de ouro: se o nicho cresce bem com 3 posts/semana, NÃO sugira 7 — otimize resultado por esforço.",
+    "- Defina 3 a 4 pilares de conteúdo derivados do planejamento: Descoberta (dores, erros comuns, mitos), Autoridade (método, prova, resultados), Conexão (bastidores, rotina, enquetes) e Conversão (oferta, CTA direto — use no máximo 1x/semana).",
+    "- Formatos por objetivo: Descoberta = Reels/Shorts (Instagram + YouTube) · Autoridade = Carrossel ou Feed · Conexão = Stories · Conversão = Feed ou Stories.",
+    "- A grade cobre 28 dias corridos com datas reais a partir da data de início fornecida (sempre uma segunda-feira).",
+    "",
+    "FORMATO DE ENTREGA (nesta ordem exata, em Markdown):",
+    "### 1. Classificação e Frequência — parágrafo curto com a classificação do nicho e a frequência recomendada.",
+    "### 2. Pilares de Conteúdo — lista dos 3-4 pilares com uma linha de descrição cada.",
+    "### 3. Grade de Postagens — 28 dias — tabela Markdown com EXATAMENTE estas colunas, sem texto adicional dentro da tabela:",
+    "| Data | Fase do Funil | Plataforma | Formato | Tema do Conteúdo | Dor ou Desejo Atendido |",
+    "Datas no formato DD/MM/AAAA. NÃO inclua coluna de dia da semana nem mencione dias da semana. Dias OFF: ⛔ DAY OFF.",
+    "### 4. Nota Estratégica — máximo 5 linhas explicando as escolhas em relação ao momento do negócio.",
+    "",
+    "Após a entrega, encerre com exatamente: 'Grade proposta com base no seu planejamento estratégico. Revise os temas, peça ajustes se quiser — e aprove a grade para liberar a geração das peças.'"
+  ];
+  const gradePromptJs = JSON.stringify(GRADE_PROMPT);
+
+  const pgCred = { postgres: { id: "SUBSTITUA_PELO_ID_DA_CREDENCIAL", name: "Postgres negocio" } };
+
+  const workflow = {
+    name: "Grade de Postagens",
+    nodes: [
+      {
+        parameters: {
+          httpMethod: "POST",
+          path: "grade-postagens",
+          responseMode: "lastNode",
+          options: { allowedOrigins: "*" }
+        },
+        id: "webhook-grade",
+        name: "Webhook Grade",
+        type: "n8n-nodes-base.webhook",
+        typeVersion: 2,
+        position: [200, 360],
+        webhookId: "grade-postagens-webhook"
+      },
+      {
+        parameters: {
+          rules: {
+            values: [
+              {
+                conditions: {
+                  options: { caseSensitive: true, leftValue: "", typeValidation: "loose" },
+                  conditions: [{ leftValue: "={{ $json.body.action }}", rightValue: "carregar", operator: { type: "string", operation: "equals" } }],
+                  combinator: "and"
+                },
+                renameOutput: true,
+                outputKey: "carregar"
+              },
+              {
+                conditions: {
+                  options: { caseSensitive: true, leftValue: "", typeValidation: "loose" },
+                  conditions: [{ leftValue: "={{ $json.body.action }}", rightValue: "aprovar", operator: { type: "string", operation: "equals" } }],
+                  combinator: "and"
+                },
+                renameOutput: true,
+                outputKey: "aprovar"
+              }
+            ]
+          },
+          options: { fallbackOutput: "extra", renameFallbackOutput: "gerar" }
+        },
+        id: "roteia-acao-grade",
+        name: "Roteia acao",
+        type: "n8n-nodes-base.switch",
+        typeVersion: 3.2,
+        position: [420, 360]
+      },
+      // ── Branch carregar ────────────────────────────────────────────
+      {
+        parameters: {
+          operation: "executeQuery",
+          query: [
+            GRADE_DDL,
+            "select coalesce(",
+            "  (select json_build_object('grade_id', id, 'conteudo', conteudo, 'status', status, 'atualizado_em', to_char(atualizado_em,'DD/MM/YYYY HH24:MI')) from grade_postagens order by id desc limit 1),",
+            "  json_build_object('grade_id', 0, 'conteudo', '', 'status', 'vazia')",
+            ") as grade;"
+          ].join("\n"),
+          options: {}
+        },
+        id: "carrega-grade",
+        name: "Carrega grade",
+        type: "n8n-nodes-base.postgres",
+        typeVersion: 2.4,
+        position: [660, 160],
+        credentials: pgCred
+      },
+      // ── Branch aprovar ─────────────────────────────────────────────
+      {
+        parameters: {
+          operation: "executeQuery",
+          query: [
+            GRADE_DDL,
+            "update grade_postagens set status = 'aprovada', atualizado_em = now() where id = $1 returning id as grade_id, status;"
+          ].join("\n"),
+          options: { queryReplacement: "={{ $json.body.grade_id }}" }
+        },
+        id: "aprova-grade",
+        name: "Aprova grade",
+        type: "n8n-nodes-base.postgres",
+        typeVersion: 2.4,
+        position: [660, 360],
+        credentials: pgCred
+      },
+      // ── Branch gerar / ajustar ─────────────────────────────────────
+      {
+        parameters: {
+          jsCode: [
+            "const b = $input.first().json.body || {};",
+            "const feedback = String(b.feedback || '').trim();",
+            "const orientacoes = String(b.orientacoes || '').trim();",
+            "// A grade começa na segunda-feira da semana seguinte",
+            "const inicio = new Date();",
+            "const dias = ((8 - inicio.getDay()) % 7) || 7;",
+            "inicio.setDate(inicio.getDate() + dias);",
+            "const hoje = new Date().toLocaleDateString('pt-BR');",
+            "const dataInicio = inicio.toLocaleDateString('pt-BR');",
+            "return [{ json: { feedback, orientacoes, hoje, dataInicio } }];"
+          ].join("\n")
+        },
+        id: "prep-pedido-grade",
+        name: "Prep pedido",
+        type: "n8n-nodes-base.code",
+        typeVersion: 2,
+        position: [660, 560]
+      },
+      {
+        parameters: {
+          operation: "executeQuery",
+          query: [
+            CONTEXTO_DDL,
+            GRADE_DDL,
+            "select",
+            "  coalesce((select conteudo from conselho_contexto order by id desc limit 1), 'Contexto estrategico ainda nao cadastrado.') as contexto,",
+            "  coalesce((select conteudo from grade_postagens order by id desc limit 1), '') as grade_atual;"
+          ].join("\n"),
+          options: {}
+        },
+        id: "carrega-contexto-grade",
+        name: "Carrega contexto",
+        type: "n8n-nodes-base.postgres",
+        typeVersion: 2.4,
+        position: [880, 560],
+        credentials: pgCred
+      },
+      {
+        parameters: {
+          jsCode: [
+            "const d = $input.first().json;",
+            "const p = $('Prep pedido').first().json;",
+            "const promptLines = " + gradePromptJs + ";",
+            "let sys = promptLines.join('\\n')",
+            "  + '\\n\\n## Contexto de execução\\nHoje é ' + p.hoje + '. Data de início da grade: ' + p.dataInicio + ' (segunda-feira). O primeiro dia da grade é essa data e os 28 dias correm a partir dela.'",
+            "  + '\\n\\n## Planejamento estratégico do empreendimento\\n' + (d.contexto || '');",
+            "let user = 'Pode gerar a grade.';",
+            "if (p.feedback && d.grade_atual) {",
+            "  sys += '\\n\\n## Grade atual (a ser ajustada)\\n' + d.grade_atual;",
+            "  user = 'Regenere a grade completa aplicando este ajuste do empreendedor, mantendo o formato de entrega e tudo o que ele não questionou: \"' + p.feedback + '\"';",
+            "} else if (p.orientacoes) {",
+            "  user = 'Pode gerar a grade. Direcionamento do empreendedor para esta grade: \"' + p.orientacoes + '\"';",
+            "}",
+            "return [{ json: { messages: [{ role: 'system', content: sys }, { role: 'user', content: user }] } }];"
+          ].join("\n")
+        },
+        id: "monta-pedido-grade",
+        name: "Monta pedido",
+        type: "n8n-nodes-base.code",
+        typeVersion: 2,
+        position: [1100, 560]
+      },
+      {
+        parameters: {
+          method: "POST",
+          url: "https://api.openai.com/v1/responses",
+          authentication: "predefinedCredentialType",
+          nodeCredentialType: "openAiApi",
+          sendBody: true,
+          specifyBody: "json",
+          jsonBody: "={{ JSON.stringify({ model: 'gpt-4.1', input: $json.messages, max_output_tokens: 6000 }) }}",
+          options: { timeout: 180000 }
+        },
+        id: "openai-grade",
+        name: "OpenAI",
+        type: "n8n-nodes-base.httpRequest",
+        typeVersion: 4.2,
+        position: [1320, 560],
+        credentials: {
+          openAiApi: { id: "SUBSTITUA_PELO_ID_DA_CREDENCIAL", name: "OpenAi account" }
+        }
+      },
+      {
+        parameters: {
+          jsCode: [
+            "// Extrai o texto da Responses API (itens type=message > content > text)",
+            "const r = $input.first().json;",
+            "const conteudo = ((r.output || [])",
+            "  .flatMap((item) => item.content || [])",
+            "  .map((c) => c.text || '')",
+            "  .join('').trim());",
+            "if (!conteudo) throw new Error('A IA nao retornou a grade — tente novamente.');",
+            "return [{ json: { conteudo } }];"
+          ].join("\n")
+        },
+        id: "extrai-grade",
+        name: "Extrai grade",
+        type: "n8n-nodes-base.code",
+        typeVersion: 2,
+        position: [1540, 560]
+      },
+      {
+        parameters: {
+          operation: "executeQuery",
+          query: "insert into grade_postagens (conteudo, status) values ($1, 'proposta') returning id as grade_id;",
+          options: { queryReplacement: "={{ $json.conteudo }}" }
+        },
+        id: "salva-grade",
+        name: "Salva grade",
+        type: "n8n-nodes-base.postgres",
+        typeVersion: 2.4,
+        position: [1760, 560],
+        credentials: pgCred
+      },
+      {
+        parameters: {
+          assignments: {
+            assignments: [
+              { id: "g1", name: "grade_id", value: "={{ $json.grade_id }}", type: "number" },
+              { id: "g2", name: "conteudo", value: "={{ $('Extrai grade').first().json.conteudo }}", type: "string" },
+              { id: "g3", name: "status", value: "proposta", type: "string" }
+            ]
+          },
+          options: {}
+        },
+        id: "responde-grade",
+        name: "Responde",
+        type: "n8n-nodes-base.set",
+        typeVersion: 3.4,
+        position: [1980, 560]
+      }
+    ],
+    connections: {
+      "Webhook Grade": { main: [[{ node: "Roteia acao", type: "main", index: 0 }]] },
+      "Roteia acao": {
+        main: [
+          [{ node: "Carrega grade", type: "main", index: 0 }],
+          [{ node: "Aprova grade", type: "main", index: 0 }],
+          [{ node: "Prep pedido", type: "main", index: 0 }]
+        ]
+      },
+      "Prep pedido": { main: [[{ node: "Carrega contexto", type: "main", index: 0 }]] },
+      "Carrega contexto": { main: [[{ node: "Monta pedido", type: "main", index: 0 }]] },
+      "Monta pedido": { main: [[{ node: "OpenAI", type: "main", index: 0 }]] },
+      "OpenAI": { main: [[{ node: "Extrai grade", type: "main", index: 0 }]] },
+      "Extrai grade": { main: [[{ node: "Salva grade", type: "main", index: 0 }]] },
+      "Salva grade": { main: [[{ node: "Responde", type: "main", index: 0 }]] }
+    },
+    pinData: {},
+    settings: { executionOrder: "v1" }
+  };
+  return JSON.stringify(workflow, null, 2);
+}
+
+// Webhook POST /webhook/pecas — Peças de divulgação da aba Marketing do painel
+// actions: listar (histórico) · carregar (body.peca_id, inclui imagem) · arte (body.prompt +
+// body.texto opcional → imagem 4:5 via gpt-image-2) · gerar (default; body.tipo =
+// reels|carrossel|feed|stories, body.briefing opcional gera peça avulsa fora da grade)
+// Saídas de reels e carrossel mantêm o formato que as Fábricas de Vídeos/Carrosséis esperam
+function buildPecasWorkflowJson() {
+  // Prompt adaptado do Agente 8 (source-material/Agents/8 - AXN _ Conteúdo de Posts.md)
+  const PECAS_PROMPT = [
+    "Você é o Redator Sênior e Copywriter da Axn. Sua missão é transformar a Grade de Postagens aprovada em conteúdo pronto para produção, organizado por formato — claro e direto, fiel ao tom de voz e identidade da marca, executável por um empreendedor sem equipe de marketing e compatível com gravação direta para câmera, avatar (HeyGen) ou geração de imagem por IA.",
+    "O planejamento estratégico e a grade aprovada são fornecidos abaixo — não peça essas informações ao usuário. Extraia do planejamento: persona e dores principais, USP e nome do produto, tom de voz da marca e objeções do público (use-as para antecipar e neutralizar nos textos).",
+    "",
+    "RESTRIÇÕES — você NUNCA deve:",
+    "- Explicar frameworks como AIDA ou PAS — apenas aplique-os.",
+    "- Escrever frases como 'como sou uma IA…'.",
+    "- Criar linguagem publicitária exagerada ou promessas milagrosas.",
+    "- Descrever cenas, ângulos, enquadramento, B-roll ou ações físicas em vídeos — em vídeo, entregue APENAS a fala do personagem.",
+    "- Misturar formatos diferentes na mesma entrega, nem gerar conteúdo além do solicitado.",
+    "",
+    "Gere SOMENTE o formato solicitado. Quando trabalhar a partir da grade, filtre apenas os dias daquele formato e produza o lote completo de uma vez. Modelos por formato:",
+    "",
+    "### REELS / SHORTS (o mesmo conteúdo serve para Instagram Reels e YouTube Shorts)",
+    "Cada linha é uma fala do personagem, direta para a câmera, linguagem oral e natural. Repita o bloco para cada Reel:",
+    "🎬 REELS / SHORTS — [Data] — [Tema]",
+    "Fala 1: [texto falado — gancho forte, máx. 2 frases]",
+    "Fala 2: [texto falado — desenvolvimento]",
+    "Fala 3: [texto falado — virada ou insight]",
+    "Fala 4: [texto falado — CTA leve, convite à ação]",
+    "📝 Legenda: [texto curto e natural + 3 a 5 hashtags relevantes]",
+    "",
+    "### CARROSSEL (Instagram Feed)",
+    "Entregue UMA ÚNICA tabela Markdown com TODOS os carrosseis do lote, sem nenhum texto fora da tabela, com as colunas:",
+    "| Data | Tema | Slide | Texto | Prompt de imagem |",
+    "Regras: uma linha por slide, repetindo Data e Tema nas linhas do mesmo carrossel; slides Capa (1), 2, 3, 4, CTA (5); Capa com título curto e magnético (máx. 8 palavras) e CTA com chamada clara para ação; Prompt de imagem com direção de arte premium — estilo editorial minimalista e sofisticado, paleta da marca, um único elemento visual central, o MESMO estilo em todos os slides da série, sem texto na imagem (o texto é adicionado pela Fábrica); após os slides de cada carrossel, linha final com Slide = Legenda, Texto = legenda completa (gancho, desenvolvimento, CTA + 3 a 5 hashtags) e Prompt de imagem = —; sem quebras de linha dentro das células.",
+    "",
+    "### FEED — post único",
+    "Repita o bloco para cada post de feed:",
+    "🖼️ FEED — [Data] — [Tema]",
+    "Headline da arte: [frase curta e visual — máx. 10 palavras, impacto imediato]",
+    "Prompt de imagem: [descrição para IA: cena, estilo, paleta da marca, composição — sem texto na imagem]",
+    "📝 Legenda: [mini-artigo: gancho forte → desenvolvimento → prova ou exemplo → CTA + 3 a 5 hashtags]",
+    "",
+    "### STORIES (Instagram)",
+    "Fala direta, sem direção de cena; sequências de 3 a 5 stories por dia programado, sempre com interação no final. Repita o bloco para cada dia:",
+    "📱 STORIES — [Data] — [Tema]",
+    "Story 1: [gancho falado direto]",
+    "Story 2: [desenvolvimento simples e claro]",
+    "Story 3: [virada, insight ou exemplo prático]",
+    "Story 4: [pergunta para enquete OU convite para caixinha]",
+    "💡 Interação sugerida: [enquete / caixinha / reação]"
+  ];
+  const pecasPromptJs = JSON.stringify(PECAS_PROMPT);
+
+  const pgCred = { postgres: { id: "SUBSTITUA_PELO_ID_DA_CREDENCIAL", name: "Postgres negocio" } };
+  const oaCred = { openAiApi: { id: "SUBSTITUA_PELO_ID_DA_CREDENCIAL", name: "OpenAi account" } };
+
+  const workflow = {
+    name: "Pecas de Divulgacao",
+    nodes: [
+      {
+        parameters: {
+          httpMethod: "POST",
+          path: "pecas",
+          responseMode: "lastNode",
+          options: { allowedOrigins: "*" }
+        },
+        id: "webhook-pecas",
+        name: "Webhook Pecas",
+        type: "n8n-nodes-base.webhook",
+        typeVersion: 2,
+        position: [200, 420],
+        webhookId: "pecas-webhook"
+      },
+      {
+        parameters: {
+          rules: {
+            values: [
+              {
+                conditions: {
+                  options: { caseSensitive: true, leftValue: "", typeValidation: "loose" },
+                  conditions: [{ leftValue: "={{ $json.body.action }}", rightValue: "listar", operator: { type: "string", operation: "equals" } }],
+                  combinator: "and"
+                },
+                renameOutput: true,
+                outputKey: "listar"
+              },
+              {
+                conditions: {
+                  options: { caseSensitive: true, leftValue: "", typeValidation: "loose" },
+                  conditions: [{ leftValue: "={{ $json.body.action }}", rightValue: "carregar", operator: { type: "string", operation: "equals" } }],
+                  combinator: "and"
+                },
+                renameOutput: true,
+                outputKey: "carregar"
+              },
+              {
+                conditions: {
+                  options: { caseSensitive: true, leftValue: "", typeValidation: "loose" },
+                  conditions: [{ leftValue: "={{ $json.body.action }}", rightValue: "arte", operator: { type: "string", operation: "equals" } }],
+                  combinator: "and"
+                },
+                renameOutput: true,
+                outputKey: "arte"
+              }
+            ]
+          },
+          options: { fallbackOutput: "extra", renameFallbackOutput: "gerar" }
+        },
+        id: "roteia-acao-pecas",
+        name: "Roteia acao",
+        type: "n8n-nodes-base.switch",
+        typeVersion: 3.2,
+        position: [420, 420]
+      },
+      // ── Branch listar ──────────────────────────────────────────────
+      {
+        parameters: {
+          operation: "executeQuery",
+          query: [
+            PECAS_DDL,
+            "select coalesce(json_agg(json_build_object('id', id, 'tipo', tipo, 'titulo', titulo, 'criado_em', to_char(criado_em,'DD/MM HH24:MI')) order by id desc), '[]'::json) as pecas",
+            "from (select id, tipo, titulo, criado_em from pecas_geradas order by id desc limit 30) t;"
+          ].join("\n"),
+          options: {}
+        },
+        id: "lista-pecas",
+        name: "Lista pecas",
+        type: "n8n-nodes-base.postgres",
+        typeVersion: 2.4,
+        position: [660, 120],
+        credentials: pgCred
+      },
+      // ── Branch carregar ────────────────────────────────────────────
+      {
+        parameters: {
+          operation: "executeQuery",
+          query: [
+            PECAS_DDL,
+            "select coalesce(",
+            "  (select json_build_object('peca_id', id, 'tipo', tipo, 'titulo', titulo, 'conteudo', conteudo, 'imagem_b64', coalesce(imagem_b64, '')) from pecas_geradas where id = $1),",
+            "  json_build_object('peca_id', 0)",
+            ") as peca;"
+          ].join("\n"),
+          options: { queryReplacement: "={{ $json.body.peca_id }}" }
+        },
+        id: "carrega-peca",
+        name: "Carrega peca",
+        type: "n8n-nodes-base.postgres",
+        typeVersion: 2.4,
+        position: [660, 280],
+        credentials: pgCred
+      },
+      // ── Branch arte (imagem do post de feed) ───────────────────────
+      {
+        parameters: {
+          jsCode: [
+            "const b = $input.first().json.body || {};",
+            "const prompt = String(b.prompt || '').trim();",
+            "const texto = String(b.texto || '').trim();",
+            "if (!prompt) throw new Error('Envie o prompt de imagem do post (campo prompt).');",
+            "const titulo = (texto || 'Arte de post').slice(0, 60);",
+            "let promptFinal = 'Arte premium de post unico para Instagram, formato retrato 4:5. ' +",
+            "  'Direcao de arte: design editorial minimalista e sofisticado, nivel de estudio de design profissional; composicao com respiro, margens generosas e hierarquia visual clara. ' +",
+            "  'Cena e estilo: ' + prompt + '. ';",
+            "if (texto) {",
+            "  promptFinal += 'Renderize EXATAMENTE este texto em portugues do Brasil, sem mudar, omitir ou acrescentar nenhuma palavra e sem nenhum erro de ortografia ou acentuacao: \\u00ab' + texto + '\\u00bb. O texto e o protagonista da composicao: contraste alto com o fundo, margens seguras. ';",
+            "} else {",
+            "  promptFinal += 'Sem nenhum texto na imagem. ';",
+            "}",
+            "promptFinal += 'Nenhum outro texto ou marca d\\u2019agua na imagem.';",
+            "return [{ json: { promptFinal, prompt, titulo } }];"
+          ].join("\n")
+        },
+        id: "prep-arte",
+        name: "Prep arte",
+        type: "n8n-nodes-base.code",
+        typeVersion: 2,
+        position: [660, 440]
+      },
+      {
+        parameters: {
+          method: "POST",
+          url: "https://api.openai.com/v1/images/generations",
+          authentication: "predefinedCredentialType",
+          nodeCredentialType: "openAiApi",
+          sendBody: true,
+          specifyBody: "json",
+          jsonBody: "={{ JSON.stringify({ model: 'gpt-image-2', prompt: $json.promptFinal, size: '1024x1280', quality: 'high', n: 1 }) }}",
+          options: { timeout: 300000 }
+        },
+        id: "gera-arte",
+        name: "Gera arte (IA)",
+        type: "n8n-nodes-base.httpRequest",
+        typeVersion: 4.2,
+        position: [880, 440],
+        credentials: oaCred
+      },
+      {
+        parameters: {
+          operation: "executeQuery",
+          query: [
+            PECAS_DDL,
+            "insert into pecas_geradas (tipo, titulo, conteudo, imagem_b64) values ('arte', $1, $2, $3) returning id as peca_id;"
+          ].join("\n"),
+          options: { queryReplacement: "={{ $('Prep arte').first().json.titulo }},{{ $('Prep arte').first().json.prompt }},{{ $json.data[0].b64_json }}" }
+        },
+        id: "salva-arte",
+        name: "Salva arte",
+        type: "n8n-nodes-base.postgres",
+        typeVersion: 2.4,
+        position: [1100, 440],
+        credentials: pgCred
+      },
+      {
+        parameters: {
+          assignments: {
+            assignments: [
+              { id: "a1", name: "peca_id", value: "={{ $json.peca_id }}", type: "number" },
+              { id: "a2", name: "titulo", value: "={{ $('Prep arte').first().json.titulo }}", type: "string" },
+              { id: "a3", name: "imagem_b64", value: "={{ $('Gera arte (IA)').first().json.data[0].b64_json }}", type: "string" }
+            ]
+          },
+          options: {}
+        },
+        id: "responde-arte",
+        name: "Responde arte",
+        type: "n8n-nodes-base.set",
+        typeVersion: 3.4,
+        position: [1320, 440]
+      },
+      // ── Branch gerar (default) ─────────────────────────────────────
+      {
+        parameters: {
+          jsCode: [
+            "const b = $input.first().json.body || {};",
+            "const formatos = { reels: 'Reels / Shorts', carrossel: 'Carrossel', feed: 'Feed (post unico)', stories: 'Stories' };",
+            "const tipo = String(b.tipo || '').toLowerCase();",
+            "const formato = formatos[tipo];",
+            "if (!formato) throw new Error('Tipo de peca invalido — use reels, carrossel, feed ou stories.');",
+            "const briefing = String(b.briefing || '').trim();",
+            "return [{ json: { tipo, formato, briefing } }];"
+          ].join("\n")
+        },
+        id: "prep-pedido-pecas",
+        name: "Prep pedido",
+        type: "n8n-nodes-base.code",
+        typeVersion: 2,
+        position: [660, 640]
+      },
+      {
+        parameters: {
+          operation: "executeQuery",
+          query: [
+            CONTEXTO_DDL,
+            GRADE_DDL,
+            PECAS_DDL,
+            "select",
+            "  coalesce((select conteudo from conselho_contexto order by id desc limit 1), 'Contexto estrategico ainda nao cadastrado.') as contexto,",
+            "  coalesce((select conteudo from grade_postagens where status = 'aprovada' order by id desc limit 1), '') as grade;"
+          ].join("\n"),
+          options: {}
+        },
+        id: "carrega-insumos-pecas",
+        name: "Carrega insumos",
+        type: "n8n-nodes-base.postgres",
+        typeVersion: 2.4,
+        position: [880, 640],
+        credentials: pgCred
+      },
+      {
+        parameters: {
+          jsCode: [
+            "const d = $input.first().json;",
+            "const p = $('Prep pedido').first().json;",
+            "if (!d.grade && !p.briefing) throw new Error('Nenhuma grade aprovada encontrada. Aprove a Grade de Postagens ou gere uma peca avulsa com direcionamento.');",
+            "const promptLines = " + pecasPromptJs + ";",
+            "let sys = promptLines.join('\\n') + '\\n\\n## Planejamento estratégico do empreendimento\\n' + (d.contexto || '');",
+            "if (d.grade) sys += '\\n\\n## Grade de postagens aprovada\\n' + d.grade;",
+            "const user = p.briefing",
+            "  ? 'Gere UMA peça avulsa do formato ' + p.formato + ' com base neste direcionamento do empreendedor (a grade, se existir, é só referência de estilo): \"' + p.briefing + '\". Use a data de hoje no cabeçalho da peça.'",
+            "  : 'Gere o lote completo do formato: ' + p.formato + ', cobrindo todos os dias desse formato na grade aprovada.';",
+            "return [{ json: { messages: [{ role: 'system', content: sys }, { role: 'user', content: user }] } }];"
+          ].join("\n")
+        },
+        id: "monta-pedido-pecas",
+        name: "Monta pedido",
+        type: "n8n-nodes-base.code",
+        typeVersion: 2,
+        position: [1100, 640]
+      },
+      {
+        parameters: {
+          method: "POST",
+          url: "https://api.openai.com/v1/responses",
+          authentication: "predefinedCredentialType",
+          nodeCredentialType: "openAiApi",
+          sendBody: true,
+          specifyBody: "json",
+          jsonBody: "={{ JSON.stringify({ model: 'gpt-4.1', input: $json.messages, max_output_tokens: 8000 }) }}",
+          options: { timeout: 180000 }
+        },
+        id: "openai-pecas",
+        name: "OpenAI",
+        type: "n8n-nodes-base.httpRequest",
+        typeVersion: 4.2,
+        position: [1320, 640],
+        credentials: oaCred
+      },
+      {
+        parameters: {
+          jsCode: [
+            "// Extrai o texto da Responses API (itens type=message > content > text)",
+            "const r = $input.first().json;",
+            "const conteudo = ((r.output || [])",
+            "  .flatMap((item) => item.content || [])",
+            "  .map((c) => c.text || '')",
+            "  .join('').trim());",
+            "if (!conteudo) throw new Error('A IA nao retornou a peca — tente novamente.');",
+            "const p = $('Prep pedido').first().json;",
+            "const hoje = new Date().toLocaleDateString('pt-BR');",
+            "const titulo = (p.briefing ? 'Avulsa — ' : '') + p.formato + ' — ' + hoje;",
+            "return [{ json: { tipo: p.tipo, titulo, conteudo } }];"
+          ].join("\n")
+        },
+        id: "extrai-peca",
+        name: "Extrai peca",
+        type: "n8n-nodes-base.code",
+        typeVersion: 2,
+        position: [1540, 640]
+      },
+      {
+        parameters: {
+          operation: "executeQuery",
+          query: "insert into pecas_geradas (tipo, titulo, conteudo) values ($1, $2, $3) returning id as peca_id;",
+          options: { queryReplacement: "={{ $json.tipo }},{{ $json.titulo }},{{ $json.conteudo }}" }
+        },
+        id: "salva-peca",
+        name: "Salva peca",
+        type: "n8n-nodes-base.postgres",
+        typeVersion: 2.4,
+        position: [1760, 640],
+        credentials: pgCred
+      },
+      {
+        parameters: {
+          assignments: {
+            assignments: [
+              { id: "p1", name: "peca_id", value: "={{ $json.peca_id }}", type: "number" },
+              { id: "p2", name: "tipo", value: "={{ $('Extrai peca').first().json.tipo }}", type: "string" },
+              { id: "p3", name: "titulo", value: "={{ $('Extrai peca').first().json.titulo }}", type: "string" },
+              { id: "p4", name: "conteudo", value: "={{ $('Extrai peca').first().json.conteudo }}", type: "string" }
+            ]
+          },
+          options: {}
+        },
+        id: "responde-peca",
+        name: "Responde",
+        type: "n8n-nodes-base.set",
+        typeVersion: 3.4,
+        position: [1980, 640]
+      }
+    ],
+    connections: {
+      "Webhook Pecas": { main: [[{ node: "Roteia acao", type: "main", index: 0 }]] },
+      "Roteia acao": {
+        main: [
+          [{ node: "Lista pecas", type: "main", index: 0 }],
+          [{ node: "Carrega peca", type: "main", index: 0 }],
+          [{ node: "Prep arte", type: "main", index: 0 }],
+          [{ node: "Prep pedido", type: "main", index: 0 }]
+        ]
+      },
+      "Prep arte": { main: [[{ node: "Gera arte (IA)", type: "main", index: 0 }]] },
+      "Gera arte (IA)": { main: [[{ node: "Salva arte", type: "main", index: 0 }]] },
+      "Salva arte": { main: [[{ node: "Responde arte", type: "main", index: 0 }]] },
+      "Prep pedido": { main: [[{ node: "Carrega insumos", type: "main", index: 0 }]] },
+      "Carrega insumos": { main: [[{ node: "Monta pedido", type: "main", index: 0 }]] },
+      "Monta pedido": { main: [[{ node: "OpenAI", type: "main", index: 0 }]] },
+      "OpenAI": { main: [[{ node: "Extrai peca", type: "main", index: 0 }]] },
+      "Extrai peca": { main: [[{ node: "Salva peca", type: "main", index: 0 }]] },
+      "Salva peca": { main: [[{ node: "Responde", type: "main", index: 0 }]] }
+    },
+    pinData: {},
+    settings: { executionOrder: "v1" }
+  };
+  return JSON.stringify(workflow, null, 2);
+}
+
 function buildInfraDocument() {
   const project = memberApp.state.project;
   const domain = project.domain || "(nao registrado)";
@@ -5718,36 +6184,6 @@ function buildLessonStepContent(step, lesson) {
             </button>
             <div class="generate-status hidden" id="generate-status-${escapeHtml(gen.id)}"></div>
             <div class="generate-output hidden" id="generate-result-${escapeHtml(gen.id)}"></div>
-          </div>`;
-      } else if (gen.type === "image") {
-        const cachedImg = contentCache[gen.id];
-        generateHtml = `
-          <div class="generate-block" data-generate-id="${escapeHtml(gen.id)}">
-            <label class="generate-brief-label" for="generate-brief-${escapeHtml(gen.id)}">Instruções personalizadas (opcional)</label>
-            <textarea class="generate-feedback-input" id="generate-brief-${escapeHtml(gen.id)}" placeholder="Se você já tem logo, nome, conceito ou uma ideia de peça, descreva aqui — o agente vai priorizar. Deixe em branco para criar do zero a partir do seu planejamento."></textarea>
-            <button class="button button-primary btn-generate" type="button"
-              data-generate-id="${escapeHtml(gen.id)}"
-              data-generate-type="image"
-              data-generate-loading="${escapeHtml(gen.loadingMessage || "Gerando imagem...")}">
-              ${escapeHtml(gen.label)}
-            </button>
-            <div class="generate-status hidden" id="generate-status-${escapeHtml(gen.id)}"></div>
-            <div class="generate-image-result${cachedImg ? "" : " hidden"}" id="generate-result-${escapeHtml(gen.id)}">
-              <img class="generated-image" id="generate-image-${escapeHtml(gen.id)}" src="${cachedImg || ""}" alt="Peca gerada" />
-              <div class="generate-image-actions">
-                <button class="button button-primary btn-approve-image" type="button" data-generate-id="${escapeHtml(gen.id)}">Aprovar e baixar</button>
-                <button class="button button-secondary btn-generate-feedback" type="button" data-generate-id="${escapeHtml(gen.id)}">Quero ajustar</button>
-              </div>
-              <div class="generate-feedback hidden" id="generate-feedback-${escapeHtml(gen.id)}">
-                <textarea class="generate-feedback-input" placeholder="O que voce quer ajustar? (opcional — deixe em branco para gerar outra versao)"></textarea>
-                <button class="button button-primary btn-regenerate" type="button"
-                  data-generate-id="${escapeHtml(gen.id)}"
-                  data-generate-type="image"
-                  data-generate-loading="${escapeHtml(gen.loadingMessage || "Gerando imagem...")}">
-                  Gerar nova versao
-                </button>
-              </div>
-            </div>
           </div>`;
       }
     }
@@ -5887,10 +6323,6 @@ function errorMessageForCode(code) {
     stream_failed: "A geracao falhou no meio do caminho. Tente novamente em instantes.",
     generate_failed: "Nao consegui gerar o conteudo agora. Tente novamente em instantes.",
     invalid_agent_type: "Tipo de geracao invalido. Recarregue a pagina e tente de novo.",
-    image_prompt_failed: "Nao consegui preparar o prompt da imagem. Tente novamente.",
-    image_prompt_empty: "O agente nao retornou um prompt de imagem. Tente novamente.",
-    image_generation_failed: "A geracao da imagem falhou. Tente novamente em instantes.",
-    image_url_missing: "A imagem foi gerada mas a URL nao chegou. Tente novamente.",
     prompt_file_missing: "O prompt do agente nao esta no servidor. Rebuild da imagem do site necessario (source-material/Agents)."
   };
   return messages[code] || `Erro do assistente: ${code}`;

@@ -6,7 +6,7 @@ import path from "node:path";
 import { fileURLToPath } from "node:url";
 import pg from "pg";
 import { runOperationAgentTurn, streamOperationAgentTurn, generateStrategicPlanMarkdown, runTechAssistantTurn } from "./server/operation-agents.js";
-import { streamContentGeneration, generateCampaignImage } from "./server/content-agents.js";
+import { streamContentGeneration } from "./server/content-agents.js";
 import { validateHeygenConfig, createHeygenTestVideo, getHeygenVideoStatus } from "./server/heygen.js";
 
 const { Pool } = pg;
@@ -83,7 +83,7 @@ const server = http.createServer(async (request, response) => {
       }
     }
 
-    // Rota SSE de geração de conteúdo (Módulo 4)
+    // Rota SSE de geração de conteúdo (prompt de atendimento, PRDs)
     if (url.pathname === "/api/content/generate") {
       if (request.method === "OPTIONS") {
         response.writeHead(204, {
@@ -97,23 +97,6 @@ const server = http.createServer(async (request, response) => {
       if (request.method === "POST") {
         const payload = await readJsonBody(request);
         return await handleContentGenerateStream(payload, response);
-      }
-    }
-
-    // Geração de imagem de campanha (Módulo 4)
-    if (url.pathname === "/api/content/image") {
-      if (request.method === "OPTIONS") {
-        response.writeHead(204, {
-          "Access-Control-Allow-Origin": "*",
-          "Access-Control-Allow-Methods": "POST, OPTIONS",
-          "Access-Control-Allow-Headers": "Content-Type"
-        });
-        response.end();
-        return;
-      }
-      if (request.method === "POST") {
-        const payload = await readJsonBody(request);
-        return await handleContentImage(payload, response);
       }
     }
 
@@ -325,23 +308,6 @@ async function handleContentGenerateStream(payload, response) {
     console.warn("content generate stream handler failed", error);
     send({ type: "error", message: "stream_failed" });
     response.end();
-  }
-}
-
-async function handleContentImage(payload, response) {
-  let member;
-  try {
-    member = await getAuthenticatedMember(payload);
-  } catch (error) {
-    return sendJson(response, 401, { ok: false, error: error.code || "auth_failed" });
-  }
-
-  try {
-    const result = await generateCampaignImage({ rootDir: __dirname, query, member, payload });
-    return sendJson(response, result.ok ? 200 : 500, result);
-  } catch (error) {
-    console.warn("content image handler failed", error);
-    return sendJson(response, 500, { ok: false, error: "image_generation_failed" });
   }
 }
 

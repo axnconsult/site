@@ -42,6 +42,8 @@ Lista de alterações no app:
 
    ### Então vamos “somente” fazer os setups dos fluxos necessários para rodar essas habilidades no Painel de Gestão (configurar o webhook no painel, fazer a chamada pra API da OpenAI já com os prompts e setups de cada Agente. E mantemos o setup da Fábrica de Vídeos e de Carrosséis.
 
+   ### **✅ IMPLEMENTADO (2026-07-13): módulo 4 virou setup (estratégia + HeyGen); fluxos n8n Grade de Postagens e Peças criados; Conselho ganhou domínios (1 fluxo, 3 personas); painel reformulado em 3 abas no PRD do Agente 12; painel movido para ANTES das Fábricas no módulo 6; content-agents do módulo 4 aposentados. Aguardando commit + redeploy + teste real.**
+
 	
 
 ## Módulo 5 — Site e CheckOut
