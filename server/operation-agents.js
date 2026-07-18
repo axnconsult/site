@@ -143,76 +143,18 @@ export async function runOperationAgentTurn({ rootDir, query, member, payload })
   const agent = AGENT_BY_ID.get(activeAgentId) || AGENTS[0];
   const history = await loadProjectHistory(query, project.id);
   const thread = normalizeThread(payload.thread);
-  const instructions = await buildInstructions(rootDir, agent, history);
-
-  const openaiRequest = {
-    model: process.env.OPENAI_OPERATION_MODEL || "gpt-5.1",
+  const priorStudentAnswers = await loadPriorStudentAnswers(query, project.id, activeStageKey);
+  const instructions = await buildInstructions(rootDir, agent, history, priorStudentAnswers);
+  const openaiRequest = buildOperationRequest({
+    agent,
+    payload,
+    activeStageKey,
+    activeAgentId,
+    history,
+    thread,
     instructions,
-    text: {
-      format: {
-        type: "json_schema",
-        name: "operation_agent_turn",
-        strict: true,
-        schema: {
-          type: "object",
-          additionalProperties: false,
-          required: ["status", "assistant_message", "next_agent_id", "transfer_block"],
-          properties: {
-            status: {
-              type: "string",
-              enum: ["conversation", "result"]
-            },
-            assistant_message: {
-              type: "string"
-            },
-            next_agent_id: {
-              type: "string"
-            },
-            transfer_block: {
-              type: "object",
-              additionalProperties: false,
-              required: ["section_title", "content", "key_points"],
-              properties: {
-                section_title: { type: "string" },
-                content: { type: "string" },
-                key_points: {
-                  type: "array",
-                  items: { type: "string" }
-                }
-              }
-            }
-          }
-        }
-      }
-    },
-    input: [
-      {
-        role: "user",
-        content: [
-          {
-            type: "input_text",
-            text: JSON.stringify({
-              project: payload.project,
-              module: payload.module,
-              stage: payload.stage,
-              requestedStageKey: payload.stageKey,
-              activeStageKey,
-              activeAgentId,
-              validAgentIds: AGENT_IDS,
-              previousDeliveries: history.completedBlocks,
-              conversationThread: thread,
-              userMessage: payload.message
-            })
-          },
-          ...attachmentContentParts(payload.attachments)
-        ]
-      }
-    ]
-  };
-
-  if (agent.webSearch && process.env.OPENAI_OPERATION_WEB_SEARCH !== "false") {
-    openaiRequest.tools = [{ type: "web_search_preview" }];
-  }
+    priorStudentAnswers
+  });
 
   const response = await callOpenAI(openaiRequest);
   if (response.status === "failed") {
@@ -224,6 +166,9 @@ export async function runOperationAgentTurn({ rootDir, query, member, payload })
   let answer = cleanAssistantMessage(parsed.assistant_message || parsed.summary_for_user || parsed.answer || response.output_text);
   let transferBlock = normalizeTransferBlock(parsed.transfer_block, status);
   ({ status, answer, transferBlock } = await applyHypothesisReview({ agent, status, answer, transferBlock, payload }));
+  ({ status, answer, transferBlock } = await applyStageDeliveryReview({
+    agent, status, answer, transferBlock, payload, history, baseRequest: openaiRequest
+  }));
   const nextAgentId = status === "result"
     ? nextAgentIdFor(activeAgentId)
     : "";
@@ -331,8 +276,84 @@ function stageKeyFromAgentId(agentId) {
   return `module-2.${index - 1}`; // target_audience→module-2.0, …, visual_identity→module-2.4
 }
 
-async function buildInstructions(rootDir, agent, history) {
+// Schema de saída compartilhado pelos turnos com e sem streaming.
+const OPERATION_TURN_SCHEMA = {
+  type: "object",
+  additionalProperties: false,
+  required: ["status", "assistant_message", "next_agent_id", "transfer_block"],
+  properties: {
+    status: { type: "string", enum: ["conversation", "result"] },
+    assistant_message: { type: "string" },
+    next_agent_id: { type: "string" },
+    transfer_block: {
+      type: "object",
+      additionalProperties: false,
+      required: ["section_title", "content", "key_points"],
+      properties: {
+        section_title: { type: "string" },
+        content: { type: "string" },
+        key_points: { type: "array", items: { type: "string" } }
+      }
+    }
+  }
+};
+
+function buildOperationRequest({ agent, payload, activeStageKey, activeAgentId, history, thread, instructions, priorStudentAnswers }) {
+  const request = {
+    model: process.env.OPENAI_OPERATION_MODEL || "gpt-5.1",
+    instructions,
+    text: {
+      format: {
+        type: "json_schema",
+        name: "operation_agent_turn",
+        strict: true,
+        schema: OPERATION_TURN_SCHEMA
+      }
+    },
+    input: [
+      {
+        role: "user",
+        content: [
+          {
+            type: "input_text",
+            text: JSON.stringify({
+              project: payload.project,
+              module: payload.module,
+              stage: payload.stage,
+              requestedStageKey: payload.stageKey,
+              activeStageKey,
+              activeAgentId,
+              validAgentIds: AGENT_IDS,
+              previousDeliveries: history.completedBlocks,
+              priorStudentAnswers: priorStudentAnswers || undefined,
+              conversationThread: thread,
+              userMessage: payload.message
+            })
+          },
+          ...attachmentContentParts(payload.attachments)
+        ]
+      }
+    ]
+  };
+
+  if (agent.webSearch && process.env.OPENAI_OPERATION_WEB_SEARCH !== "false") {
+    request.tools = [{ type: "web_search_preview" }];
+  }
+
+  return request;
+}
+
+async function buildInstructions(rootDir, agent, history, priorStudentAnswers) {
   const prompt = await loadPrompt(rootDir, agent.promptFile);
+  const priorAnswersSection = priorStudentAnswers
+    ? [
+        "",
+        "## Respostas que o aluno JA DEU em etapas anteriores",
+        "O campo priorStudentAnswers do input reune, por etapa, respostas que o aluno ja deu nas etapas anteriores da jornada.",
+        "Nunca re-pergunte algo que ja esta respondido ali. Afirme o que ja sabe e siga adiante.",
+        "Chegue com contexto: quando fizer sentido, resuma brevemente o que ja sabe sobre o tema da sua etapa e pergunte apenas o que ainda falta."
+      ]
+    : [];
   return [
     prompt,
     "",
@@ -343,6 +364,7 @@ async function buildInstructions(rootDir, agent, history) {
     "Nao faca resumo longo do que entendeu, exceto quando for a entrega final da etapa.",
     "Faca no maximo duas perguntas por vez. Se precisar enumerar perguntas, use '1.' e '2.' apenas para as perguntas objetivas.",
     "Nao avance para escopo de outro agente. Se o assunto for de outro agente, registre como pendencia e continue sua etapa.",
+    ...priorAnswersSection,
     "",
     "## IDs validos da jornada fixa",
     AGENT_IDS.map((id, index) => `${index + 1}. ${id}`).join("\n"),
@@ -561,6 +583,66 @@ async function loadProjectHistory(query, projectId) {
   };
 }
 
+// ─── Contexto cumulativo entre etapas ────────────────────────────────────────
+// Os threads do app são por-etapa; o que cruza etapas server-side são as
+// respostas que o aluno já deu (role='user') nas etapas anteriores à ativa.
+// Caps para segurar o tamanho do prompt: por mensagem, por etapa e global.
+
+const PRIOR_ANSWERS_MESSAGE_CAP = 400;
+const PRIOR_ANSWERS_STAGE_CAP = 3500;
+const PRIOR_ANSWERS_TOTAL_CAP = 18000;
+
+const STAGE_ORDER = ["module-1.0", "module-2.0", "module-2.1", "module-2.2", "module-2.3", "module-2.4"];
+
+async function loadPriorStudentAnswers(query, projectId, activeStageKey) {
+  const activeIndex = STAGE_ORDER.indexOf(normalizeStageKey(activeStageKey));
+  if (activeIndex <= 0) return null;
+  const priorStages = STAGE_ORDER.slice(0, activeIndex);
+
+  const result = await query(
+    `
+      select stage_key, content
+      from operation_conversation_messages
+      where project_id = $1::uuid
+        and role = 'user'
+        and stage_key = any($2::text[])
+      order by created_at asc
+    `,
+    [projectId, priorStages]
+  );
+
+  const rowsByStage = new Map(priorStages.map((stage) => [stage, []]));
+  for (const row of result.rows) {
+    rowsByStage.get(row.stage_key)?.push(row.content);
+  }
+
+  const answers = {};
+  let totalChars = 0;
+
+  for (const stage of priorStages) {
+    const messages = [];
+    let stageChars = 0;
+    for (const content of rowsByStage.get(stage)) {
+      const text = String(content || "").trim().slice(0, PRIOR_ANSWERS_MESSAGE_CAP);
+      if (!text) continue;
+      if (stageChars + text.length > PRIOR_ANSWERS_STAGE_CAP) break;
+      if (totalChars + text.length > PRIOR_ANSWERS_TOTAL_CAP) break;
+      messages.push(text);
+      stageChars += text.length;
+      totalChars += text.length;
+    }
+    if (messages.length) answers[stage] = messages;
+    if (totalChars >= PRIOR_ANSWERS_TOTAL_CAP) break;
+  }
+
+  if (!totalChars) return null;
+
+  console.log(
+    `[operation] priorStudentAnswers para ${activeStageKey}: ${totalChars} chars em ${Object.keys(answers).length} etapa(s)`
+  );
+  return answers;
+}
+
 async function saveAgentRun(query, data) {
   await query(
     `
@@ -755,6 +837,181 @@ async function reviewBusinessHypothesis({ thread, userMessage, answer, transferB
   }
 }
 
+// ─── Revisão silenciosa das etapas do Módulo 2 ──────────────────────────────
+// Quando um agente 02–06 conclui (status "result"), o revisor Claude avalia a
+// entrega ANTES de ela chegar ao aluno. Se reprovar, o servidor re-chama a
+// OpenAI com as lacunas em uma mensagem interna ("o aluno não vê") e entrega a
+// versão corrigida — máximo 1 ciclo, fail-open (falhou qualquer parte, a
+// entrega original segue). Diferente do Módulo 1, o aluno nunca vê parecer.
+// O streaming visual está desligado no app, então os deltas da versão
+// reprovada nunca aparecem: o aluno só vê o "done" com a versão final.
+
+const STAGE_REVIEW_CRITERIA = {
+  target_audience:
+    "O publico-alvo esta especifico e alcancavel: um grupo que o aluno consegue identificar, encontrar e acessar na pratica — nao 'todo mundo' nem um recorte vago.",
+  strategic_differentiation:
+    "O diferencial nao e generico: nada de 'qualidade', 'atendimento personalizado' ou promessas que qualquer concorrente diria. Precisa se apoiar em algo real do aluno ou da oferta.",
+  strategic_pricing:
+    "O preco proposto esta justificado e coerente com o publico, a oferta e a meta financeira do aluno que aparecem na conversa e nas entregas anteriores.",
+  product_concept:
+    "O conceito de produto esta completo: o que e, para quem, formato de entrega e promessa central — o aluno deve conseguir descrever o produto a alguem sem pontas soltas.",
+  visual_identity:
+    "A identidade visual e aplicavel na pratica: paleta, tipografia e diretrizes que o aluno consegue usar diretamente nas pecas, coerentes com o posicionamento."
+};
+
+async function applyStageDeliveryReview({ agent, status, answer, transferBlock, payload, history, baseRequest }) {
+  if (!STAGE_REVIEW_CRITERIA[agent.id] || status !== "result") {
+    return { status, answer, transferBlock };
+  }
+
+  const review = await reviewStageDelivery({
+    agent,
+    thread: normalizeThread(payload.thread),
+    userMessage: payload.message,
+    answer,
+    transferBlock,
+    completedBlocks: history.completedBlocks
+  });
+  if (!review || review.verdict === "aprovado") {
+    return { status, answer, transferBlock };
+  }
+
+  console.log(`[operation] revisao interna reprovou ${agent.id}; lacunas: ${review.lacunas.join(" | ")}`);
+  const corrected = await runInternalStageCorrection({ agent, baseRequest, answer, transferBlock, review });
+  if (!corrected) return { status, answer, transferBlock };
+  return corrected;
+}
+
+async function reviewStageDelivery({ agent, thread, userMessage, answer, transferBlock, completedBlocks }) {
+  if (!process.env.ANTHROPIC_API_KEY) {
+    console.warn("Stage review skipped: ANTHROPIC_API_KEY ausente");
+    return null;
+  }
+
+  const system = [
+    "Voce e o revisor interno das etapas do Diagnostico Estrategico da AXN Consult.",
+    "O agente da etapa acredita ter concluido a entrega. Revise a conversa e a entrega proposta e decida se ela esta pronta.",
+    "O aluno NUNCA ve este parecer — ele alimenta apenas uma correcao interna.",
+    "",
+    "Aprove somente se as tres condicoes forem verdadeiras:",
+    `1. ${STAGE_REVIEW_CRITERIA[agent.id]}`,
+    "2. A entrega e coerente com as entregas anteriores do projeto (entregasAnteriores) — nao contradiz publico, posicionamento ou decisoes ja fechadas.",
+    "3. A entrega se apoia no que o aluno realmente disse na conversa — sem fatos inventados sobre o aluno ou o negocio.",
+    "",
+    "Seja pragmatico: devolva 'revisar' apenas por lacunas que comprometem materialmente a entrega. Nao devolva por perfeccionismo nem por estilo.",
+    "O campo 'lacunas' (apenas quando verdict for 'revisar') lista no maximo 3 itens objetivos, corrigiveis com o que ja existe na conversa ou perguntaveis ao aluno.",
+    "",
+    'Responda APENAS com JSON valido neste formato: {"verdict":"aprovado","lacunas":[]} ou {"verdict":"revisar","lacunas":["..."]}'
+  ].join("\n");
+
+  const controller = new AbortController();
+  const timeout = setTimeout(() => controller.abort(), Number(process.env.ANTHROPIC_VALIDATOR_TIMEOUT_MS || 45000));
+
+  try {
+    const response = await fetch("https://api.anthropic.com/v1/messages", {
+      method: "POST",
+      headers: {
+        "x-api-key": process.env.ANTHROPIC_API_KEY,
+        "anthropic-version": "2023-06-01",
+        "content-type": "application/json"
+      },
+      body: JSON.stringify({
+        model: process.env.ANTHROPIC_VALIDATOR_MODEL || "claude-sonnet-5",
+        max_tokens: 1024,
+        system,
+        messages: [
+          {
+            role: "user",
+            content: JSON.stringify({
+              etapa: agent.section,
+              conversa: thread,
+              ultimaMensagemDoAluno: userMessage,
+              entregaProposta: answer,
+              blocoEstruturado: transferBlock,
+              entregasAnteriores: completedBlocks
+            })
+          }
+        ]
+      }),
+      signal: controller.signal
+    });
+
+    if (!response.ok) {
+      const data = await response.json().catch(() => ({}));
+      console.warn("Stage review returned", response.status, data);
+      return null;
+    }
+
+    const data = await response.json();
+    const text = data.content?.[0]?.text || "";
+    const parsed = JSON.parse(extractJsonText(text));
+    if (!["aprovado", "revisar"].includes(parsed.verdict)) {
+      console.warn("Stage review returned unexpected shape", text.slice(0, 200));
+      return null;
+    }
+
+    return {
+      verdict: parsed.verdict,
+      lacunas: Array.isArray(parsed.lacunas) ? parsed.lacunas.map((item) => String(item).trim()).filter(Boolean) : []
+    };
+  } catch (error) {
+    console.warn("Stage review failed:", error.message);
+    return null;
+  } finally {
+    clearTimeout(timeout);
+  }
+}
+
+async function runInternalStageCorrection({ agent, baseRequest, answer, transferBlock, review }) {
+  const request = structuredClone(baseRequest);
+  delete request.stream;
+  request.input = [
+    ...request.input,
+    {
+      role: "assistant",
+      content: [
+        {
+          type: "output_text",
+          text: JSON.stringify({
+            status: "result",
+            assistant_message: answer,
+            next_agent_id: "",
+            transfer_block: transferBlock
+          })
+        }
+      ]
+    },
+    {
+      role: "user",
+      content: [
+        {
+          type: "input_text",
+          text: [
+            "REVISAO INTERNA — o aluno NAO ve esta mensagem nem a entrega que voce propos nesta rodada.",
+            "Um revisor independente apontou lacunas na sua entrega:",
+            ...review.lacunas.map((item) => `- ${item}`),
+            "",
+            "Reescreva a entrega final da etapa corrigindo essas lacunas, usando apenas informacoes que o aluno ja deu na conversa e nas etapas anteriores.",
+            "Se alguma lacuna so puder ser resolvida com informacao nova do aluno, responda com status 'conversation' fazendo as perguntas necessarias.",
+            "Nunca mencione revisao, revisor ou correcao ao aluno."
+          ].join("\n")
+        }
+      ]
+    }
+  ];
+
+  const response = await callOpenAI(request);
+  if (response.status === "failed") return null;
+
+  const parsed = parseAgentOutput(response, agent);
+  const status = normalizeStatus(parsed.status);
+  return {
+    status,
+    answer: cleanAssistantMessage(parsed.assistant_message || parsed.summary_for_user || parsed.answer || response.output_text),
+    transferBlock: normalizeTransferBlock(parsed.transfer_block, status)
+  };
+}
+
 // ─── Assistente técnico (Módulos 3+) ────────────────────────────────────────
 
 export async function runTechAssistantTurn({ query, member, payload }) {
@@ -872,67 +1129,19 @@ export async function streamOperationAgentTurn({ rootDir, query, member, payload
   const agent = AGENT_BY_ID.get(activeAgentId) || AGENTS[0];
   const history = await loadProjectHistory(query, project.id);
   const thread = normalizeThread(payload.thread);
-  const instructions = await buildInstructions(rootDir, agent, history);
-
-  const openaiRequest = {
-    model: process.env.OPENAI_OPERATION_MODEL || "gpt-5.1",
+  const priorStudentAnswers = await loadPriorStudentAnswers(query, project.id, activeStageKey);
+  const instructions = await buildInstructions(rootDir, agent, history, priorStudentAnswers);
+  const openaiRequest = buildOperationRequest({
+    agent,
+    payload,
+    activeStageKey,
+    activeAgentId,
+    history,
+    thread,
     instructions,
-    text: {
-      format: {
-        type: "json_schema",
-        name: "operation_agent_turn",
-        strict: true,
-        schema: {
-          type: "object",
-          additionalProperties: false,
-          required: ["status", "assistant_message", "next_agent_id", "transfer_block"],
-          properties: {
-            status: { type: "string", enum: ["conversation", "result"] },
-            assistant_message: { type: "string" },
-            next_agent_id: { type: "string" },
-            transfer_block: {
-              type: "object",
-              additionalProperties: false,
-              required: ["section_title", "content", "key_points"],
-              properties: {
-                section_title: { type: "string" },
-                content: { type: "string" },
-                key_points: { type: "array", items: { type: "string" } }
-              }
-            }
-          }
-        }
-      }
-    },
-    input: [
-      {
-        role: "user",
-        content: [
-          {
-            type: "input_text",
-            text: JSON.stringify({
-              project: payload.project,
-              module: payload.module,
-              stage: payload.stage,
-              requestedStageKey: payload.stageKey,
-              activeStageKey,
-              activeAgentId,
-              validAgentIds: AGENT_IDS,
-              previousDeliveries: history.completedBlocks,
-              conversationThread: thread,
-              userMessage: payload.message
-            })
-          },
-          ...attachmentContentParts(payload.attachments)
-        ]
-      }
-    ],
-    stream: true
-  };
-
-  if (agent.webSearch && process.env.OPENAI_OPERATION_WEB_SEARCH !== "false") {
-    openaiRequest.tools = [{ type: "web_search_preview" }];
-  }
+    priorStudentAnswers
+  });
+  openaiRequest.stream = true;
 
   await callOpenAIStream(openaiRequest, onDelta, async (fullText, responseId) => {
     const parsed = parseAgentOutput({ output_text: fullText }, agent);
@@ -940,6 +1149,9 @@ export async function streamOperationAgentTurn({ rootDir, query, member, payload
     let answer = cleanAssistantMessage(parsed.assistant_message || parsed.summary_for_user || parsed.answer || fullText);
     let transferBlock = normalizeTransferBlock(parsed.transfer_block, status);
     ({ status, answer, transferBlock } = await applyHypothesisReview({ agent, status, answer, transferBlock, payload }));
+    ({ status, answer, transferBlock } = await applyStageDeliveryReview({
+      agent, status, answer, transferBlock, payload, history, baseRequest: openaiRequest
+    }));
     const nextAgentId = status === "result" ? nextAgentIdFor(activeAgentId) : "";
     const projectSection = parsed.project_section || agent.section;
 

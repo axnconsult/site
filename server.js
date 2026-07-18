@@ -230,6 +230,14 @@ async function handleOperationStream(payload, response) {
     "X-Content-Type-Options": "nosniff"
   });
 
+  // Turnos "result" com revisão interna podem levar minutos sem emitir dados —
+  // o comentário SSE mantém proxies e o fetch do cliente vivos (o cliente
+  // ignora linhas que não começam com "data: ").
+  const heartbeat = setInterval(() => {
+    if (!response.writableEnded) response.write(": ping\n\n");
+  }, 15000);
+  response.on("close", () => clearInterval(heartbeat));
+
   const send = (obj) => response.write(`data: ${JSON.stringify(obj)}\n\n`);
 
   let member;
