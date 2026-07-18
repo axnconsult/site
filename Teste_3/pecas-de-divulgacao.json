@@ -1,0 +1,553 @@
+{
+  "name": "Pecas de Divulgacao",
+  "nodes": [
+    {
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "pecas",
+        "responseMode": "lastNode",
+        "options": {
+          "allowedOrigins": "*"
+        }
+      },
+      "id": "webhook-pecas",
+      "name": "Webhook Pecas",
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2,
+      "position": [
+        200,
+        420
+      ],
+      "webhookId": "pecas-webhook"
+    },
+    {
+      "parameters": {
+        "rules": {
+          "values": [
+            {
+              "conditions": {
+                "options": {
+                  "caseSensitive": true,
+                  "leftValue": "",
+                  "typeValidation": "loose"
+                },
+                "conditions": [
+                  {
+                    "leftValue": "={{ $json.body.action }}",
+                    "rightValue": "listar",
+                    "operator": {
+                      "type": "string",
+                      "operation": "equals"
+                    }
+                  }
+                ],
+                "combinator": "and"
+              },
+              "renameOutput": true,
+              "outputKey": "listar"
+            },
+            {
+              "conditions": {
+                "options": {
+                  "caseSensitive": true,
+                  "leftValue": "",
+                  "typeValidation": "loose"
+                },
+                "conditions": [
+                  {
+                    "leftValue": "={{ $json.body.action }}",
+                    "rightValue": "carregar",
+                    "operator": {
+                      "type": "string",
+                      "operation": "equals"
+                    }
+                  }
+                ],
+                "combinator": "and"
+              },
+              "renameOutput": true,
+              "outputKey": "carregar"
+            },
+            {
+              "conditions": {
+                "options": {
+                  "caseSensitive": true,
+                  "leftValue": "",
+                  "typeValidation": "loose"
+                },
+                "conditions": [
+                  {
+                    "leftValue": "={{ $json.body.action }}",
+                    "rightValue": "arte",
+                    "operator": {
+                      "type": "string",
+                      "operation": "equals"
+                    }
+                  }
+                ],
+                "combinator": "and"
+              },
+              "renameOutput": true,
+              "outputKey": "arte"
+            }
+          ]
+        },
+        "options": {
+          "fallbackOutput": "extra",
+          "renameFallbackOutput": "gerar"
+        }
+      },
+      "id": "roteia-acao-pecas",
+      "name": "Roteia acao",
+      "type": "n8n-nodes-base.switch",
+      "typeVersion": 3.2,
+      "position": [
+        420,
+        420
+      ]
+    },
+    {
+      "parameters": {
+        "operation": "executeQuery",
+        "query": "create table if not exists pecas_geradas (id serial primary key, tipo text, titulo text, conteudo text, imagem_b64 text, criado_em timestamptz default now());\nselect coalesce(json_agg(json_build_object('id', id, 'tipo', tipo, 'titulo', titulo, 'criado_em', to_char(criado_em,'DD/MM HH24:MI')) order by id desc), '[]'::json) as pecas\nfrom (select id, tipo, titulo, criado_em from pecas_geradas order by id desc limit 30) t;",
+        "options": {}
+      },
+      "id": "lista-pecas",
+      "name": "Lista pecas",
+      "type": "n8n-nodes-base.postgres",
+      "typeVersion": 2.4,
+      "position": [
+        660,
+        120
+      ],
+      "credentials": {
+        "postgres": {
+          "id": "SUBSTITUA_PELO_ID_DA_CREDENCIAL",
+          "name": "Postgres negocio"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "operation": "executeQuery",
+        "query": "create table if not exists pecas_geradas (id serial primary key, tipo text, titulo text, conteudo text, imagem_b64 text, criado_em timestamptz default now());\nselect coalesce(\n  (select json_build_object('peca_id', id, 'tipo', tipo, 'titulo', titulo, 'conteudo', conteudo, 'imagem_b64', coalesce(imagem_b64, '')) from pecas_geradas where id = $1),\n  json_build_object('peca_id', 0)\n) as peca;",
+        "options": {
+          "queryReplacement": "={{ $json.body.peca_id }}"
+        }
+      },
+      "id": "carrega-peca",
+      "name": "Carrega peca",
+      "type": "n8n-nodes-base.postgres",
+      "typeVersion": 2.4,
+      "position": [
+        660,
+        280
+      ],
+      "credentials": {
+        "postgres": {
+          "id": "SUBSTITUA_PELO_ID_DA_CREDENCIAL",
+          "name": "Postgres negocio"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "jsCode": "const b = $input.first().json.body || {};\nconst prompt = String(b.prompt || '').trim();\nconst texto = String(b.texto || '').trim();\nif (!prompt) throw new Error('Envie o prompt de imagem do post (campo prompt).');\nconst titulo = (texto || 'Arte de post').slice(0, 60);\nlet promptFinal = 'Arte premium de post unico para Instagram, formato retrato 4:5. ' +\n  'Direcao de arte: design editorial minimalista e sofisticado, nivel de estudio de design profissional; composicao com respiro, margens generosas e hierarquia visual clara. ' +\n  'Cena e estilo: ' + prompt + '. ';\nif (texto) {\n  promptFinal += 'Renderize EXATAMENTE este texto em portugues do Brasil, sem mudar, omitir ou acrescentar nenhuma palavra e sem nenhum erro de ortografia ou acentuacao: \\u00ab' + texto + '\\u00bb. O texto e o protagonista da composicao: contraste alto com o fundo, margens seguras. ';\n} else {\n  promptFinal += 'Sem nenhum texto na imagem. ';\n}\npromptFinal += 'Nenhum outro texto ou marca d\\u2019agua na imagem.';\nreturn [{ json: { promptFinal, prompt, titulo } }];"
+      },
+      "id": "prep-arte",
+      "name": "Prep arte",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        660,
+        440
+      ]
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "https://api.openai.com/v1/images/generations",
+        "authentication": "predefinedCredentialType",
+        "nodeCredentialType": "openAiApi",
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={{ JSON.stringify({ model: 'gpt-image-2', prompt: $json.promptFinal, size: '1024x1280', quality: 'high', n: 1 }) }}",
+        "options": {
+          "timeout": 300000
+        }
+      },
+      "id": "gera-arte",
+      "name": "Gera arte (IA)",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        880,
+        440
+      ],
+      "credentials": {
+        "openAiApi": {
+          "id": "SUBSTITUA_PELO_ID_DA_CREDENCIAL",
+          "name": "OpenAi account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "operation": "executeQuery",
+        "query": "create table if not exists pecas_geradas (id serial primary key, tipo text, titulo text, conteudo text, imagem_b64 text, criado_em timestamptz default now());\ninsert into pecas_geradas (tipo, titulo, conteudo, imagem_b64) values ('arte', $1, $2, $3) returning id as peca_id;",
+        "options": {
+          "queryReplacement": "={{ $('Prep arte').first().json.titulo }},{{ $('Prep arte').first().json.prompt }},{{ $json.data[0].b64_json }}"
+        }
+      },
+      "id": "salva-arte",
+      "name": "Salva arte",
+      "type": "n8n-nodes-base.postgres",
+      "typeVersion": 2.4,
+      "position": [
+        1100,
+        440
+      ],
+      "credentials": {
+        "postgres": {
+          "id": "SUBSTITUA_PELO_ID_DA_CREDENCIAL",
+          "name": "Postgres negocio"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "a1",
+              "name": "peca_id",
+              "value": "={{ $json.peca_id }}",
+              "type": "number"
+            },
+            {
+              "id": "a2",
+              "name": "titulo",
+              "value": "={{ $('Prep arte').first().json.titulo }}",
+              "type": "string"
+            },
+            {
+              "id": "a3",
+              "name": "imagem_b64",
+              "value": "={{ $('Gera arte (IA)').first().json.data[0].b64_json }}",
+              "type": "string"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "id": "responde-arte",
+      "name": "Responde arte",
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [
+        1320,
+        440
+      ]
+    },
+    {
+      "parameters": {
+        "jsCode": "const b = $input.first().json.body || {};\nconst formatos = { reels: 'Reels / Shorts', carrossel: 'Carrossel', feed: 'Feed (post unico)', stories: 'Stories' };\nconst tipo = String(b.tipo || '').toLowerCase();\nconst formato = formatos[tipo];\nif (!formato) throw new Error('Tipo de peca invalido — use reels, carrossel, feed ou stories.');\nconst briefing = String(b.briefing || '').trim();\nreturn [{ json: { tipo, formato, briefing } }];"
+      },
+      "id": "prep-pedido-pecas",
+      "name": "Prep pedido",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        660,
+        640
+      ]
+    },
+    {
+      "parameters": {
+        "operation": "executeQuery",
+        "query": "create table if not exists conselho_contexto (id serial primary key, conteudo text, criado_em timestamptz default now());\ncreate table if not exists grade_postagens (id serial primary key, conteudo text, status text default 'proposta', criado_em timestamptz default now(), atualizado_em timestamptz default now());\ncreate table if not exists pecas_geradas (id serial primary key, tipo text, titulo text, conteudo text, imagem_b64 text, criado_em timestamptz default now());\nselect\n  coalesce((select conteudo from conselho_contexto order by id desc limit 1), 'Contexto estrategico ainda nao cadastrado.') as contexto,\n  coalesce((select conteudo from grade_postagens where status = 'aprovada' order by id desc limit 1), '') as grade;",
+        "options": {}
+      },
+      "id": "carrega-insumos-pecas",
+      "name": "Carrega insumos",
+      "type": "n8n-nodes-base.postgres",
+      "typeVersion": 2.4,
+      "position": [
+        880,
+        640
+      ],
+      "credentials": {
+        "postgres": {
+          "id": "SUBSTITUA_PELO_ID_DA_CREDENCIAL",
+          "name": "Postgres negocio"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "jsCode": "const d = $input.first().json;\nconst p = $('Prep pedido').first().json;\nif (!d.grade && !p.briefing) throw new Error('Nenhuma grade aprovada encontrada. Aprove a Grade de Postagens ou gere uma peca avulsa com direcionamento.');\nconst promptLines = [\"Você é o Redator Sênior e Copywriter da Axn. Sua missão é transformar a Grade de Postagens aprovada em conteúdo pronto para produção, organizado por formato — claro e direto, fiel ao tom de voz e identidade da marca, executável por um empreendedor sem equipe de marketing e compatível com gravação direta para câmera, avatar (HeyGen) ou geração de imagem por IA.\",\"O planejamento estratégico e a grade aprovada são fornecidos abaixo — não peça essas informações ao usuário. Extraia do planejamento: persona e dores principais, USP e nome do produto, tom de voz da marca e objeções do público (use-as para antecipar e neutralizar nos textos).\",\"\",\"RESTRIÇÕES — você NUNCA deve:\",\"- Explicar frameworks como AIDA ou PAS — apenas aplique-os.\",\"- Escrever frases como 'como sou uma IA…'.\",\"- Criar linguagem publicitária exagerada ou promessas milagrosas.\",\"- Descrever cenas, ângulos, enquadramento, B-roll ou ações físicas em vídeos — em vídeo, entregue APENAS a fala do personagem.\",\"- Misturar formatos diferentes na mesma entrega, nem gerar conteúdo além do solicitado.\",\"\",\"Gere SOMENTE o formato solicitado. Quando trabalhar a partir da grade, filtre apenas os dias daquele formato e produza o lote completo de uma vez. Modelos por formato:\",\"\",\"### REELS / SHORTS (o mesmo conteúdo serve para Instagram Reels e YouTube Shorts)\",\"Cada linha é uma fala do personagem, direta para a câmera, linguagem oral e natural. Repita o bloco para cada Reel:\",\"🎬 REELS / SHORTS — [Data] — [Tema]\",\"Fala 1: [texto falado — gancho forte, máx. 2 frases]\",\"Fala 2: [texto falado — desenvolvimento]\",\"Fala 3: [texto falado — virada ou insight]\",\"Fala 4: [texto falado — CTA leve, convite à ação]\",\"📝 Legenda: [texto curto e natural + 3 a 5 hashtags relevantes]\",\"\",\"### CARROSSEL (Instagram Feed)\",\"Entregue UMA ÚNICA tabela Markdown com TODOS os carrosseis do lote, sem nenhum texto fora da tabela, com as colunas:\",\"| Data | Tema | Slide | Texto | Prompt de imagem |\",\"Regras: uma linha por slide, repetindo Data e Tema nas linhas do mesmo carrossel; slides Capa (1), 2, 3, 4, CTA (5); Capa com título curto e magnético (máx. 8 palavras) e CTA com chamada clara para ação; Prompt de imagem com direção de arte premium — estilo editorial minimalista e sofisticado, paleta da marca, um único elemento visual central, o MESMO estilo em todos os slides da série, sem texto na imagem (o texto é adicionado pela Fábrica); após os slides de cada carrossel, linha final com Slide = Legenda, Texto = legenda completa (gancho, desenvolvimento, CTA + 3 a 5 hashtags) e Prompt de imagem = —; sem quebras de linha dentro das células.\",\"\",\"### FEED — post único\",\"Repita o bloco para cada post de feed:\",\"🖼️ FEED — [Data] — [Tema]\",\"Headline da arte: [frase curta e visual — máx. 10 palavras, impacto imediato]\",\"Prompt de imagem: [descrição para IA: cena, estilo, paleta da marca, composição — sem texto na imagem]\",\"📝 Legenda: [mini-artigo: gancho forte → desenvolvimento → prova ou exemplo → CTA + 3 a 5 hashtags]\",\"\",\"### STORIES (Instagram)\",\"Fala direta, sem direção de cena; sequências de 3 a 5 stories por dia programado, sempre com interação no final. Repita o bloco para cada dia:\",\"📱 STORIES — [Data] — [Tema]\",\"Story 1: [gancho falado direto]\",\"Story 2: [desenvolvimento simples e claro]\",\"Story 3: [virada, insight ou exemplo prático]\",\"Story 4: [pergunta para enquete OU convite para caixinha]\",\"💡 Interação sugerida: [enquete / caixinha / reação]\"];\nlet sys = promptLines.join('\\n') + '\\n\\n## Planejamento estratégico do empreendimento\\n' + (d.contexto || '');\nif (d.grade) sys += '\\n\\n## Grade de postagens aprovada\\n' + d.grade;\nconst user = p.briefing\n  ? 'Gere UMA peça avulsa do formato ' + p.formato + ' com base neste direcionamento do empreendedor (a grade, se existir, é só referência de estilo): \"' + p.briefing + '\". Use a data de hoje no cabeçalho da peça.'\n  : 'Gere o lote completo do formato: ' + p.formato + ', cobrindo todos os dias desse formato na grade aprovada.';\nreturn [{ json: { messages: [{ role: 'system', content: sys }, { role: 'user', content: user }] } }];"
+      },
+      "id": "monta-pedido-pecas",
+      "name": "Monta pedido",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        1100,
+        640
+      ]
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "https://api.openai.com/v1/responses",
+        "authentication": "predefinedCredentialType",
+        "nodeCredentialType": "openAiApi",
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={{ JSON.stringify({ model: 'gpt-4.1', input: $json.messages, max_output_tokens: 8000 }) }}",
+        "options": {
+          "timeout": 180000
+        }
+      },
+      "id": "openai-pecas",
+      "name": "OpenAI",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        1320,
+        640
+      ],
+      "credentials": {
+        "openAiApi": {
+          "id": "SUBSTITUA_PELO_ID_DA_CREDENCIAL",
+          "name": "OpenAi account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "jsCode": "// Extrai o texto da Responses API (itens type=message > content > text)\nconst r = $input.first().json;\nconst conteudo = ((r.output || [])\n  .flatMap((item) => item.content || [])\n  .map((c) => c.text || '')\n  .join('').trim());\nif (!conteudo) throw new Error('A IA nao retornou a peca — tente novamente.');\nconst p = $('Prep pedido').first().json;\nconst hoje = new Date().toLocaleDateString('pt-BR');\nconst titulo = (p.briefing ? 'Avulsa — ' : '') + p.formato + ' — ' + hoje;\nreturn [{ json: { tipo: p.tipo, titulo, conteudo } }];"
+      },
+      "id": "extrai-peca",
+      "name": "Extrai peca",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        1540,
+        640
+      ]
+    },
+    {
+      "parameters": {
+        "operation": "executeQuery",
+        "query": "insert into pecas_geradas (tipo, titulo, conteudo) values ($1, $2, $3) returning id as peca_id;",
+        "options": {
+          "queryReplacement": "={{ $json.tipo }},{{ $json.titulo }},{{ $json.conteudo }}"
+        }
+      },
+      "id": "salva-peca",
+      "name": "Salva peca",
+      "type": "n8n-nodes-base.postgres",
+      "typeVersion": 2.4,
+      "position": [
+        1760,
+        640
+      ],
+      "credentials": {
+        "postgres": {
+          "id": "SUBSTITUA_PELO_ID_DA_CREDENCIAL",
+          "name": "Postgres negocio"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "p1",
+              "name": "peca_id",
+              "value": "={{ $json.peca_id }}",
+              "type": "number"
+            },
+            {
+              "id": "p2",
+              "name": "tipo",
+              "value": "={{ $('Extrai peca').first().json.tipo }}",
+              "type": "string"
+            },
+            {
+              "id": "p3",
+              "name": "titulo",
+              "value": "={{ $('Extrai peca').first().json.titulo }}",
+              "type": "string"
+            },
+            {
+              "id": "p4",
+              "name": "conteudo",
+              "value": "={{ $('Extrai peca').first().json.conteudo }}",
+              "type": "string"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "id": "responde-peca",
+      "name": "Responde",
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [
+        1980,
+        640
+      ]
+    }
+  ],
+  "connections": {
+    "Webhook Pecas": {
+      "main": [
+        [
+          {
+            "node": "Roteia acao",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Roteia acao": {
+      "main": [
+        [
+          {
+            "node": "Lista pecas",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Carrega peca",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Prep arte",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Prep pedido",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Prep arte": {
+      "main": [
+        [
+          {
+            "node": "Gera arte (IA)",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Gera arte (IA)": {
+      "main": [
+        [
+          {
+            "node": "Salva arte",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Salva arte": {
+      "main": [
+        [
+          {
+            "node": "Responde arte",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Prep pedido": {
+      "main": [
+        [
+          {
+            "node": "Carrega insumos",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Carrega insumos": {
+      "main": [
+        [
+          {
+            "node": "Monta pedido",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Monta pedido": {
+      "main": [
+        [
+          {
+            "node": "OpenAI",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "OpenAI": {
+      "main": [
+        [
+          {
+            "node": "Extrai peca",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Extrai peca": {
+      "main": [
+        [
+          {
+            "node": "Salva peca",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Salva peca": {
+      "main": [
+        [
+          {
+            "node": "Responde",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "pinData": {},
+  "settings": {
+    "executionOrder": "v1"
+  }
+}

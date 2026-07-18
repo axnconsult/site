@@ -1,0 +1,416 @@
+{
+  "name": "Conselho de IA",
+  "nodes": [
+    {
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "conselho",
+        "responseMode": "lastNode",
+        "options": {
+          "allowedOrigins": "*"
+        }
+      },
+      "id": "webhook-conselho",
+      "name": "Webhook Conselho",
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2,
+      "position": [
+        200,
+        400
+      ],
+      "webhookId": "conselho-webhook"
+    },
+    {
+      "parameters": {
+        "rules": {
+          "values": [
+            {
+              "conditions": {
+                "options": {
+                  "caseSensitive": true,
+                  "leftValue": "",
+                  "typeValidation": "loose"
+                },
+                "conditions": [
+                  {
+                    "leftValue": "={{ $json.body.action }}",
+                    "rightValue": "listar",
+                    "operator": {
+                      "type": "string",
+                      "operation": "equals"
+                    }
+                  }
+                ],
+                "combinator": "and"
+              },
+              "renameOutput": true,
+              "outputKey": "listar"
+            },
+            {
+              "conditions": {
+                "options": {
+                  "caseSensitive": true,
+                  "leftValue": "",
+                  "typeValidation": "loose"
+                },
+                "conditions": [
+                  {
+                    "leftValue": "={{ $json.body.action }}",
+                    "rightValue": "carregar",
+                    "operator": {
+                      "type": "string",
+                      "operation": "equals"
+                    }
+                  }
+                ],
+                "combinator": "and"
+              },
+              "renameOutput": true,
+              "outputKey": "carregar"
+            }
+          ]
+        },
+        "options": {
+          "fallbackOutput": "extra",
+          "renameFallbackOutput": "perguntar"
+        }
+      },
+      "id": "roteia-acao",
+      "name": "Roteia acao",
+      "type": "n8n-nodes-base.switch",
+      "typeVersion": 3.2,
+      "position": [
+        420,
+        400
+      ]
+    },
+    {
+      "parameters": {
+        "operation": "executeQuery",
+        "query": "create table if not exists conselho_contexto (id serial primary key, conteudo text, criado_em timestamptz default now());\ncreate table if not exists conselho_conversas (id serial primary key, titulo text, dominio text default 'conselho', criado_em timestamptz default now(), atualizado_em timestamptz default now());\nalter table conselho_conversas add column if not exists dominio text default 'conselho';\ncreate table if not exists conselho_mensagens (id serial primary key, conversa_id int, papel text, conteudo text, criado_em timestamptz default now());\ncreate table if not exists site_leads (id serial primary key, nome text, email text, whatsapp text, mensagem text, criado_em timestamptz default now());\ncreate table if not exists conversoes (id serial primary key, plataforma text, valor numeric, moeda text, email text, nome text, referencia text, criado_em timestamptz default now());\nselect coalesce(json_agg(json_build_object('id', id, 'titulo', titulo, 'atualizado_em', to_char(atualizado_em,'DD/MM HH24:MI')) order by atualizado_em desc), '[]'::json) as conversas from conselho_conversas where coalesce(dominio, 'conselho') = $1;",
+        "options": {
+          "queryReplacement": "={{ ['administracao','marketing','vendas'].includes(String($json.body.dominio || '').toLowerCase()) ? String($json.body.dominio).toLowerCase() : 'conselho' }}"
+        }
+      },
+      "id": "lista-conversas",
+      "name": "Lista conversas",
+      "type": "n8n-nodes-base.postgres",
+      "typeVersion": 2.4,
+      "position": [
+        660,
+        220
+      ],
+      "credentials": {
+        "postgres": {
+          "id": "SUBSTITUA_PELO_ID_DA_CREDENCIAL",
+          "name": "Postgres negocio"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "operation": "executeQuery",
+        "query": "create table if not exists conselho_contexto (id serial primary key, conteudo text, criado_em timestamptz default now());\ncreate table if not exists conselho_conversas (id serial primary key, titulo text, dominio text default 'conselho', criado_em timestamptz default now(), atualizado_em timestamptz default now());\nalter table conselho_conversas add column if not exists dominio text default 'conselho';\ncreate table if not exists conselho_mensagens (id serial primary key, conversa_id int, papel text, conteudo text, criado_em timestamptz default now());\ncreate table if not exists site_leads (id serial primary key, nome text, email text, whatsapp text, mensagem text, criado_em timestamptz default now());\ncreate table if not exists conversoes (id serial primary key, plataforma text, valor numeric, moeda text, email text, nome text, referencia text, criado_em timestamptz default now());\nselect coalesce(json_agg(json_build_object('papel', papel, 'conteudo', conteudo) order by id), '[]'::json) as mensagens from conselho_mensagens where conversa_id = $1;",
+        "options": {
+          "queryReplacement": "={{ $json.body.conversation_id }}"
+        }
+      },
+      "id": "carrega-mensagens",
+      "name": "Carrega mensagens",
+      "type": "n8n-nodes-base.postgres",
+      "typeVersion": 2.4,
+      "position": [
+        660,
+        400
+      ],
+      "credentials": {
+        "postgres": {
+          "id": "SUBSTITUA_PELO_ID_DA_CREDENCIAL",
+          "name": "Postgres negocio"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "jsCode": "const b = $input.first().json.body || {};\nconst pergunta = String(b.pergunta || '').trim();\nconst conversaId = Number(b.conversation_id || 0) || 0;\nconst titulo = pergunta.slice(0, 48) || 'Nova conversa';\nconst pedido = String(b.dominio || '').toLowerCase();\nconst dominio = ['administracao','marketing','vendas'].includes(pedido) ? pedido : 'conselho';\nreturn [{ json: { pergunta, conversaId, titulo, dominio } }];"
+      },
+      "id": "prep-pergunta",
+      "name": "Prep pergunta",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        660,
+        600
+      ]
+    },
+    {
+      "parameters": {
+        "operation": "executeQuery",
+        "query": "create table if not exists conselho_contexto (id serial primary key, conteudo text, criado_em timestamptz default now());\ncreate table if not exists conselho_conversas (id serial primary key, titulo text, dominio text default 'conselho', criado_em timestamptz default now(), atualizado_em timestamptz default now());\nalter table conselho_conversas add column if not exists dominio text default 'conselho';\ncreate table if not exists conselho_mensagens (id serial primary key, conversa_id int, papel text, conteudo text, criado_em timestamptz default now());\ncreate table if not exists site_leads (id serial primary key, nome text, email text, whatsapp text, mensagem text, criado_em timestamptz default now());\ncreate table if not exists conversoes (id serial primary key, plataforma text, valor numeric, moeda text, email text, nome text, referencia text, criado_em timestamptz default now());\nwith nova as (\n  insert into conselho_conversas (titulo, dominio) select $1, $4 where $2 = 0 returning id\n), cid as (\n  select coalesce((select id from nova), $2) as id\n), ins as (\n  insert into conselho_mensagens (conversa_id, papel, conteudo) select id, 'user', $3 from cid\n)\nselect id as conversa_id from cid;",
+        "options": {
+          "queryReplacement": "={{ $json.titulo }},{{ $json.conversaId }},{{ $json.pergunta }},{{ $json.dominio }}"
+        }
+      },
+      "id": "abre-conversa",
+      "name": "Abre conversa e salva pergunta",
+      "type": "n8n-nodes-base.postgres",
+      "typeVersion": 2.4,
+      "position": [
+        880,
+        600
+      ],
+      "credentials": {
+        "postgres": {
+          "id": "SUBSTITUA_PELO_ID_DA_CREDENCIAL",
+          "name": "Postgres negocio"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "operation": "executeQuery",
+        "query": "select\n  coalesce((select conteudo from conselho_contexto order by id desc limit 1), 'Contexto estrategico ainda nao cadastrado.') as contexto,\n  (select count(*) from site_leads) as total_leads,\n  (select count(*) from site_leads where criado_em > now() - interval '7 days') as leads_7d,\n  (select count(*) from conversoes where criado_em > now() - interval '7 days') as conversoes_7d,\n  coalesce((select json_agg(json_build_object('papel', papel, 'conteudo', conteudo) order by id) from conselho_mensagens where conversa_id = $1), '[]'::json) as historico;",
+        "options": {
+          "queryReplacement": "={{ $json.conversa_id }}"
+        }
+      },
+      "id": "carrega-contexto",
+      "name": "Carrega contexto e historico",
+      "type": "n8n-nodes-base.postgres",
+      "typeVersion": 2.4,
+      "position": [
+        1100,
+        600
+      ],
+      "credentials": {
+        "postgres": {
+          "id": "SUBSTITUA_PELO_ID_DA_CREDENCIAL",
+          "name": "Postgres negocio"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "jsCode": "const d = $input.first().json;\nconst historico = d.historico || [];\nconst dominio = $('Prep pergunta').first().json.dominio || 'conselho';\nconst personas = {\"conselho\":[\"Você é o Conselho de IA de o negócio — três conselheiros, um por domínio do negócio:\",\"- Administração: fluxo de caixa, precificação, capacidade de entrega, organização da operação.\",\"- Marketing: aquisição, conteúdo, tráfego, posicionamento e conversão.\",\"- Vendas: funil, follow-up de leads, atendimento, fechamento e recuperação.\",\"\",\"QUEM RESPONDE:\",\"- Se a pergunta cita um ou mais domínios pelo nome (Administração, Marketing, Vendas), APENAS os citados respondem.\",\"- Se nenhum domínio é citado, os três respondem.\",\"- A linha 'Recomendação do Conselho' só aparece quando os três participam OU quando o usuário pede uma recomendação/decisão. Com um ou dois conselheiros, encerre sem essa linha.\",\"\",\"Formato: cada conselheiro que responde começa com o domínio em negrito (ex.: **Administração**) e escreve 1-3 frases. Quando aplicável, feche com '**Recomendação do Conselho**: UMA ação prioritária e executável, com o porquê.'\"],\"administracao\":[\"Você é o Conselheiro de Administração de o negócio. Seu domínio: fluxo de caixa, precificação, capacidade de entrega, organização da operação e rotina do negócio.\",\"Você conhece o planejamento estratégico completo do negócio (fornecido no contexto) — use-o para responder com precisão sobre o que já foi definido.\",\"Responda sozinho, como especialista do seu domínio — sem simular outros conselheiros.\",\"Se a pergunta for claramente de outro domínio (marketing ou vendas), responda o que puder pelo ângulo da administração e sugira levar o tema à aba correspondente do painel.\"],\"marketing\":[\"Você é o Conselheiro de Marketing de o negócio. Seu domínio: aquisição, conteúdo e presença digital, tráfego, posicionamento e conversão.\",\"É nesta aba que o empreendedor gera a Grade de Postagens e as peças de divulgação — quando ele pedir, ajude a decidir temas, formatos e prioridades para o momento atual do negócio.\",\"Responda sozinho, como especialista do seu domínio — sem simular outros conselheiros.\",\"Se a pergunta for claramente de outro domínio (administração ou vendas), responda o que puder pelo ângulo do marketing e sugira levar o tema à aba correspondente do painel.\"],\"vendas\":[\"Você é o Conselheiro de Vendas de o negócio. Seu domínio: funil, follow-up de leads, atendimento, fechamento e recuperação de clientes.\",\"Use as MÉTRICAS fornecidas (leads e conversões) para ancorar a conversa nos resultados reais e discutir revisões de estratégia de vendas.\",\"Responda sozinho, como especialista do seu domínio — sem simular outros conselheiros.\",\"Se a pergunta for claramente de outro domínio (administração ou marketing), responda o que puder pelo ângulo de vendas e sugira levar o tema à aba correspondente do painel.\"]};\nconst regras = [\"\",\"Baseie-se no CONTEXTO ESTRATÉGICO e nas MÉTRICAS fornecidas — nunca invente números. Use o histórico da conversa para dar continuidade.\",\"Os conselheiros não têm nomes de pessoas — nunca invente nomes humanos para eles.\",\"Se faltar dado, diga o que medir e como coletar. Português, direto, sem jargões. Máximo ~250 palavras.\"];\nconst promptLines = (personas[dominio] || personas.conselho).concat(regras);\nconst sys = promptLines.join('\\n')\n  + '\\n\\n## Contexto estrategico do negocio\\n' + (d.contexto || '')\n  + '\\n\\n## Metricas atuais\\n'\n  + 'Leads (total): ' + d.total_leads + ' | Leads 7 dias: ' + d.leads_7d + ' | Conversoes 7 dias: ' + d.conversoes_7d;\nconst messages = [{ role: 'system', content: sys }];\nfor (const m of historico) {\n  messages.push({ role: m.papel === 'assistant' ? 'assistant' : 'user', content: m.conteudo });\n}\nreturn [{ json: { model: 'gpt-4o', messages } }];"
+      },
+      "id": "monta-mensagens",
+      "name": "Monta mensagens",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        1320,
+        600
+      ]
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "https://api.openai.com/v1/responses",
+        "authentication": "predefinedCredentialType",
+        "nodeCredentialType": "openAiApi",
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={{ JSON.stringify({ model: $json.model, input: $json.messages }) }}",
+        "options": {}
+      },
+      "id": "openai",
+      "name": "OpenAI",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        1540,
+        600
+      ],
+      "credentials": {
+        "openAiApi": {
+          "id": "SUBSTITUA_PELO_ID_DA_CREDENCIAL",
+          "name": "OpenAi account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "jsCode": "// Extrai o texto da Responses API (itens type=message > content > text)\nconst r = $input.first().json;\nconst resposta = ((r.output || [])\n  .flatMap((item) => item.content || [])\n  .map((c) => c.text || '')\n  .join('').trim()) || 'Nao consegui responder agora. Tente novamente.';\nconst conversaId = $('Abre conversa e salva pergunta').first().json.conversa_id;\nreturn [{ json: { resposta, conversa_id: conversaId } }];"
+      },
+      "id": "extrai-resposta",
+      "name": "Extrai resposta",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        1760,
+        600
+      ]
+    },
+    {
+      "parameters": {
+        "operation": "executeQuery",
+        "query": "insert into conselho_mensagens (conversa_id, papel, conteudo) values ($1, 'assistant', $2);\nupdate conselho_conversas set atualizado_em = now() where id = $1;",
+        "options": {
+          "queryReplacement": "={{ $json.conversa_id }},{{ $json.resposta }}"
+        }
+      },
+      "id": "salva-resposta",
+      "name": "Salva resposta",
+      "type": "n8n-nodes-base.postgres",
+      "typeVersion": 2.4,
+      "position": [
+        1980,
+        600
+      ],
+      "credentials": {
+        "postgres": {
+          "id": "SUBSTITUA_PELO_ID_DA_CREDENCIAL",
+          "name": "Postgres negocio"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "r1",
+              "name": "resposta",
+              "value": "={{ $('Extrai resposta').first().json.resposta }}",
+              "type": "string"
+            },
+            {
+              "id": "r2",
+              "name": "conversation_id",
+              "value": "={{ $('Extrai resposta').first().json.conversa_id }}",
+              "type": "number"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "id": "responde",
+      "name": "Responde",
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [
+        2200,
+        600
+      ]
+    }
+  ],
+  "connections": {
+    "Webhook Conselho": {
+      "main": [
+        [
+          {
+            "node": "Roteia acao",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Roteia acao": {
+      "main": [
+        [
+          {
+            "node": "Lista conversas",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Carrega mensagens",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Prep pergunta",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Prep pergunta": {
+      "main": [
+        [
+          {
+            "node": "Abre conversa e salva pergunta",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Abre conversa e salva pergunta": {
+      "main": [
+        [
+          {
+            "node": "Carrega contexto e historico",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Carrega contexto e historico": {
+      "main": [
+        [
+          {
+            "node": "Monta mensagens",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Monta mensagens": {
+      "main": [
+        [
+          {
+            "node": "OpenAI",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "OpenAI": {
+      "main": [
+        [
+          {
+            "node": "Extrai resposta",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Extrai resposta": {
+      "main": [
+        [
+          {
+            "node": "Salva resposta",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Salva resposta": {
+      "main": [
+        [
+          {
+            "node": "Responde",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "pinData": {},
+  "settings": {
+    "executionOrder": "v1"
+  }
+}

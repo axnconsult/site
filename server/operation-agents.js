@@ -684,7 +684,7 @@ async function reviewBusinessHypothesis({ thread, userMessage, answer, transferB
     "Sua funcao e revisar a entrevista inteira e a entrega proposta e decidir se a hipotese esta pronta.",
     "",
     "Aprove somente se as tres condicoes forem verdadeiras:",
-    "1. A hipotese e economicamente viavel: a entrevista cita sinais concretos de mercado (concorrentes vendendo, categoria compravel, tickets praticados, disposicao de pagamento).",
+    "1. A hipotese tem mercado comprador: a entrevista cita sinais concretos (concorrentes vendendo, categoria compravel, demanda visivel). NAO exija ticket, preco, faturamento ou modelo financeiro — precificacao pertence a outra etapa da jornada.",
     "2. A hipotese conecta com competencia ou interesse real do aluno que apareceu na entrevista — nao e uma ideia genericamente boa para outra pessoa.",
     "3. A hipotese e operacional e testavel por um iniciante, nao ampla ou vaga demais.",
     "",

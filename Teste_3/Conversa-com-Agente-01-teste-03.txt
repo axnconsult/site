@@ -1,0 +1,187 @@
+Axon
+Vamos começar pelo fundamento do seu negócio. Me conta: quais são as habilidades, experiências ou interesses que você já tem e que poderiam virar uma fonte de renda?
+
+Voce
+Já tenho uma ideia pronta! Percebo a necessidade de pessoas que querem empreender, ou já tem um pequeno negócio (local, ou digital) de terem apoio qualificado nos setores Administrativo, de marketing e vendas.
+Pela minha pesquisa, as soluções existentes que encontrei são cursos como EMPRETEC, ou similares, ou infoprodutos "milagrosos". Os cursos tradicionais ainda são baseados em uma lógica "antiga". Fiz o EMPRETEC, do SEBRAE, há uns anos e o percebi como o melhor deles porque toca em pontos importantes da administração e marketing, mas foca na aplicação desses conceitos. Já os infoprodutos, comprei e fiz alguns, mas são cheios de conceitos errados e parecem ter um conteúdo "infinito" pra justificar o investimento alto que o aluno precisa fazer pra adquirí-los.
+Então montei o "Deploy". Uma implementação online e ao vivo, comigo (sem estagiário pra guiar os alunos), com 5 aulas de 2h para ajudar esse público a montar uma stack que os dê autonomia no empreendimento e independência e economia em relação a plataformas de SaaS.
+Baseado do conceito de Areté e do Ikigai, quero ajudar os empreendedores a focarem na sua habilidade e terem Agentes de IA e Automações para construir sua stack, criar agentes de atendimento/vendas, agentes de apoio com administração, marketing e vendas, e conectar os serviços necessários para que seu negócio tenha uma estrutura consistente de divulgação, atendimento, vendas e apoio administrativo, tudo online.
+Já até desenvolvi um símbolo e uma logo, mas ainda não comecei a divulgação. Tenho o "algoritmo" do "curso" (e aí explico que coloco curso entre aspas, porque digo que não fiz um curso, fiz uma implementação), todo conteúdo pronto, mas preciso entender se é um negócio válido (ou se estou viajando), e começar a minha divulgação.
+📎 Marca Axon Consult.png, Simbolo Axon.png
+
+Axon
+Ótima base, o Deploy já está bem mais concreto do que “uma ideia”. Vamos validar se isso fica de pé como negócio mesmo.
+
+Antes de olhar mercado e concorrência, eu preciso entender um pouco de você e das suas condições práticas, pra encaixar o modelo certo:
+
+1. Hoje, quanto tempo por semana você realmente consegue dedicar ao Deploy (fora seu trabalho atual/compromissos)?
+2. Qual é a meta financeira que faria esse negócio “valer a pena” pra você nos próximos 6–12 meses? (ex.: R$ 2k/mês extra, R$ 10k/mês como principal renda, outro número…)
+
+Com isso eu consigo avaliar melhor se o formato de 5 aulas ao vivo, com você 100% presente, fecha conta como negócio ou se vamos precisar ajustar o modelo (turmas, ticket, recorrência etc.) pra ficar viável.
+
+Voce
+1. Dedicação total. Até 10h por dia, todo dia (inclusive sábados e domingos)
+2. Quero que ele tenha um valor justo. Particularmente preciso de, no mínimo, R$ 24.000,00 pra passar os meses.
+
+obs: além da implementação online e ao vivo, depois que validar o negócio, pretendo lançar uma versão igualzinha, mas com vídeos guiando os usuários no passo a passo. Vendo essa versão gravada mais barato, mas pretendo ganhar no volume.
+
+Axon
+Perfeito, isso ajuda muito: você tem tempo de sobra pra se dedicar e uma meta financeira clara.
+
+Pelas suas respostas, já tenho o contexto mínimo pra começar a modelar, mas antes quero só afinar dois pontos que impactam direto no formato e no ticket:
+
+1. Hoje, qual é a sua experiência prática em: (a) administração de pequenos negócios, (b) marketing digital, (c) vendas? Pode citar coisas concretas que você já fez (ex.: geriu empresa X, rodou campanhas, atendeu clientes, implantou automações etc.).
+2. Sobre o Deploy ao vivo: você imagina turmas com quantas pessoas por vez? E, na sua cabeça hoje, qual seria um preço “justo” que você ACHA que esse público pagaria por 5 encontros de 2h + implementação da stack com IA e automações?
+
+Com isso eu já parto pra desenhar 1–3 hipóteses de modelo de negócio em cima do Deploy (incluindo a versão gravada em escala) e vou checar sinais de mercado pra te dizer se você está viajando ou se tem negócio mesmo aí — e em qual formato parece mais viável.
+
+Voce
+1a. Tenho 50 anos e já tive agencia de publicidade, consultoria de comunicação, e uma unidade franqueada de Ginástica para o Cérebro (além de outras experiências). Me garanto ;-)
+1b. Tive alguma experiência quando tinha a franquia. Fazia minha divulgação no Instagram e os impulsionamentos (Meta/Google). Minha experiência com publicidade é antiga (me formei e comecei a atuar no final do milênio passado 😂), mas me atualizei ao longo dos anos.
+1c. Já tive que prospectar e atender grandes empresas regionais no Distrito Federal (Grupo Jorlan de Concessionárias, Agropecuária Palma, e muitos outros) e já tive que contratar, treinar e administrar minha dupla de vendedores na Franquia. Além de ter que, eu mesmo, ser o vendedor quando estava com pouca mão de obra.
+
+Axon
+Sua bagagem é bem forte pra sustentar esse tipo de oferta, ótimo – não é teoria vazia.
+
+Vou caminhar agora pra transformar o Deploy em uma hipótese de negócio bem clara e comparar com 1–2 variações possíveis (por exemplo: turma enxuta premium vs. turma maior com ticket mais baixo vs. versão gravada em escala).
+
+Pra eu calibrar ticket e formato, preciso só fechar melhor a imagem do cliente e o seu “limite psicológico” de preço:
+
+1. Quando você pensa no Deploy hoje, quem você enxerga mais claramente usando e pagando? Por exemplo: dono de pequeno negócio local sem equipe, infoprodutor iniciante, prestador de serviço autônomo (médico, terapeuta, advogado etc.), ou outro perfil? Se puder, descreve 1–2 exemplos bem concretos de pessoas reais que você já atendeu ou conhece e que seriam a cara do Deploy.
+2. Imaginando uma primeira turma ao vivo, com você acompanhando de perto: qual seria o MÁXIMO que você conseguiria falar em voz alta, sem travar, na hora de vender (por pessoa pelos 5 encontros)? E qual seria um valor que já começaria a te incomodar por achar que está barato demais pelo que você entrega?
+
+Com isso, na próxima resposta já te trago 2 ou 3 modelos de negócio em cima do Deploy, com leitura de viabilidade e caminhos de monetização, pra você escolher qual faz mais sentido apostar primeiro.
+
+Voce
+1. dono de pequeno negócio local sem equipe, infoprodutor iniciante, prestador de serviço autônomo. Como disse, ainda não comecei, mas posso imaginar, por exemplo, uma doceira que faz brigadeiros e vende em padarias ou na porta de escolas e não consegue escalar porque não tem divulgação e "perde tempo" vendendo, ao invés de se focar em fazer os doces e melhorar nesse ofício. Ou um veterinário que TEM que passar muito tempo atendendo os animais e não consegue fazer sua divulgação.
+2. Sou proficiente em aulas e apresentações. Já fui professor universitário de publicidade e na franquia dava aulas também. Na pandemia de Covid ganhei a experiência de dar aulas online. Quero que as turmas sejam de, no máximo, 8 pessoas. Mas no início topo até dar aula individual. Sobre o preço, realmente não sei avaliar.
+
+Axon
+Ficou bem claro o tipo de pessoa que você quer ajudar, e sua experiência como professor/aula ao vivo encaixa perfeitamente com o formato do Deploy.
+
+Vamos começar a transformar isso em número para ver se fecha conta como negócio.
+
+Supondo um cenário bem pé no chão pros primeiros 6 meses:
+- Meta mínima: R$ 24.000 em 6 meses ≈ R$ 4.000/mês.
+- Turmas de até 8 pessoas, 5 encontros de 2h (10h ao vivo por turma, fora preparação).
+
+Se você tivesse, por exemplo, 1 turma cheia de 8 pessoas por mês, a conta do ticket médio ficaria assim:
+- R$ 4.000/mês ÷ 8 alunos ≈ R$ 500 por pessoa.
+
+Ou seja: se você conseguir encher 1 turma/mês, qualquer ticket acima de ~R$ 500 começa a te colocar acima do mínimo que você precisa (especialmente se conseguir 2 turmas em algum mês).
+
+Pra eu afinar os modelos de negócio que vou te propor (e aí sim fazer checagem de mercado e concorrência), quero só alinhar duas coisas rápidas:
+
+1. Olhando para esse público (doceira de brigadeiro, vet, autônomo local etc.), um valor na faixa de R$ 500 a R$ 1.000 por 5 encontros de 2h + implementação prática da stack de IA e automações te soa mais como:
+   - A) caro demais pra maioria deles,
+   - B) apertado mas possível se eu souber vender bem o valor,
+   - C) tranquilo, dá pra defender fácil se eu mostrar resultado.
+2. Sobre a versão gravada no futuro: você imagina ela mais como
+   - A) um produto de entrada baratinho (tipo R$ 97–197) pra volume,
+   - B) um curso robusto (R$ 300–600) com bastante suporte assíncrono (comunidade, materiais, templates),
+   pensando no que você pessoalmente teria energia de manter?
+
+Com essas duas respostas eu já te trago, na próxima mensagem, 2 ou 3 hipóteses de modelo de negócio em cima do Deploy (ao vivo premium, ao vivo “turma cheia” e gravado em escala), com leitura de viabilidade e prós/contras pra você escolher a principal pra gente validar.
+
+Voce
+1. até muito barato. Vejo cursos de mais de R$30.000,00 sendo vendido pelos gurus do Infoproduto (eles chamam de high ticket). não acho que algo em torno de R$ 2.500,00 seja caro. Mas como disse antes: não sei.
+2. b
+
+Axon
+Ótimo, isso abre bem o leque de possibilidades.
+
+Vamos organizar em cima do que você trouxe:
+- Você não enxerga R$ 2.500,00 como caro para algo realmente transformador e aplicado.
+- Prefere que a versão gravada seja um curso mais robusto (R$ 300–600) com boa estrutura, não só “isca baratinha”.
+
+Pelo seu tempo disponível, experiência prática e perfil de cliente, vejo 3 caminhos de modelo de negócio em cima do Deploy (vou descrever em linguagem simples, depois você escolhe o que mais faz sentido pra ser o principal):
+
+**Hipótese 1 – Deploy ao vivo “high touch” (ticket mais alto, turma pequena)**  
+- Formato: 5 encontros ao vivo de 2h, turmas de 4 a 6 pessoas, bem mão na massa.  
+- Ticket sugerido de partida: faixa de R$ 1.500 a R$ 2.000 por pessoa.  
+  • Com 6 alunos a R$ 1.500 = R$ 9.000 por turma.  
+  • Mesmo com 4 alunos a R$ 1.500 = R$ 6.000 por turma.  
+- Meta de renda: se você fizer 1 turma/mês, já passa dos R$ 4.000/mês que precisa; 2 turmas/mês te colocam num patamar bem confortável.  
+- Sinais de mercado: há muita oferta de mentoria/imersão em negócio digital e automação com tickets de R$ 2.000–5.000, o que mostra que o mercado aceita valores assim para algo aplicado e com proximidade.
+- Prós:  
+  • Aproveita ao máximo sua experiência e “presença de sala”.  
+  • Menos alunos pra bater a meta.  
+- Contras:  
+  • Você vai precisar ser muito bom em comunicar o valor e escolher bem quem entra (não é para o microempreendedor muito descapitalizado).
+
+**Hipótese 2 – Deploy ao vivo “turma cheia acessível” (ticket médio, mais volume)**  
+- Formato: 5 encontros ao vivo de 2h, turmas de 8 pessoas (seu limite), com implementação guiada, talvez com alguns materiais de apoio para ganhar tempo.  
+- Ticket sugerido de partida: faixa de R$ 600 a R$ 900 por pessoa.  
+  • Com 8 alunos a R$ 700 ≈ R$ 5.600 por turma.  
+  • Com 8 alunos a R$ 900 ≈ R$ 7.200 por turma.  
+- Meta de renda: 1 turma/mês já bate a sua necessidade mínima (R$ 4.000/mês), e qualquer mês com 2 turmas te leva para R$ 10k+ de faturamento.  
+- Sinais de mercado: existe um mar de programas de “aceleração” e “formação empreendedora” de 500 a 2.000 reais, e ferramentas de automação/IA já são vendidas como ganho de produtividade — seu diferencial seria juntar isso com implementação real.
+- Prós:  
+  • Atinge mais facilmente a doceira, o vet, o autônomo que está começando.  
+  • Equilíbrio entre acessibilidade e boa renda por turma.  
+- Contras:  
+  • Depende mais de volume de alunos e um pouco mais de estrutura de suporte (materiais, cheklists etc.).
+
+**Hipótese 3 – Deploy gravado robusto + ao vivo como “premium upgrade”**  
+- Formato:  
+  • Curso gravado estruturado (R$ 300–600) com passo a passo para montar stack de IA + automações + templates.  
+  • Quem compra o gravado pode, em alguns momentos do ano, entrar numa turma ao vivo/mentoria de implementação por um adicional (ex.: mais R$ 1.000–1.500).  
+- Meta de renda:  
+  • Produto gravado vira esteira de caixa (venda constante).  
+  • O ao vivo vira pico de faturamento (turmas de implementação).  
+- Sinais de mercado: abundância de cursos gravados de IA para negócios, marketing, automação etc.; o que te diferencia é o recorte para pequeno negócio/autônomo e o mix com implementação.
+- Prós:  
+  • Mais escalável no médio prazo.  
+  • Você pode manter preço mais acessível na entrada e ganhar na recorrência / upgrades.  
+- Contras:  
+  • Exige esforço inicial grande de gravação e organização.  
+  • Renda dos primeiros meses pode depender muito do ao vivo, pois o gravado demora um pouco a tracionar.
+
+Pelo que você descreveu de tempo disponível, necessidade financeira e vontade de estar ao vivo, eu vejo o **Deploy ao vivo como carro-chefe inicial** (Hipótese 1 ou 2), com o gravado entrando como segunda etapa assim que provar o formato.
+
+Agora eu preciso que você faça uma escolha consciente, sem se preocupar em “errar”, porque a ideia aqui é escolher O TESTE principal, não a versão final da sua empresa:
+
+1. Entre essas três hipóteses, qual você sente que faz mais sentido ser o **foco principal nos próximos 3–6 meses**?  
+   - (1) Ao vivo high touch (ticket mais alto, turmas de 4–6),  
+   - (2) Ao vivo turma cheia acessível (até 8 pessoas, ticket médio),  
+   - (3) Gravado robusto + ao vivo como upgrade.  
+2. Tem algum ponto dessas opções que te gera dúvida ou trava (por exemplo: medo de não encher turma, medo de pedir um ticket mais alto, etc.) e que você gostaria de comentar antes de bater o martelo?
+
+Assim que você escolher uma, eu fecho essa hipótese de negócio como a principal e já deixo registrado o racional (por que ela faz sentido pra você e quais sinais de mercado sustentam essa escolha).
+
+Voce
+1.
+(2) Ao vivo turma cheia acessível (até 8 pessoas, ticket médio)
+2. gostei das opções. Vou focar do Deploy e, quando "estabilizar, começo com a gravação para viabilizar a alternativa gravada.
+
+Axon
+Perfeito, então vamos oficializar:
+
+Você escolheu trabalhar com o **Deploy ao vivo – turma cheia acessível (até 8 pessoas, ticket médio)** como foco principal dos próximos meses, e deixar a versão gravada como segunda etapa depois que o formato estiver validado e estável.
+
+Resumo da hipótese de negócio escolhida:
+- **O que você vende:** uma **implementação prática ao vivo, em grupo**, com 5 encontros de ~2h, para pequenos negócios e autônomos montarem uma **stack de IA + automações** que cuida de divulgação, atendimento, vendas e apoio administrativo, para que eles possam focar no próprio ofício.
+- **Formato:** turmas online de até 8 pessoas, com você conduzindo pessoalmente (sem estagiário), bem mão na massa, focado em sair com coisas prontas funcionando.
+- **Posicionamento:** não é “curso teórico” e nem infoproduto milagroso; é **implementação guiada**, para dono de pequeno negócio, infoprodutor iniciante e prestador de serviço autônomo que quer organizar e automatizar o negócio.
+- **Modelo de receita:** ticket **médio** por aluno (tendência de faixa ~R$ 600–900 para começar a testar), com objetivo de **encher 1 turma/mês** (até 8 pessoas). Isso já é suficiente para bater sua necessidade mínima de renda mensal, e qualquer mês com 2 turmas leva o faturamento pra cima dos R$ 10k.
+- **Escalada futura:** depois de estabilizar o formato ao vivo, você pretende criar uma **versão gravada robusta** do Deploy, vendida a um ticket mais baixo (curso estruturado com suporte assíncrono), usando o ao vivo como produto principal/premium e o gravado como esteira de entrada ou complemento.
+
+Por que essa hipótese faz sentido para você:
+- Aproveita diretamente sua **experiência real**: gestão de pequenos negócios, marketing, vendas, docência presencial e online, consultoria e condução de grupos.
+- Combina com seu perfil de gostar de **estar ao vivo** e acompanhar de perto, sem depender só de conteúdo gravado.
+- Usa bem o seu tempo disponível (até 10 horas por dia), permitindo preparar, entregar as turmas e ainda cuidar de divulgação.
+
+Sinais de mercado que sustentam essa hipótese:
+- Já existe **demanda clara** por formação/aprendizado em empreendedorismo, marketing e vendas (SEBRAE, Empretec, formações similares), o que mostra que donos de pequenos negócios **pagam** por orientação para estruturar o negócio.
+- O mercado de **mentorias, imersões e programas de aceleração** para pequenos negócios e infoprodutores é forte, com tickets de centenas a alguns milhares de reais por pessoa, indicando que um programa aplicado, com implementação em grupo, é um formato **comercialmente aceito**.
+- Há crescente interesse em **IA e automação** para pequenos negócios, mas a maioria das ofertas é ou muito genérica/tecnicista, ou muito focada em “guru de lançamento”; há espaço para um programa **pé no chão, voltado ao pequeno empreendedor real**, que quer usar IA e automações para ganhar tempo e organizar o básico.
+
+Próximos passos da jornada (que o próximo agente vai trabalhar com você):
+- Detalhar melhor **quem é o público-alvo mais provável** (entre doceira, vet, prestador de serviço, infoprodutor iniciante etc.).
+- Refinar o posicionamento e promessa do Deploy para esse público específico.
+
+Por enquanto, o mais importante está feito: temos uma hipótese de negócio **clara, monetizável e conectada com a sua experiência**, com sinais concretos de que existe mercado disposto a pagar.
+
+Na próxima etapa, vamos mergulhar em **quem é exatamente esse cliente ideal do Deploy** para você vender com mais precisão e segurança.
+
+✅ Revisão independente: Sua hipótese está pronta para testar. Você tem experiência real em gestão, marketing e vendas de pequenos negócios, conhece bem o público que quer atingir (doceira, veterinário, autônomo), e há sinais claros de mercado de que esse público paga por formação prática em negócio — o SEBRAE, Empretec e mentorias similares já provam isso. O modelo de 1 turma de 8 pessoas por mês a um ticket médio (R$ 600–900) fecha as contas que você precisa. Comece a testar com a primeira turma e valide se consegue vender e se o formato entrega resultado; depois evolui para a versão gravada.

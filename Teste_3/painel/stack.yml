@@ -1,0 +1,24 @@
+version: "3.8"
+
+services:
+  gestao:
+    image: nginx:alpine
+    volumes:
+      - /opt/stacks/gestao/html:/usr/share/nginx/html:ro
+    networks:
+      - network_swarm_public
+    deploy:
+      replicas: 1
+      labels:
+        - traefik.enable=true
+        - traefik.http.routers.gestao.rule=Host(`gestao.axnconsult.com`)
+        - traefik.http.routers.gestao.entrypoints=websecure
+        - traefik.http.routers.gestao.tls.certresolver=letsencryptresolver
+        - traefik.http.routers.gestao.middlewares=gestao-auth
+        # $ escapado para $$ — o docker stack deploy interpola a variavel antes do Traefik ler
+        - traefik.http.middlewares.gestao-auth.basicauth.users=axncom:$$2y$$05$$T1bswcfX7B4y6/ACPH1jjOU0s9Kk/D9BXE6in9r7LPwdbbWUbGsb2
+        - traefik.http.services.gestao.loadbalancer.server.port=80
+
+networks:
+  network_swarm_public:
+    external: true

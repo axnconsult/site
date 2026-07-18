@@ -1,0 +1,21 @@
+version: "3.8"
+
+services:
+  site:
+    image: nginx:alpine
+    volumes:
+      - /opt/stacks/site-negocio/html:/usr/share/nginx/html:ro
+    networks:
+      - network_swarm_public
+    deploy:
+      replicas: 1
+      labels:
+        - traefik.enable=true
+        - traefik.http.routers.site-negocio.rule=Host(`axnconsult.com`) || Host(`www.axnconsult.com`)
+        - traefik.http.routers.site-negocio.entrypoints=websecure
+        - traefik.http.routers.site-negocio.tls.certresolver=letsencryptresolver
+        - traefik.http.services.site-negocio.loadbalancer.server.port=80
+
+networks:
+  network_swarm_public:
+    external: true

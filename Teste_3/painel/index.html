@@ -1,0 +1,278 @@
+<!DOCTYPE html>
+<html lang="pt-BR" data-tema="claro">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="robots" content="noindex, nofollow">
+<title>Deploy — Painel de Gestão</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600;700&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="styles.css">
+<link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'><rect width='32' height='32' rx='7' fill='%230F3B57'/><text x='16' y='23' font-size='19' font-family='Poppins,sans-serif' font-weight='700' text-anchor='middle' fill='%23FFC857'>D</text></svg>">
+</head>
+<body>
+
+<header class="topo">
+  <div class="marca">
+    <span class="marca-nome">Deploy</span>
+    <span class="marca-sub">Painel de Gestão</span>
+  </div>
+
+  <nav class="abas" role="tablist" aria-label="Seções do painel">
+    <button class="aba" role="tab" data-aba="administracao" id="tab-administracao" aria-controls="painel-administracao" aria-selected="true">Administração</button>
+    <button class="aba" role="tab" data-aba="marketing" id="tab-marketing" aria-controls="painel-marketing" aria-selected="false">Marketing</button>
+    <button class="aba" role="tab" data-aba="vendas" id="tab-vendas" aria-controls="painel-vendas" aria-selected="false">Vendas</button>
+  </nav>
+
+  <button class="btn-tema" id="btn-tema" aria-label="Alternar tema claro/escuro" title="Alternar tema">
+    <span class="icone-tema" aria-hidden="true"></span>
+  </button>
+</header>
+
+<main class="conteudo">
+
+  <!-- ================= ADMINISTRAÇÃO ================= -->
+  <section class="painel" id="painel-administracao" role="tabpanel" aria-labelledby="tab-administracao">
+
+    <div class="metricas">
+      <article class="card-metrica">
+        <span class="metrica-icone" aria-hidden="true">👥</span>
+        <div>
+          <p class="metrica-rotulo">Total de leads</p>
+          <p class="metrica-valor" data-metrica="total_leads">—</p>
+        </div>
+      </article>
+      <article class="card-metrica">
+        <span class="metrica-icone" aria-hidden="true">📈</span>
+        <div>
+          <p class="metrica-rotulo">Leads (7 dias)</p>
+          <p class="metrica-valor" data-metrica="leads_7d">—</p>
+        </div>
+      </article>
+      <article class="card-metrica destaque-verde">
+        <span class="metrica-icone" aria-hidden="true">✅</span>
+        <div>
+          <p class="metrica-rotulo">Conversões (7 dias)</p>
+          <p class="metrica-valor" data-metrica="conversoes_7d">—</p>
+        </div>
+      </article>
+    </div>
+
+    <section class="bloco">
+      <h2 class="bloco-titulo">Conselheiro de Administração</h2>
+      <div class="chat-slot" data-dominio="administracao" data-placeholder="Pergunte sobre operação, processos, finanças..."></div>
+    </section>
+
+  </section>
+
+  <!-- ================= MARKETING ================= -->
+  <section class="painel" id="painel-marketing" role="tabpanel" aria-labelledby="tab-marketing" hidden>
+
+    <!-- ---- Grade de postagens ---- -->
+    <section class="bloco" id="bloco-grade">
+      <div class="bloco-cabecalho">
+        <h2 class="bloco-titulo">Grade de Postagens</h2>
+        <span class="selo" id="grade-selo" hidden></span>
+      </div>
+      <p class="bloco-apoio" id="grade-data" hidden></p>
+
+      <div id="grade-carregando" class="estado-carregando">Carregando a grade...</div>
+
+      <!-- estado vazio -->
+      <div id="grade-vazia" hidden>
+        <div class="estado-vazio">
+          <p class="estado-vazio-titulo">Você ainda não tem uma grade de postagens.</p>
+          <p class="estado-vazio-texto">Gere um plano de 28 dias com temas, formatos e frequência — sem roteiros, só a estratégia.</p>
+        </div>
+        <label class="rotulo" for="grade-orientacoes">Direcionamento (opcional)</label>
+        <textarea id="grade-orientacoes" class="campo" rows="3" placeholder="Ex.: focar em captação de leads no Instagram, evitar temas de bastidores..."></textarea>
+        <button class="btn btn-primario" id="btn-gerar-grade">Gerar grade de 28 dias</button>
+      </div>
+
+      <!-- grade carregada -->
+      <div id="grade-conteudo-wrap" hidden>
+        <div class="markdown" id="grade-conteudo"></div>
+
+        <!-- ações quando status = proposta -->
+        <div id="grade-acoes-proposta" hidden>
+          <label class="rotulo" for="grade-feedback">O que você quer ajustar?</label>
+          <textarea id="grade-feedback" class="campo" rows="3" placeholder="Ex.: menos posts por semana, mais conteúdo educativo, trocar os temas da semana 3..."></textarea>
+          <div class="linha-botoes">
+            <button class="btn btn-secundario" id="btn-ajustar-grade">Pedir ajuste</button>
+            <button class="btn btn-aprovar" id="btn-aprovar-grade">Aprovar grade</button>
+            <button class="btn btn-fantasma" id="btn-zero-grade">Gerar do zero</button>
+          </div>
+        </div>
+
+        <!-- ações quando status = aprovada -->
+        <div id="grade-acoes-aprovada" class="linha-botoes" hidden>
+          <button class="btn btn-fantasma" id="btn-nova-grade">Gerar nova grade</button>
+        </div>
+      </div>
+
+      <p class="alerta" id="grade-erro" hidden></p>
+    </section>
+
+    <!-- ---- Peças de divulgação ---- -->
+    <section class="bloco" id="bloco-pecas">
+      <h2 class="bloco-titulo">Peças de divulgação</h2>
+      <p class="bloco-apoio">Gere as peças da grade aprovada, um formato por vez.</p>
+
+      <div class="grade-formatos">
+        <button class="btn btn-formato" data-tipo="reels">🎬 Reels/Shorts</button>
+        <button class="btn btn-formato" data-tipo="carrossel">🖼️ Carrossel</button>
+        <button class="btn btn-formato" data-tipo="feed">📷 Post de feed</button>
+        <button class="btn btn-formato" data-tipo="stories">📱 Stories</button>
+      </div>
+
+      <div class="sub-bloco">
+        <h3 class="sub-titulo">Peça avulsa</h3>
+        <textarea id="peca-briefing" class="campo" rows="3" placeholder="Descreva a peça que você quer (tema, objetivo, chamada...)"></textarea>
+        <div class="linha-botoes">
+          <label class="rotulo-inline" for="peca-formato">Formato</label>
+          <select id="peca-formato" class="campo campo-select">
+            <option value="reels">🎬 Reels/Shorts</option>
+            <option value="carrossel">🖼️ Carrossel</option>
+            <option value="feed">📷 Post de feed</option>
+            <option value="stories">📱 Stories</option>
+          </select>
+          <button class="btn btn-primario" id="btn-peca-avulsa">Gerar peça avulsa</button>
+        </div>
+      </div>
+
+      <p class="estado-carregando" id="pecas-carregando" hidden>Escrevendo suas peças...</p>
+      <p class="alerta" id="pecas-erro" hidden></p>
+
+      <!-- resultado -->
+      <article class="resultado" id="peca-resultado" hidden>
+        <div class="resultado-cabecalho">
+          <h3 class="resultado-titulo" id="peca-titulo"></h3>
+          <button class="btn btn-secundario btn-pequeno" id="btn-copiar-peca">Copiar conteúdo</button>
+        </div>
+        <div class="markdown" id="peca-conteudo"></div>
+        <img class="imagem-resultado" id="peca-imagem" alt="Arte da peça" hidden>
+      </article>
+
+      <div class="sub-bloco">
+        <h3 class="sub-titulo">Histórico</h3>
+        <ul class="historico" id="pecas-historico"></ul>
+      </div>
+    </section>
+
+    <!-- ---- Arte de post ---- -->
+    <section class="bloco" id="bloco-arte">
+      <h2 class="bloco-titulo">Arte de post</h2>
+
+      <label class="rotulo" for="arte-prompt">Prompt de imagem</label>
+      <textarea id="arte-prompt" class="campo" rows="3" placeholder="Ex.: mesa de escritório clean vista de cima, notebook aberto, luz natural, tons de azul petróleo"></textarea>
+
+      <label class="rotulo" for="arte-texto">Texto na arte (opcional)</label>
+      <textarea id="arte-texto" class="campo" rows="3" placeholder="Cole aqui o post de feed ou só a headline que deve aparecer na imagem"></textarea>
+
+      <p class="aviso-credito">⚠️ Consome crédito OpenAI (~US$ 0,25 por arte)</p>
+      <button class="btn btn-primario" id="btn-gerar-arte">Gerar arte</button>
+
+      <p class="estado-carregando" id="arte-carregando" hidden>Desenhando sua arte... isso leva de 1 a 3 minutos.</p>
+      <p class="alerta" id="arte-erro" hidden></p>
+
+      <article class="resultado" id="arte-resultado" hidden>
+        <div class="resultado-cabecalho">
+          <h3 class="resultado-titulo" id="arte-titulo"></h3>
+          <button class="btn btn-secundario btn-pequeno" id="btn-baixar-arte">Baixar imagem</button>
+        </div>
+        <img class="imagem-resultado" id="arte-imagem" alt="Arte gerada">
+      </article>
+    </section>
+
+    <!-- ---- Fábricas ---- -->
+    <div class="fabricas">
+      <section class="bloco card-fabrica" id="bloco-fabrica-videos">
+        <h2 class="bloco-titulo">🎬 Fábrica de Vídeos</h2>
+        <p class="bloco-apoio">Cole um roteiro de Reels e receba o vídeo pronto no WhatsApp.</p>
+        <textarea id="fab-video-texto" class="campo campo-mono" rows="6" placeholder="Gancho: ...&#10;Desenvolvimento: ...&#10;CTA: ..."></textarea>
+        <p class="aviso-credito">⚠️ Cada envio consome ~US$ 1 do seu crédito HeyGen</p>
+        <button class="btn btn-primario" id="btn-fab-video" disabled>Gerar vídeo</button>
+        <p class="retorno" id="fab-video-retorno" hidden></p>
+      </section>
+
+      <section class="bloco card-fabrica" id="bloco-fabrica-carrosseis">
+        <h2 class="bloco-titulo">🖼️ Fábrica de Carrosséis</h2>
+        <p class="bloco-apoio">Cole as linhas de UM carrossel e receba as artes prontas no WhatsApp.</p>
+        <textarea id="fab-carrossel-texto" class="campo campo-mono" rows="6" placeholder="Capa: ...&#10;Slide 2: ...&#10;Slide 3: ...&#10;CTA: ..."></textarea>
+        <p class="aviso-credito">⚠️ Cada envio consome ~US$ 1 do seu crédito OpenAI</p>
+        <button class="btn btn-primario" id="btn-fab-carrossel" disabled>Gerar carrossel</button>
+        <p class="retorno" id="fab-carrossel-retorno" hidden></p>
+      </section>
+    </div>
+
+    <section class="bloco">
+      <h2 class="bloco-titulo">Conselheiro de Marketing</h2>
+      <div class="chat-slot" data-dominio="marketing" data-placeholder="Pergunte sobre conteúdo, canais, posicionamento..."></div>
+    </section>
+
+  </section>
+
+  <!-- ================= VENDAS ================= -->
+  <section class="painel" id="painel-vendas" role="tabpanel" aria-labelledby="tab-vendas" hidden>
+
+    <div class="metricas metricas-duas">
+      <article class="card-metrica">
+        <span class="metrica-icone" aria-hidden="true">📈</span>
+        <div>
+          <p class="metrica-rotulo">Leads (7 dias)</p>
+          <p class="metrica-valor" data-metrica="leads_7d">—</p>
+        </div>
+      </article>
+      <article class="card-metrica destaque-verde">
+        <span class="metrica-icone" aria-hidden="true">✅</span>
+        <div>
+          <p class="metrica-rotulo">Conversões (7 dias)</p>
+          <p class="metrica-valor" data-metrica="conversoes_7d">—</p>
+        </div>
+      </article>
+    </div>
+
+    <section class="bloco">
+      <h2 class="bloco-titulo">Últimos leads</h2>
+      <div class="tabela-rolagem">
+        <table class="tabela">
+          <thead>
+            <tr><th>Nome</th><th>E-mail</th><th>WhatsApp</th><th>Mensagem</th><th>Data</th></tr>
+          </thead>
+          <tbody id="tabela-leads">
+            <tr><td colspan="5" class="tabela-vazia">Carregando...</td></tr>
+          </tbody>
+        </table>
+      </div>
+    </section>
+
+    <section class="bloco">
+      <h2 class="bloco-titulo">Conselheiro de Vendas</h2>
+      <div class="chat-slot" data-dominio="vendas" data-placeholder="Pergunte sobre funil, follow-up, objeções..."></div>
+    </section>
+
+  </section>
+
+</main>
+
+<!-- Molde reaproveitado pelos 3 conselheiros -->
+<template id="molde-chat">
+  <div class="chat">
+    <aside class="chat-lateral">
+      <button class="btn btn-nova" type="button">+ Nova conversa</button>
+      <ul class="lista-conversas"></ul>
+    </aside>
+    <div class="chat-principal">
+      <div class="mensagens" aria-live="polite"></div>
+      <form class="chat-form">
+        <textarea class="campo chat-campo" rows="2" placeholder="Escreva sua pergunta..."></textarea>
+        <button class="btn btn-primario btn-enviar" type="submit">Enviar</button>
+      </form>
+    </div>
+  </div>
+</template>
+
+<script src="script.js"></script>
+</body>
+</html>

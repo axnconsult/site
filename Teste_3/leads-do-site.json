@@ -1,0 +1,88 @@
+{
+  "name": "Leads do Site",
+  "nodes": [
+    {
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "leads",
+        "responseMode": "onReceived",
+        "options": {
+          "allowedOrigins": "*"
+        }
+      },
+      "id": "webhook-leads",
+      "name": "Webhook Leads",
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2,
+      "position": [
+        240,
+        300
+      ],
+      "webhookId": "leads-webhook"
+    },
+    {
+      "parameters": {
+        "jsCode": "const b = $input.first().json.body || {};\nconst clean = (v) => String(v || '').trim().slice(0, 500);\nconst lead = { nome: clean(b.nome), email: clean(b.email), whatsapp: clean(b.whatsapp), mensagem: clean(b.mensagem) };\nif (!lead.nome && !lead.email && !lead.whatsapp) { return []; }\nreturn [{ json: lead }];"
+      },
+      "id": "valida-lead",
+      "name": "Valida lead",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        460,
+        300
+      ]
+    },
+    {
+      "parameters": {
+        "operation": "executeQuery",
+        "query": "create table if not exists site_leads (\n  id serial primary key,\n  nome text, email text, whatsapp text, mensagem text,\n  criado_em timestamptz default now()\n);\ninsert into site_leads (nome, email, whatsapp, mensagem)\nvalues ($1, $2, $3, $4);",
+        "options": {
+          "queryReplacement": "={{ $json.nome }},{{ $json.email }},{{ $json.whatsapp }},{{ $json.mensagem }}"
+        }
+      },
+      "id": "salvar-lead",
+      "name": "Salvar lead",
+      "type": "n8n-nodes-base.postgres",
+      "typeVersion": 2.4,
+      "position": [
+        680,
+        300
+      ],
+      "credentials": {
+        "postgres": {
+          "id": "SUBSTITUA_PELO_ID_DA_CREDENCIAL",
+          "name": "Postgres negocio"
+        }
+      }
+    }
+  ],
+  "connections": {
+    "Webhook Leads": {
+      "main": [
+        [
+          {
+            "node": "Valida lead",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Valida lead": {
+      "main": [
+        [
+          {
+            "node": "Salvar lead",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "pinData": {},
+  "settings": {
+    "executionOrder": "v1"
+  }
+}

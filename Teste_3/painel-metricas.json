@@ -1,0 +1,62 @@
+{
+  "name": "Painel - Metricas",
+  "nodes": [
+    {
+      "parameters": {
+        "httpMethod": "GET",
+        "path": "painel-metricas",
+        "responseMode": "lastNode",
+        "options": {
+          "allowedOrigins": "*"
+        }
+      },
+      "id": "webhook-metricas",
+      "name": "Webhook Metricas",
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2,
+      "position": [
+        240,
+        300
+      ],
+      "webhookId": "painel-metricas-webhook"
+    },
+    {
+      "parameters": {
+        "operation": "executeQuery",
+        "query": "create table if not exists site_leads (id serial primary key, nome text, email text, whatsapp text, mensagem text, criado_em timestamptz default now());\ncreate table if not exists conversoes (id serial primary key, plataforma text, valor numeric, moeda text, email text, nome text, referencia text, criado_em timestamptz default now());\nselect\n  (select count(*) from site_leads) as total_leads,\n  (select count(*) from site_leads where criado_em > now() - interval '7 days') as leads_7d,\n  (select count(*) from conversoes where criado_em > now() - interval '7 days') as conversoes_7d,\n  (select coalesce(json_agg(t), '[]'::json) from (\n    select nome, email, whatsapp, mensagem, to_char(criado_em, 'DD/MM/YYYY HH24:MI') as data\n    from site_leads order by criado_em desc limit 10\n  ) t) as ultimos;",
+        "options": {}
+      },
+      "id": "consulta-metricas",
+      "name": "Consulta metricas",
+      "type": "n8n-nodes-base.postgres",
+      "typeVersion": 2.4,
+      "position": [
+        460,
+        300
+      ],
+      "credentials": {
+        "postgres": {
+          "id": "SUBSTITUA_PELO_ID_DA_CREDENCIAL",
+          "name": "Postgres negocio"
+        }
+      }
+    }
+  ],
+  "connections": {
+    "Webhook Metricas": {
+      "main": [
+        [
+          {
+            "node": "Consulta metricas",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "pinData": {},
+  "settings": {
+    "executionOrder": "v1"
+  }
+}

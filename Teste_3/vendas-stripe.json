@@ -1,0 +1,88 @@
+{
+  "name": "Vendas - Stripe",
+  "nodes": [
+    {
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "vendas",
+        "responseMode": "onReceived",
+        "options": {
+          "allowedOrigins": "*"
+        }
+      },
+      "id": "webhook-vendas",
+      "name": "Webhook Vendas",
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2,
+      "position": [
+        240,
+        300
+      ],
+      "webhookId": "vendas-webhook"
+    },
+    {
+      "parameters": {
+        "jsCode": "const evt = $input.first().json.body || {};\nconst obj = (evt.data && evt.data.object) || {};\n// So registra checkout concluido\nif (evt.type !== 'checkout.session.completed') { return []; }\nconst cents = Number(obj.amount_total || 0);\nconst det = obj.customer_details || {};\nreturn [{ json: {\n  plataforma: 'stripe',\n  valor: cents / 100,\n  moeda: String(obj.currency || 'brl').toUpperCase(),\n  email: det.email || obj.customer_email || '',\n  nome: det.name || '',\n  referencia: String(obj.id || '')\n} }];"
+      },
+      "id": "extrai-venda",
+      "name": "Extrai venda",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        460,
+        300
+      ]
+    },
+    {
+      "parameters": {
+        "operation": "executeQuery",
+        "query": "create table if not exists conversoes (id serial primary key, plataforma text, valor numeric, moeda text, email text, nome text, referencia text, criado_em timestamptz default now());\ninsert into conversoes (plataforma, valor, moeda, email, nome, referencia)\nvalues ($1, $2, $3, $4, $5, $6);",
+        "options": {
+          "queryReplacement": "={{ $json.plataforma }},{{ $json.valor }},{{ $json.moeda }},{{ $json.email }},{{ $json.nome }},{{ $json.referencia }}"
+        }
+      },
+      "id": "salvar-venda",
+      "name": "Salvar venda",
+      "type": "n8n-nodes-base.postgres",
+      "typeVersion": 2.4,
+      "position": [
+        680,
+        300
+      ],
+      "credentials": {
+        "postgres": {
+          "id": "SUBSTITUA_PELO_ID_DA_CREDENCIAL",
+          "name": "Postgres negocio"
+        }
+      }
+    }
+  ],
+  "connections": {
+    "Webhook Vendas": {
+      "main": [
+        [
+          {
+            "node": "Extrai venda",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Extrai venda": {
+      "main": [
+        [
+          {
+            "node": "Salvar venda",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "pinData": {},
+  "settings": {
+    "executionOrder": "v1"
+  }
+}

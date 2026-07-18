@@ -1,0 +1,386 @@
+{
+  "name": "Grade de Postagens",
+  "nodes": [
+    {
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "grade-postagens",
+        "responseMode": "lastNode",
+        "options": {
+          "allowedOrigins": "*"
+        }
+      },
+      "id": "webhook-grade",
+      "name": "Webhook Grade",
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2,
+      "position": [
+        200,
+        360
+      ],
+      "webhookId": "grade-postagens-webhook"
+    },
+    {
+      "parameters": {
+        "rules": {
+          "values": [
+            {
+              "conditions": {
+                "options": {
+                  "caseSensitive": true,
+                  "leftValue": "",
+                  "typeValidation": "loose"
+                },
+                "conditions": [
+                  {
+                    "leftValue": "={{ $json.body.action }}",
+                    "rightValue": "carregar",
+                    "operator": {
+                      "type": "string",
+                      "operation": "equals"
+                    }
+                  }
+                ],
+                "combinator": "and"
+              },
+              "renameOutput": true,
+              "outputKey": "carregar"
+            },
+            {
+              "conditions": {
+                "options": {
+                  "caseSensitive": true,
+                  "leftValue": "",
+                  "typeValidation": "loose"
+                },
+                "conditions": [
+                  {
+                    "leftValue": "={{ $json.body.action }}",
+                    "rightValue": "aprovar",
+                    "operator": {
+                      "type": "string",
+                      "operation": "equals"
+                    }
+                  }
+                ],
+                "combinator": "and"
+              },
+              "renameOutput": true,
+              "outputKey": "aprovar"
+            }
+          ]
+        },
+        "options": {
+          "fallbackOutput": "extra",
+          "renameFallbackOutput": "gerar"
+        }
+      },
+      "id": "roteia-acao-grade",
+      "name": "Roteia acao",
+      "type": "n8n-nodes-base.switch",
+      "typeVersion": 3.2,
+      "position": [
+        420,
+        360
+      ]
+    },
+    {
+      "parameters": {
+        "operation": "executeQuery",
+        "query": "create table if not exists grade_postagens (id serial primary key, conteudo text, status text default 'proposta', criado_em timestamptz default now(), atualizado_em timestamptz default now());\nselect coalesce(\n  (select json_build_object('grade_id', id, 'conteudo', conteudo, 'status', status, 'atualizado_em', to_char(atualizado_em,'DD/MM/YYYY HH24:MI')) from grade_postagens order by id desc limit 1),\n  json_build_object('grade_id', 0, 'conteudo', '', 'status', 'vazia')\n) as grade;",
+        "options": {}
+      },
+      "id": "carrega-grade",
+      "name": "Carrega grade",
+      "type": "n8n-nodes-base.postgres",
+      "typeVersion": 2.4,
+      "position": [
+        660,
+        160
+      ],
+      "credentials": {
+        "postgres": {
+          "id": "SUBSTITUA_PELO_ID_DA_CREDENCIAL",
+          "name": "Postgres negocio"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "operation": "executeQuery",
+        "query": "create table if not exists grade_postagens (id serial primary key, conteudo text, status text default 'proposta', criado_em timestamptz default now(), atualizado_em timestamptz default now());\nupdate grade_postagens set status = 'aprovada', atualizado_em = now() where id = $1 returning id as grade_id, status;",
+        "options": {
+          "queryReplacement": "={{ $json.body.grade_id }}"
+        }
+      },
+      "id": "aprova-grade",
+      "name": "Aprova grade",
+      "type": "n8n-nodes-base.postgres",
+      "typeVersion": 2.4,
+      "position": [
+        660,
+        360
+      ],
+      "credentials": {
+        "postgres": {
+          "id": "SUBSTITUA_PELO_ID_DA_CREDENCIAL",
+          "name": "Postgres negocio"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "jsCode": "const b = $input.first().json.body || {};\nconst feedback = String(b.feedback || '').trim();\nconst orientacoes = String(b.orientacoes || '').trim();\n// A grade começa na segunda-feira da semana seguinte\nconst inicio = new Date();\nconst dias = ((8 - inicio.getDay()) % 7) || 7;\ninicio.setDate(inicio.getDate() + dias);\nconst hoje = new Date().toLocaleDateString('pt-BR');\nconst dataInicio = inicio.toLocaleDateString('pt-BR');\nreturn [{ json: { feedback, orientacoes, hoje, dataInicio } }];"
+      },
+      "id": "prep-pedido-grade",
+      "name": "Prep pedido",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        660,
+        560
+      ]
+    },
+    {
+      "parameters": {
+        "operation": "executeQuery",
+        "query": "create table if not exists conselho_contexto (id serial primary key, conteudo text, criado_em timestamptz default now());\ncreate table if not exists grade_postagens (id serial primary key, conteudo text, status text default 'proposta', criado_em timestamptz default now(), atualizado_em timestamptz default now());\nselect\n  coalesce((select conteudo from conselho_contexto order by id desc limit 1), 'Contexto estrategico ainda nao cadastrado.') as contexto,\n  coalesce((select conteudo from grade_postagens order by id desc limit 1), '') as grade_atual;",
+        "options": {}
+      },
+      "id": "carrega-contexto-grade",
+      "name": "Carrega contexto",
+      "type": "n8n-nodes-base.postgres",
+      "typeVersion": 2.4,
+      "position": [
+        880,
+        560
+      ],
+      "credentials": {
+        "postgres": {
+          "id": "SUBSTITUA_PELO_ID_DA_CREDENCIAL",
+          "name": "Postgres negocio"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "jsCode": "const d = $input.first().json;\nconst p = $('Prep pedido').first().json;\nconst promptLines = [\"Você é o Estrategista Sênior de Conteúdo da Axn. Sua missão é definir a estratégia mínima e eficaz de conteúdo orgânico no Instagram e YouTube Shorts para que o perfil do empreendedor seja descoberto pelo público certo, compreendido como solução para uma dor real e gere autoridade e confiança — sem exigir frequência excessiva ou irrealista.\",\"Você trabalha com conteúdo estratégico, não com volume. Você NÃO escreve roteiros, legendas ou copies — você define frequência, temas e formatos.\",\"\",\"O planejamento estratégico do negócio e a data de início da grade são fornecidos abaixo — não peça essas informações ao usuário. Extraia do planejamento: produto/serviço e transformação entregue, persona e dores, diferencial e posicionamento, objeções do público e tom de voz da marca.\",\"\",\"REGRAS:\",\"- Nunca pergunte quantas vezes o empreendedor quer postar.\",\"- Nunca preencha dias com conteúdo vazio só para completar o calendário — dias sem estratégia clara são ⛔ DAY OFF.\",\"- Classifique o nicho antes de montar a grade: Alta Frequência (lifestyle, entretenimento, varejo B2C → 5-7 posts/semana) ou Alta Confiança (consultoria, serviços, B2B, saúde, educação → 3-4 posts/semana). Regra de ouro: se o nicho cresce bem com 3 posts/semana, NÃO sugira 7 — otimize resultado por esforço.\",\"- Defina 3 a 4 pilares de conteúdo derivados do planejamento: Descoberta (dores, erros comuns, mitos), Autoridade (método, prova, resultados), Conexão (bastidores, rotina, enquetes) e Conversão (oferta, CTA direto — use no máximo 1x/semana).\",\"- Formatos por objetivo: Descoberta = Reels/Shorts (Instagram + YouTube) · Autoridade = Carrossel ou Feed · Conexão = Stories · Conversão = Feed ou Stories.\",\"- A grade cobre 28 dias corridos com datas reais a partir da data de início fornecida (sempre uma segunda-feira).\",\"\",\"FORMATO DE ENTREGA (nesta ordem exata, em Markdown):\",\"### 1. Classificação e Frequência — parágrafo curto com a classificação do nicho e a frequência recomendada.\",\"### 2. Pilares de Conteúdo — lista dos 3-4 pilares com uma linha de descrição cada.\",\"### 3. Grade de Postagens — 28 dias — tabela Markdown com EXATAMENTE estas colunas, sem texto adicional dentro da tabela:\",\"| Data | Fase do Funil | Plataforma | Formato | Tema do Conteúdo | Dor ou Desejo Atendido |\",\"Datas no formato DD/MM/AAAA. NÃO inclua coluna de dia da semana nem mencione dias da semana. Dias OFF: ⛔ DAY OFF.\",\"### 4. Nota Estratégica — máximo 5 linhas explicando as escolhas em relação ao momento do negócio.\",\"\",\"Após a entrega, encerre com exatamente: 'Grade proposta com base no seu planejamento estratégico. Revise os temas, peça ajustes se quiser — e aprove a grade para liberar a geração das peças.'\"];\nlet sys = promptLines.join('\\n')\n  + '\\n\\n## Contexto de execução\\nHoje é ' + p.hoje + '. Data de início da grade: ' + p.dataInicio + ' (segunda-feira). O primeiro dia da grade é essa data e os 28 dias correm a partir dela.'\n  + '\\n\\n## Planejamento estratégico do empreendimento\\n' + (d.contexto || '');\nlet user = 'Pode gerar a grade.';\nif (p.feedback && d.grade_atual) {\n  sys += '\\n\\n## Grade atual (a ser ajustada)\\n' + d.grade_atual;\n  user = 'Regenere a grade completa aplicando este ajuste do empreendedor, mantendo o formato de entrega e tudo o que ele não questionou: \"' + p.feedback + '\"';\n} else if (p.orientacoes) {\n  user = 'Pode gerar a grade. Direcionamento do empreendedor para esta grade: \"' + p.orientacoes + '\"';\n}\nreturn [{ json: { messages: [{ role: 'system', content: sys }, { role: 'user', content: user }] } }];"
+      },
+      "id": "monta-pedido-grade",
+      "name": "Monta pedido",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        1100,
+        560
+      ]
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "https://api.openai.com/v1/responses",
+        "authentication": "predefinedCredentialType",
+        "nodeCredentialType": "openAiApi",
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={{ JSON.stringify({ model: 'gpt-4.1', input: $json.messages, max_output_tokens: 6000 }) }}",
+        "options": {
+          "timeout": 180000
+        }
+      },
+      "id": "openai-grade",
+      "name": "OpenAI",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        1320,
+        560
+      ],
+      "credentials": {
+        "openAiApi": {
+          "id": "SUBSTITUA_PELO_ID_DA_CREDENCIAL",
+          "name": "OpenAi account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "jsCode": "// Extrai o texto da Responses API (itens type=message > content > text)\nconst r = $input.first().json;\nconst conteudo = ((r.output || [])\n  .flatMap((item) => item.content || [])\n  .map((c) => c.text || '')\n  .join('').trim());\nif (!conteudo) throw new Error('A IA nao retornou a grade — tente novamente.');\nreturn [{ json: { conteudo } }];"
+      },
+      "id": "extrai-grade",
+      "name": "Extrai grade",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        1540,
+        560
+      ]
+    },
+    {
+      "parameters": {
+        "operation": "executeQuery",
+        "query": "insert into grade_postagens (conteudo, status) values ($1, 'proposta') returning id as grade_id;",
+        "options": {
+          "queryReplacement": "={{ $json.conteudo }}"
+        }
+      },
+      "id": "salva-grade",
+      "name": "Salva grade",
+      "type": "n8n-nodes-base.postgres",
+      "typeVersion": 2.4,
+      "position": [
+        1760,
+        560
+      ],
+      "credentials": {
+        "postgres": {
+          "id": "SUBSTITUA_PELO_ID_DA_CREDENCIAL",
+          "name": "Postgres negocio"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "g1",
+              "name": "grade_id",
+              "value": "={{ $json.grade_id }}",
+              "type": "number"
+            },
+            {
+              "id": "g2",
+              "name": "conteudo",
+              "value": "={{ $('Extrai grade').first().json.conteudo }}",
+              "type": "string"
+            },
+            {
+              "id": "g3",
+              "name": "status",
+              "value": "proposta",
+              "type": "string"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "id": "responde-grade",
+      "name": "Responde",
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [
+        1980,
+        560
+      ]
+    }
+  ],
+  "connections": {
+    "Webhook Grade": {
+      "main": [
+        [
+          {
+            "node": "Roteia acao",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Roteia acao": {
+      "main": [
+        [
+          {
+            "node": "Carrega grade",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Aprova grade",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Prep pedido",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Prep pedido": {
+      "main": [
+        [
+          {
+            "node": "Carrega contexto",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Carrega contexto": {
+      "main": [
+        [
+          {
+            "node": "Monta pedido",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Monta pedido": {
+      "main": [
+        [
+          {
+            "node": "OpenAI",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "OpenAI": {
+      "main": [
+        [
+          {
+            "node": "Extrai grade",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Extrai grade": {
+      "main": [
+        [
+          {
+            "node": "Salva grade",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Salva grade": {
+      "main": [
+        [
+          {
+            "node": "Responde",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "pinData": {},
+  "settings": {
+    "executionOrder": "v1"
+  }
+}
