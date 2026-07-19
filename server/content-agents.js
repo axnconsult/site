@@ -59,7 +59,7 @@ async function loadStrategicDocument(query, member, projectId) {
 
 // Geração de conteúdo do Módulo 4 (grade, roteiros, peça de campanha) foi
 // aposentada em 2026-07: a rotina de divulgação vive nos fluxos n8n do aluno,
-// gerados no painel de gestão (buildGradePostagensWorkflowJson / buildPecasWorkflowJson).
+// gerados no painel de gestão (buildGradePostagensWorkflowJson / buildFabricaImagensWorkflowJson).
 export async function streamContentGeneration({ rootDir, query, member, payload, onDelta, onDone }) {
   const { agentType, project } = payload;
   const projectId = project?.id;
