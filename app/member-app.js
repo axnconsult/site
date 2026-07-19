@@ -40,12 +40,12 @@ const COURSE_MODULES = [
     id: "module-4",
     number: 4,
     title: "Operacao Assistida",
-    summary: "Conecte o WhatsApp ao atendimento automatico, prepare as credenciais e os fluxos do Painel de Gestao no n8n e configure seus videos de avatar.",
+    summary: "Conecte o WhatsApp, prepare as credenciais e os fluxos do Painel de Gestao no n8n, ative o atendimento automatico e configure seus videos de avatar.",
     result: "Atendimento automatico no ar e fluxos do painel importados e ativos",
     stages: [
       ["Conectar o WhatsApp", "Crie a instancia na Evolution API, escaneie o QR code e integre ao Chatwoot.", "technical", null, ["whatsapp-connect"]],
-      ["Agente de atendimento", "Gere o prompt personalizado do seu atendente de IA e ative o fluxo que responde o WhatsApp.", "technical", null, ["atendimento-agente"]],
       ["Preparar o Painel de Gestao", "Crie as credenciais no n8n e importe, configure e ative os fluxos que alimentam o painel.", "technical", null, ["painel-prep-credenciais", "painel-prep-fluxos"]],
+      ["Agente de atendimento", "Gere o prompt personalizado do seu atendente de IA e ative o fluxo que responde o WhatsApp.", "technical", null, ["atendimento-agente"]],
       ["Configurar videos de avatar", "Crie sua conta HeyGen, escolha apresentador e voz, e valide a configuracao.", "technical", null, ["heygen-setup"]]
     ]
   },
@@ -190,32 +190,37 @@ const WIZARD_STEPS = [
         field: "postgresPassword"
       },
       {
-        heading: "2. Baixe e envie o script para a VPS",
+        heading: "2. Confira a chave da Evolution API",
+        body: `<p>O app gerou uma chave exclusiva para a sua <strong>Evolution API</strong> (o serviço que conecta o WhatsApp). O script instala a Evolution já com essa chave, e os fluxos de automação a usam para enviar mensagens. Pode manter como está — ou trocar por outra, se preferir. Guarde-a junto da senha do banco.</p>`,
+        field: "evolutionApiKey"
+      },
+      {
+        heading: "3. Baixe e envie o script para a VPS",
         body: `<p>Clique no botão abaixo para baixar o script com seus dados já preenchidos. O arquivo será salvo na pasta de Downloads ou Desktop do seu computador.</p>
 <p><button class="button button-primary" type="button" id="download-infra-script">Baixar script de configuração (axn-setup.sh)</button></p>
 <p>Agora envie o arquivo para a VPS. Abra um <strong>novo terminal no seu computador</strong> (PowerShell ou CMD) — <strong>não abra o SSH da VPS</strong>. Cole o comando abaixo substituindo o caminho pelo local onde o arquivo foi salvo:</p>`,
         command: `scp C:\\Users\\SeuUsuario\\Desktop\\axn-setup.sh root@{{serverIp}}:/root/`
       },
       {
-        heading: "3. Conecte na VPS via SSH",
+        heading: "4. Conecte na VPS via SSH",
         body: `<p>No terminal do seu computador (PowerShell ou CMD), conecte na VPS:</p>`,
         command: `ssh root@{{serverIp}}`
       },
       {
-        heading: "4. Execute o script",
+        heading: "5. Execute o script",
         body: `<p>Já dentro do terminal SSH da VPS, rode:</p>`,
         command: `bash /root/axn-setup.sh`
       },
       {
-        heading: "5. Crie o usuário admin no Portainer",
-        body: `<p>Quando o script terminar, ele vai exibir a <strong>Chave da Evolution API</strong> — copie e guarde no documento de infra.</p>
+        heading: "6. Crie o usuário admin no Portainer",
+        body: `<p>Quando o script terminar, ele vai exibir a <strong>Chave da Evolution API</strong> (a mesma do passo 2) — confira e guarde no documento de infra.</p>
 <p>Abra o Portainer no navegador, defina usuário e senha e clique em <strong>Create user</strong>. Não será pedido nenhum token.</p>
 <p>Na tela seguinte, clique em <strong>Get Started</strong>. <strong>Não clique em "Add Environments"</strong> — o seu servidor já aparece conectado (ambiente <code>primary</code>, criado pelo script); adicionar outro criaria um ambiente duplicado.</p>
 <p>Se a página exibir "timeout", rode o comando abaixo e acesse novamente:</p>`,
         command: `docker service update --force portainer_portainer`
       },
       {
-        heading: "6. Verifique os serviços no ar",
+        heading: "7. Verifique os serviços no ar",
         body: `<p>Quando o script terminar, acesse os serviços da sua infraestrutura e configure o login de cada um:</p>
 <ul>
   <li><strong>Portainer</strong> (painel): <a href="https://painel.{{domain}}" target="_blank">https://painel.{{domain}}</a></li>
@@ -228,7 +233,8 @@ const WIZARD_STEPS = [
       }
     ],
     fields: [
-      { key: "postgresPassword", label: "Senha do banco Postgres (usada em todas as stacks)", placeholder: "SuaSenhaForteAqui", inline: true }
+      { key: "postgresPassword", label: "Senha do banco Postgres (usada em todas as stacks)", placeholder: "SuaSenhaForteAqui", inline: true },
+      { key: "evolutionApiKey", label: "Chave da Evolution API (gerada para voce — pode trocar)", placeholder: "evo_api_...", inline: true }
     ],
     validation: "docker service ls mostrar todos os serviços (traefik, postgres, n8n, chatwoot, evolution, portainer) com replica 1/1.",
     done: "Infraestrutura completa no ar. Admin criado no Portainer."
@@ -598,8 +604,8 @@ const WIZARD_STEPS = [
         body: `<p>As Fábricas transformam o que o painel gera em mídia pronta, entregue no <strong>seu WhatsApp</strong> — confirme o número abaixo antes de baixar.</p>
 <p><button class="button button-primary" type="button" id="download-n8n-fabrica-carrosseis">Baixar fluxo da Fabrica de Carrosseis (.json)</button></p>
 <p><button class="button button-primary" type="button" id="download-n8n-fabrica-videos">Baixar fluxo da Fabrica de Videos (.json)</button></p>
-<p>Depois de importar cada uma, abra o nó do <strong>formulário</strong> e digite o <strong>Form Path</strong>: <code>fabrica-de-carrosseis</code> e <code>fabrica-de-videos</code>. Os formulários ficam em <code>https://workflows.{{domain}}/form/fabrica-de-carrosseis</code> e <code>.../form/fabrica-de-videos</code> — salve nos favoritos.</p>
-<p><strong>⚠️ Fábrica de Vídeos:</strong> o fluxo sai preenchido com o token, o apresentador e a voz do HeyGen — que você configura na <strong>próxima etapa</strong>. Se ainda não configurou, conclua a etapa "Configurar videos de avatar" e volte aqui para baixar este fluxo.</p>
+<p>Depois de importar cada uma, abra o nó do <strong>formulário</strong> e confira que o <strong>Form Path</strong> veio preenchido (<code>fabrica-de-carrosseis</code> e <code>fabrica-de-videos</code>). Os formulários ficam em <code>https://workflows.{{domain}}/form/fabrica-de-carrosseis</code> e <code>.../form/fabrica-de-videos</code> — salve nos favoritos.</p>
+<p><strong>⚠️ Fábrica de Vídeos:</strong> o fluxo sai preenchido com o token, o apresentador e a voz do HeyGen — que você configura na etapa <strong>"Configurar videos de avatar"</strong>, a última deste módulo. Se ainda não configurou, conclua-a primeiro e volte aqui para baixar este fluxo.</p>
 <p><strong>Custo transparente:</strong> ~US$ 1 por carrossel de 5 imagens (crédito OpenAI) e ~US$ 1 por vídeo de ~20s (crédito HeyGen).</p>
 <p>💡 <strong>Opcional — rascunho automático no Metricool:</strong> se você assinar o plano <strong>Advanced</strong> do Metricool (libera a API), a Fábrica de Vídeos cria cada vídeo como rascunho no seu planner. Preencha os 3 campos abaixo (no Metricool: <strong>Configurações da conta → API</strong> mostra o userToken e o userId; o blogId é o número da marca na URL) e baixe o fluxo de vídeos novamente.</p>`,
         fields: ["ownerWhatsapp", "metricoolToken", "metricoolUserId", "metricoolBlogId"]
@@ -639,13 +645,15 @@ const WIZARD_STEPS = [
         heading: "2. Baixe e importe o fluxo de atendimento",
         body: `<p>Baixe o fluxo — o prompt gerado acima já vai embutido nele:</p>
 <p><button class="button button-primary" type="button" id="download-n8n-atendimento">Baixar fluxo de atendimento (.json)</button></p>
-<p>Importe no n8n (<strong>Import from file</strong>) e selecione as credenciais:</p>
+<p>Importe no n8n (<strong>Import from file</strong>) e selecione as credenciais — todas criadas na etapa anterior, "Preparar o Painel de Gestao" (exceto a OpenAI, do módulo 3):</p>
 <ul>
-  <li>Nó <strong>Agente IA</strong> → credencial <strong>OpenAI</strong> (módulo 3)</li>
-  <li>Nó <strong>Dedup mensagem</strong> → credencial <strong>Postgres negocio</strong> (etapa anterior)</li>
+  <li>Nó <strong>Agente IA</strong> → credencial <strong>OpenAI</strong></li>
+  <li>Nó <strong>Dedup mensagem</strong> → credencial <strong>Postgres negocio</strong></li>
+  <li>Nós que falam com o Chatwoot (<strong>Busca contato, Busca conversas, Busca historico, Busca agentes, Atribui ao humano</strong>) → credencial <strong>Chatwoot Header</strong></li>
+  <li>Nós <strong>Responder via Evolution API</strong> e <strong>Avisa o dono no WhatsApp</strong> → credencial <strong>Evolution Header</strong></li>
 </ul>
-<p>O atendente responde com memória da conversa, e quando o cliente pede humano, parceria ou desconto, ele <strong>transfere de verdade</strong>: atribui a conversa a você no Chatwoot (que te notifica) e para de responder sozinho.</p>
-<p>Informe o <strong>seu WhatsApp</strong> antes de baixar — é para ele que o fluxo avisa quando uma conversa é transferida para você:</p>`,
+<p>O atendente responde com memória da conversa, e quando o cliente pede humano, parceria ou desconto, ele <strong>transfere de verdade</strong>: atribui a conversa a você no Chatwoot, para de responder sozinho e te avisa <strong>no seu WhatsApp</strong> com o nome do cliente, o número, a última mensagem e o link direto da conversa.</p>
+<p>Informe o <strong>seu WhatsApp</strong> antes de baixar — é para ele que o aviso de transferência vai:</p>`,
         fields: ["ownerWhatsapp"]
       },
       {
@@ -653,7 +661,7 @@ const WIZARD_STEPS = [
         body: `<p>No manager da Evolution (<a href="https://evo.{{domain}}/manager" target="_blank" rel="noopener">evo.{{domain}}/manager</a>), abra a instância <strong>atendimento</strong> → <strong>Webhook</strong> (em Events/Integrations) e configure:</p>
 <ul>
   <li><strong>Enabled:</strong> ativado</li>
-  <li><strong>URL:</strong> <code>https://workflows.{{domain}}/webhook/atendimento</code></li>
+  <li><strong>URL:</strong> <code>https://webhooks.{{domain}}/webhook/atendimento</code></li>
   <li><strong>Events:</strong> marque apenas <code>MESSAGES_UPSERT</code></li>
 </ul>
 <p>Salve.</p>`
@@ -662,7 +670,7 @@ const WIZARD_STEPS = [
         heading: "4. ATIVE o workflow e teste",
         body: `<p>No n8n, ligue a chave <strong>Active</strong> do workflow de atendimento (mesma pegadinha da etapa anterior — sem ativar, nada acontece).</p>
 <p><strong>Teste 1 — atendimento:</strong> peça para alguém (de outro número) mandar "Oi, quero saber mais". Em segundos chega a resposta do atendente — e a conversa aparece no Chatwoot.</p>
-<p><strong>Teste 2 — transferência:</strong> na mesma conversa, mande "quero falar com um humano". O atendente confirma, e no Chatwoot a conversa aparece <strong>atribuída a você</strong> — a partir daí o bot fica em silêncio e a conversa é sua.</p>
+<p><strong>Teste 2 — transferência:</strong> na mesma conversa, mande "quero falar com um humano". O atendente confirma, no Chatwoot a conversa aparece <strong>atribuída a você</strong> e chega um <strong>aviso no seu WhatsApp</strong> com o link da conversa — a partir daí o bot fica em silêncio e a conversa é sua.</p>
 <p><strong>Para devolver a conversa ao bot:</strong> remova a atribuição no Chatwoot (Agente atribuído → Nenhum).</p>`
       }
     ],
@@ -2760,16 +2768,24 @@ echo "  Se aparecer timeout: docker service update --force portainer_portainer"
 }
 
 
-// Webhook POST /webhook/atendimento — atendente de IA no WhatsApp (v3)
+// Webhook POST /webhook/atendimento — atendente de IA no WhatsApp (v4:
+// Header Auth nas chamadas Chatwoot/Evolution + aviso de transferência no
+// WhatsApp do dono; mensagens do próprio dono não passam pelo bot)
 // Responde na hora (onReceived), deduplica por id de mensagem, lê o histórico
 // da conversa no Chatwoot, responde em JSON {resposta, transferir} e, quando
 // transferir=true, atribui a conversa a um humano via API (que também cala o bot).
 function buildAtendimentoWorkflowJson() {
-  const domain = memberApp.state.project.domain || "seudominio.com.br";
-  const evoKey = memberApp.state.project.evolutionApiKey || "CHAVE_EVOLUTION_AQUI";
-  const cwAccount = memberApp.state.project.chatwootAccountId || "1";
-  const cwToken = memberApp.state.project.chatwootToken || "COLE_SEU_TOKEN_CHATWOOT";
+  const project = memberApp.state.project;
+  const domain = project.domain || "seudominio.com.br";
+  const cwAccount = project.chatwootAccountId || "1";
   const cwBase = `https://chat.${domain}/api/v1/accounts/${cwAccount}`;
+
+  // Mesma normalização das Fábricas: só dígitos e DDI 55 obrigatório — sem o
+  // DDI a Evolution responde 400 {"exists": false}.
+  const rawWhats = String(project.ownerWhatsapp || "").replace(/\D/g, "");
+  const whatsappDono = rawWhats
+    ? (rawWhats.length <= 11 ? `55${rawWhats}` : rawWhats)
+    : "5511999998888";
 
   const customPrompt = contentCache.atendimento_prompt
     || `Voce e o atendente de IA do negocio. Responda de forma direta, simpatica e objetiva, em mensagens curtas de WhatsApp. Direcione interessados para https://${domain}.`;
@@ -2793,7 +2809,11 @@ function buildAtendimentoWorkflowJson() {
     "Nos demais casos, transferir=false. Nunca invente nomes, precos ou dados que nao estejam nas suas instrucoes."
   ].join("\n");
 
-  const cwHeaders = { parameters: [{ name: "api_access_token", value: cwToken }] };
+  // Credenciais Header Auth criadas na etapa "Credenciais no n8n" — o aluno
+  // seleciona nos nós ao importar (nada de token hardcoded no JSON baixado)
+  const headerAuthParams = { authentication: "genericCredentialType", genericAuthType: "httpHeaderAuth" };
+  const cwCred = { httpHeaderAuth: { id: "SUBSTITUA_PELO_ID_DA_CREDENCIAL", name: "Chatwoot Header" } };
+  const evoCred = { httpHeaderAuth: { id: "SUBSTITUA_PELO_ID_DA_CREDENCIAL", name: "Evolution Header" } };
   const pgCred = { postgres: { id: "SUBSTITUA_PELO_ID_DA_CREDENCIAL", name: "Postgres negocio" } };
 
   const workflow = {
@@ -2820,7 +2840,8 @@ function buildAtendimentoWorkflowJson() {
             conditions: [
               { id: "cond-event", leftValue: "={{ $json.body.event }}", rightValue: "messages.upsert", operator: { type: "string", operation: "equals" } },
               { id: "cond-from-me", leftValue: "={{ $json.body.data.key.fromMe }}", rightValue: false, operator: { type: "boolean", operation: "false" } },
-              { id: "cond-texto", leftValue: "={{ ($json.body.data.message && $json.body.data.message.conversation) || '' }}", rightValue: "", operator: { type: "string", operation: "notEquals" } }
+              { id: "cond-texto", leftValue: "={{ ($json.body.data.message && $json.body.data.message.conversation) || '' }}", rightValue: "", operator: { type: "string", operation: "notEquals" } },
+              { id: "cond-nao-dono", leftValue: "={{ String($json.body.data.key.remoteJid || '').split('@')[0].replace(/\\D/g, '') }}", rightValue: whatsappDono, operator: { type: "string", operation: "notEquals" } }
             ],
             combinator: "and"
           },
@@ -2869,8 +2890,7 @@ function buildAtendimentoWorkflowJson() {
         parameters: {
           method: "GET",
           url: `=${cwBase}/contacts/search?q={{ $('Webhook Evolution').first().json.body.data.key.remoteJid.split('@')[0].replace(/\\D/g, '') }}`,
-          sendHeaders: true,
-          headerParameters: cwHeaders,
+          ...headerAuthParams,
           options: {}
         },
         id: "busca-contato",
@@ -2878,14 +2898,14 @@ function buildAtendimentoWorkflowJson() {
         type: "n8n-nodes-base.httpRequest",
         typeVersion: 4.2,
         position: [1000, 220],
+        credentials: cwCred,
         onError: "continueRegularOutput"
       },
       {
         parameters: {
           method: "GET",
           url: `=${cwBase}/contacts/{{ ($json.payload && $json.payload[0] && $json.payload[0].id) || 0 }}/conversations`,
-          sendHeaders: true,
-          headerParameters: cwHeaders,
+          ...headerAuthParams,
           options: {}
         },
         id: "busca-conversas",
@@ -2893,6 +2913,7 @@ function buildAtendimentoWorkflowJson() {
         type: "n8n-nodes-base.httpRequest",
         typeVersion: 4.2,
         position: [1200, 220],
+        credentials: cwCred,
         onError: "continueRegularOutput"
       },
       {
@@ -2933,8 +2954,7 @@ function buildAtendimentoWorkflowJson() {
         parameters: {
           method: "GET",
           url: `=${cwBase}/conversations/{{ $json.conversaId }}/messages`,
-          sendHeaders: true,
-          headerParameters: cwHeaders,
+          ...headerAuthParams,
           options: {}
         },
         id: "busca-historico",
@@ -2942,6 +2962,7 @@ function buildAtendimentoWorkflowJson() {
         type: "n8n-nodes-base.httpRequest",
         typeVersion: 4.2,
         position: [1800, 220],
+        credentials: cwCred,
         onError: "continueRegularOutput"
       },
       {
@@ -3011,10 +3032,7 @@ function buildAtendimentoWorkflowJson() {
         parameters: {
           method: "POST",
           url: `=https://evo.${domain}/message/sendText/{{ $('Webhook Evolution').first().json.body.instance }}`,
-          sendHeaders: true,
-          headerParameters: {
-            parameters: [{ name: "apikey", value: evoKey }]
-          },
+          ...headerAuthParams,
           sendBody: true,
           bodyParameters: {
             parameters: [
@@ -3028,7 +3046,8 @@ function buildAtendimentoWorkflowJson() {
         name: "Responder via Evolution API",
         type: "n8n-nodes-base.httpRequest",
         typeVersion: 4.2,
-        position: [2600, 220]
+        position: [2600, 220],
+        credentials: evoCred
       },
       {
         parameters: {
@@ -3052,8 +3071,7 @@ function buildAtendimentoWorkflowJson() {
         parameters: {
           method: "GET",
           url: `${cwBase}/agents`,
-          sendHeaders: true,
-          headerParameters: cwHeaders,
+          ...headerAuthParams,
           options: {}
         },
         id: "busca-agentes",
@@ -3061,7 +3079,7 @@ function buildAtendimentoWorkflowJson() {
         type: "n8n-nodes-base.httpRequest",
         typeVersion: 4.2,
         position: [3000, 140],
-        onError: "continueRegularOutput"
+        credentials: cwCred
       },
       {
         parameters: {
@@ -3081,8 +3099,7 @@ function buildAtendimentoWorkflowJson() {
         parameters: {
           method: "POST",
           url: `=${cwBase}/conversations/{{ $json.conversaId }}/assignments`,
-          sendHeaders: true,
-          headerParameters: cwHeaders,
+          ...headerAuthParams,
           sendBody: true,
           bodyParameters: {
             parameters: [{ name: "assignee_id", value: "={{ $json.assigneeId }}" }]
@@ -3094,7 +3111,38 @@ function buildAtendimentoWorkflowJson() {
         type: "n8n-nodes-base.httpRequest",
         typeVersion: 4.2,
         position: [3400, 140],
-        onError: "continueRegularOutput"
+        credentials: cwCred
+      },
+      {
+        parameters: {
+          method: "POST",
+          url: `=https://evo.${domain}/message/sendText/{{ $('Webhook Evolution').first().json.body.instance }}`,
+          ...headerAuthParams,
+          sendBody: true,
+          bodyParameters: {
+            parameters: [
+              { name: "number", value: whatsappDono },
+              {
+                name: "text",
+                value: [
+                  "=🔔 Atendimento transferido para voce",
+                  "",
+                  "👤 {{ $('Webhook Evolution').first().json.body.data.pushName || 'Cliente' }} ({{ String($('Webhook Evolution').first().json.body.data.key.remoteJid || '').split('@')[0] }})",
+                  "💬 \"{{ $('Webhook Evolution').first().json.body.data.message.conversation }}\"",
+                  "",
+                  `Assuma a conversa: https://chat.${domain}/app/accounts/${cwAccount}/conversations/{{ $('Interpreta resposta').first().json.conversaId }}`
+                ].join("\n")
+              }
+            ]
+          },
+          options: {}
+        },
+        id: "avisa-dono",
+        name: "Avisa o dono no WhatsApp",
+        type: "n8n-nodes-base.httpRequest",
+        typeVersion: 4.2,
+        position: [3600, 140],
+        credentials: evoCred
       }
     ],
     connections: {
@@ -3113,7 +3161,8 @@ function buildAtendimentoWorkflowJson() {
       "Responder via Evolution API": { main: [[{ node: "Deve transferir?", type: "main", index: 0 }]] },
       "Deve transferir?": { main: [[{ node: "Busca agentes", type: "main", index: 0 }]] },
       "Busca agentes": { main: [[{ node: "Escolhe agente humano", type: "main", index: 0 }]] },
-      "Escolhe agente humano": { main: [[{ node: "Atribui ao humano", type: "main", index: 0 }]] }
+      "Escolhe agente humano": { main: [[{ node: "Atribui ao humano", type: "main", index: 0 }]] },
+      "Atribui ao humano": { main: [[{ node: "Avisa o dono no WhatsApp", type: "main", index: 0 }]] }
     },
     pinData: {},
     settings: { executionOrder: "v1" }
@@ -3336,16 +3385,14 @@ function buildFabricaVideosWorkflowJson() {
             "2. Nó 'Registra no banco' → credencial Postgres negocio",
             "3. Confira o nó Config: WhatsApp, chaves e evolutionInstance",
             "   (o nome EXATO da sua instância no manager da Evolution)",
-            "4. No nó 'Formulario Fabrica', digite 'fabrica-de-videos' no",
-            "   campo Form Path (o n8n troca por um código aleatório ao",
-            "   importar — este passo devolve a URL fixa)",
-            "5. Ligue a chave ACTIVE do workflow",
+            "4. Ligue a chave ACTIVE do workflow",
             "",
             `🔗 Formulário: https://workflows.${domain}/form/fabrica-de-videos`,
-            "   (ou a Production URL exibida no nó do formulário)",
+            "   (o Form Path 'fabrica-de-videos' já vem preenchido —",
+            "   confira a Production URL no nó 'Formulario Fabrica')",
             "",
             "🖥️ O card 'Fábrica de Vídeos' do seu Painel de gestão envia",
-            `   para POST https://workflows.${domain}/webhook/fabrica-videos`,
+            `   para POST https://webhooks.${domain}/webhook/fabrica-videos`,
             "   — mesmo fluxo, e esse endereço NÃO muda na importação.",
             "",
             "💰 ~US$ 1 por vídeo de ~20s (crédito de API do HeyGen)",
@@ -3419,7 +3466,9 @@ function buildFabricaVideosWorkflowJson() {
             ]
           },
           responseMode: "onReceived",
-          options: { appendAttribution: false, buttonLabel: "Gerar video" }
+          // path duplicado em options.path: no formTrigger 2.2 o n8n lê o Form
+          // Path de options — sem ele, a importação gera um path aleatório
+          options: { appendAttribution: false, buttonLabel: "Gerar video", path: "fabrica-de-videos" }
         },
         id: "form-fabrica",
         name: "Formulario Fabrica",
@@ -3867,15 +3916,14 @@ function buildFabricaCarrosseisWorkflowJson() {
             "2. Nó 'Registra no banco' → credencial Postgres negocio",
             "3. Confira o nó Config: WhatsApp e evolutionInstance",
             "   (o nome EXATO da sua instância no manager da Evolution)",
-            "4. No nó 'Formulario Carrosseis', digite 'fabrica-de-carrosseis'",
-            "   no campo Form Path (o n8n troca por um código aleatório",
-            "   ao importar — este passo devolve a URL fixa)",
-            "5. Ligue a chave ACTIVE do workflow",
+            "4. Ligue a chave ACTIVE do workflow",
             "",
             `🔗 Formulário: https://workflows.${domain}/form/fabrica-de-carrosseis`,
+            "   (o Form Path 'fabrica-de-carrosseis' já vem preenchido —",
+            "   confira a Production URL no nó 'Formulario Carrosseis')",
             "",
             "🖥️ O card 'Fábrica de Carrosséis' do seu Painel de gestão envia",
-            `   para POST https://workflows.${domain}/webhook/fabrica-carrosseis`,
+            `   para POST https://webhooks.${domain}/webhook/fabrica-carrosseis`,
             "   — mesmo fluxo, e esse endereço NÃO muda na importação.",
             "",
             "💰 ~US$ 1 por carrossel de 5 slides (crédito OpenAI)",
@@ -3907,7 +3955,9 @@ function buildFabricaCarrosseisWorkflowJson() {
             ]
           },
           responseMode: "onReceived",
-          options: { appendAttribution: false, buttonLabel: "Gerar carrossel" }
+          // path duplicado em options.path: no formTrigger 2.2 o n8n lê o Form
+          // Path de options — sem ele, a importação gera um path aleatório
+          options: { appendAttribution: false, buttonLabel: "Gerar carrossel", path: "fabrica-de-carrosseis" }
         },
         id: "form-carrosseis",
         name: "Formulario Carrosseis",
