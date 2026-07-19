@@ -32,46 +32,33 @@ const COURSE_MODULES = [
     stages: [
       ["Dominio, VPS e DNS", "Compre o dominio e a VPS, conecte na Cloudflare e aponte os registros DNS.", "technical", null, ["domain", "vps-compra", "dns", "email"]],
       ["Configuracao automatica", "Um script instala tudo: Docker, Swarm, Traefik, Portainer, Postgres, n8n, Evolution API e Chatwoot.", "technical", null, ["infra-auto"]],
-      ["Chaves e contas", "Crie contas no Google Ads e Meta Ads, copie os pixels e a chave de API da OpenAI.", "technical", null, ["api-keys", "midia-paga"]],
-      ["Documento de infra", "Anote URLs de acesso, credenciais e pixels em um unico documento. Sem comandos — so revisao e registro.", "technical", null, ["infra-dados"]]
+      ["Chaves e credenciais", "Crie a chave de API da OpenAI e configure a credencial no n8n.", "technical", null, ["api-keys"]],
+      ["Documento de infra", "Anote URLs de acesso e credenciais em um unico documento. Sem comandos — so revisao e registro.", "technical", null, ["infra-dados"]]
     ]
   },
   {
     id: "module-4",
     number: 4,
-    title: "Presenca Comercial",
-    summary: "Entenda como sua presenca comercial vai operar de forma continua no Painel de Gestao — grade de postagens e pecas geradas com a sua chave, no seu ambiente — e prepare a Fabrica de Videos.",
-    result: "Estrategia de divulgacao compreendida e Fabrica de Videos configurada",
+    title: "Operacao Assistida",
+    summary: "Conecte o WhatsApp ao atendimento automatico, prepare as credenciais e os fluxos do Painel de Gestao no n8n e configure seus videos de avatar.",
+    result: "Atendimento automatico no ar e fluxos do painel importados e ativos",
     stages: [
-      ["Estrategia de divulgacao", "Conheca o modelo: grade estrategica de 28 dias e pecas por formato, geradas continuamente na aba Marketing do seu painel.", "technical", null, ["estrategia-divulgacao"]],
-      ["Fabrica de Videos — setup", "Crie sua conta HeyGen, escolha apresentador e voz, e valide a configuracao.", "technical", null, ["heygen-setup"]]
+      ["Conectar o WhatsApp", "Crie a instancia na Evolution API, escaneie o QR code e integre ao Chatwoot.", "technical", null, ["whatsapp-connect"]],
+      ["Agente de atendimento", "Gere o prompt personalizado do seu atendente de IA e ative o fluxo que responde o WhatsApp.", "technical", null, ["atendimento-agente"]],
+      ["Preparar o Painel de Gestao", "Crie as credenciais no n8n e importe, configure e ative os fluxos que alimentam o painel.", "technical", null, ["painel-prep-credenciais", "painel-prep-fluxos"]],
+      ["Configurar videos de avatar", "Crie sua conta HeyGen, escolha apresentador e voz, e valide a configuracao.", "technical", null, ["heygen-setup"]]
     ]
   },
   {
     id: "module-5",
     number: 5,
-    title: "Site e Checkout",
-    summary: "Instale o Claude, gere o PRD do seu site com um agente e publique a pagina com formulario de leads e checkout na sua VPS.",
-    result: "Site no ar recebendo leads e vendas",
+    title: "Painel e Site",
+    summary: "Instale o Claude, publique o Painel de Gestao em 3 areas — Administracao, Marketing e Vendas — e coloque seu site no ar com formulario de leads e checkout.",
+    result: "Painel de gestao e site no ar",
     stages: [
       ["Instalar o Claude", "Crie a conta na Anthropic, instale o app e prepare a pasta do projeto com seus documentos.", "technical", null, ["claude-setup"]],
-      ["Pagamento e PRD do site", "Configure a Stripe, crie o link de checkout e gere o PRD personalizado do seu site.", "technical", null, ["site-prd"]],
-      ["Publicar e validar", "Cole o PRD no Claude, acompanhe a construcao e a publicacao do site na sua VPS.", "technical", null, ["site-deploy"]]
-    ]
-  },
-  {
-    id: "module-6",
-    number: 6,
-    title: "Operacao Assistida",
-    summary: "Conecte o WhatsApp ao atendimento automatico, registre os leads do site, publique o Painel de Gestao em 3 areas — Administracao, Marketing e Vendas — e ative as Fabricas de Carrosseis e de Videos.",
-    result: "Atendimento automatico no ar, painel com grade e pecas funcionando e Fabricas de Carrosseis e de Videos ativas",
-    stages: [
-      ["Conectar o WhatsApp", "Crie a instancia na Evolution API, escaneie o QR code e integre ao Chatwoot.", "technical", null, ["whatsapp-connect"]],
-      ["Leads e vendas do site", "Ative os webhooks que registram leads do formulario e vendas do checkout no seu banco.", "technical", null, ["leads-webhook", "crm"]],
-      ["Agente de atendimento", "Gere o prompt personalizado do seu atendente de IA e ative o fluxo que responde o WhatsApp.", "technical", null, ["atendimento-agente"]],
-      ["Painel e Conselho de IA", "Publique o painel de gestao em 3 areas — Administracao, Marketing e Vendas — com grade de postagens, pecas e o Conselho de IA.", "technical", null, ["painel-conselho"]],
-      ["Fabrica de Carrosseis — ativar", "Ative o fluxo que transforma os carrosseis gerados no painel em imagens prontas, entregues no seu WhatsApp.", "technical", null, ["fabrica-carrosseis-ativar"]],
-      ["Fabrica de Videos — ativar", "Ative o fluxo que transforma os roteiros gerados no painel em videos prontos, entregues no seu WhatsApp.", "technical", null, ["fabrica-videos-ativar"]]
+      ["Painel e Conselho de IA", "Gere o PRD e publique o painel de gestao em 3 areas — Administracao, Marketing e Vendas.", "technical", null, ["painel-conselho"]],
+      ["Site e checkout", "Configure a Stripe, gere o PRD do site e publique a pagina com formulario de leads e checkout na sua VPS.", "technical", null, ["site-prd", "site-deploy"]]
     ]
   }
 ];
@@ -169,7 +156,7 @@ const WIZARD_STEPS = [
   <tr><td>A</td><td><code>webhooks</code></td><td><code>{{serverIp}}</code></td><td>DNS only</td><td>n8n (webhooks)</td></tr>
   <tr><td>A</td><td><code>chat</code></td><td><code>{{serverIp}}</code></td><td>DNS only</td><td>Chatwoot</td></tr>
   <tr><td>A</td><td><code>evo</code></td><td><code>{{serverIp}}</code></td><td>DNS only</td><td>Evolution API</td></tr>
-  <tr><td>A</td><td><code>gestao</code></td><td><code>{{serverIp}}</code></td><td>DNS only</td><td>Painel de gestão (módulo 6)</td></tr>
+  <tr><td>A</td><td><code>gestao</code></td><td><code>{{serverIp}}</code></td><td>DNS only</td><td>Painel de gestão (módulo 5)</td></tr>
 </table>
 <p style="margin-top:8px">O registro <code>@</code> aponta o domínio raiz (<code>{{domain}}</code>) para a VPS. Os registros <code>www</code> e <code>gestao</code> só serão usados nos módulos 5 e 6, mas criá-los agora evita voltar aqui depois. Mantenha todos como <strong>DNS only</strong> (nuvem cinza). O Traefik cuida do HTTPS — não deixe a Cloudflare proxiar.</p>`
       }
@@ -229,7 +216,7 @@ const WIZARD_STEPS = [
       },
       {
         heading: "6. Verifique os serviços no ar",
-        body: `<p>Quando o script terminar, esses são os endereços da sua infraestrutura. Abra cada um e confirme que carrega:</p>
+        body: `<p>Quando o script terminar, acesse os serviços da sua infraestrutura e configure o login de cada um:</p>
 <ul>
   <li><strong>Portainer</strong> (painel): <a href="https://painel.{{domain}}" target="_blank">https://painel.{{domain}}</a></li>
   <li><strong>n8n</strong> (workflows): <a href="https://workflows.{{domain}}" target="_blank">https://workflows.{{domain}}</a></li>
@@ -245,745 +232,6 @@ const WIZARD_STEPS = [
     ],
     validation: "docker service ls mostrar todos os serviços (traefik, postgres, n8n, chatwoot, evolution, portainer) com replica 1/1.",
     done: "Infraestrutura completa no ar. Admin criado no Portainer."
-  },
-  {
-    id: "vps",
-    title: "Acessar VPS",
-    objective: "Entrar no servidor e preparar a base do sistema.",
-    tutorial: [
-      {
-        heading: "1. Acesse via SSH",
-        body: `<p>No seu terminal local (PowerShell, CMD, Terminal, etc.), conecte no servidor. A senha é a senha root definida na contratação da VPS:</p>`,
-        command: "ssh root@{{serverIp}}"
-      },
-      {
-        heading: "2. Atualize os pacotes do servidor",
-        body: `<p>Na primeira vez que entrar no servidor, atualize tudo antes de instalar qualquer coisa:</p>`,
-        command: "apt update && apt upgrade -y"
-      },
-      {
-        heading: "3. Configure o firewall básico",
-        body: `<p>Libere as portas necessárias e bloqueie o resto:</p>`,
-        command: "ufw allow 22/tcp\nufw allow 80/tcp\nufw allow 443/tcp\nufw --force enable"
-      }
-    ],
-    validation: "O ufw responder com as portas 22, 80 e 443 liberadas.",
-    done: "Conectado via SSH com pacotes atualizados e firewall ativo."
-  },
-  {
-    id: "swarm",
-    title: "Docker Swarm",
-    objective: "Instalar Docker, iniciar Swarm e criar a rede publica da infra.",
-    tutorial: [
-      {
-        heading: "1. Instale o Docker",
-        body: `<p>Execute o instalador oficial do Docker no servidor:</p>`,
-        command: "curl -fsSL https://get.docker.com | sh"
-      },
-      {
-        heading: "2. Inicialize o Swarm",
-        body: `<p>Transforme o servidor em um nó manager do Docker Swarm. Use o IP público da sua VPS:</p>`,
-        command: "docker swarm init --advertise-addr {{serverIp}}"
-      },
-      {
-        heading: "3. Crie a rede pública",
-        body: `<p>Todos os serviços que precisam se comunicar com o Traefik (o proxy reverso) precisam estar nessa rede:</p>`,
-        command: "docker network create --driver=overlay --attachable network_swarm_public"
-      },
-      {
-        heading: "4. Crie os volumes de dados",
-        body: `<p>Volumes são onde os dados persistem mesmo que os containers sejam reiniciados. Cada comando responde com o nome do volume criado:</p>`,
-        command: "docker volume create volume_swarm_certificates\ndocker volume create portainer_data\ndocker volume create postgres_data\ndocker volume create redis_n8n_data"
-      }
-    ],
-    validation: "O swarm init responder 'This node is now a manager' e os volumes serem criados sem erro.",
-    done: "Docker instalado, Swarm ativo, rede e volumes criados."
-  },
-  {
-    id: "traefik",
-    title: "Subir Traefik",
-    objective: "Publicar o proxy publico unico com HTTP, HTTPS e Let's Encrypt.",
-    tutorial: [
-      {
-        heading: "1. Crie o arquivo da stack no servidor",
-        body: `<p>O Portainer ainda não existe — então o Traefik precisa ser deployado diretamente via SSH. No terminal conectado ao servidor, crie o arquivo YAML:</p>`,
-        command: "mkdir -p /opt/stacks/traefik\nnano /opt/stacks/traefik/stack.yml"
-      },
-      {
-        heading: "2. Cole o YAML no editor",
-        body: `<p>Copie o conteúdo do bloco <strong>traefik — stack.yml</strong> abaixo e cole no nano. Confira que a linha <code>acme.email</code> mostra seu e-mail real — o Let's Encrypt usa esse endereço para avisos de certificado.</p>
-<p>Salve com <kbd>Ctrl+O</kbd> → <kbd>Enter</kbd> e feche com <kbd>Ctrl+X</kbd>.</p>`
-      },
-      {
-        heading: "3. Faça o deploy da stack",
-        body: `<p>Ainda no terminal SSH, execute:</p>`,
-        command: "docker stack deploy -c /opt/stacks/traefik/stack.yml traefik"
-      },
-      {
-        heading: "4. Confirme que o Traefik subiu",
-        body: `<p>Aguarde ~20 segundos e verifique. O serviço deve mostrar <strong>1/1</strong> na coluna REPLICAS:</p>`,
-        command: "docker service ls"
-      }
-    ],
-    validation: "docker service ls mostrar o traefik com replica 1/1.",
-    done: "Traefik rodando com replica 1/1.",
-    yaml: [{ name: "traefik — stack.yml", note: "Copie e cole no nano aberto no passo 1. Salve com Ctrl+O e feche com Ctrl+X.", content: `version: "3.7"
-
-services:
-  traefik:
-    image: traefik:v3.3
-    command:
-      - "--api.dashboard=true"
-      - "--providers.swarm.endpoint=unix:///var/run/docker.sock"
-      - "--providers.swarm.exposedbydefault=false"
-      - "--providers.swarm.network=network_swarm_public"
-      - "--entrypoints.web.address=:80"
-      - "--entrypoints.web.http.redirections.entryPoint.to=websecure"
-      - "--entrypoints.web.http.redirections.entryPoint.scheme=https"
-      - "--entrypoints.web.http.redirections.entrypoint.permanent=true"
-      - "--entrypoints.websecure.address=:443"
-      - "--certificatesresolvers.letsencryptresolver.acme.httpchallenge=true"
-      - "--certificatesresolvers.letsencryptresolver.acme.httpchallenge.entrypoint=web"
-      - "--certificatesresolvers.letsencryptresolver.acme.email={{technicalEmail}}"
-      - "--certificatesresolvers.letsencryptresolver.acme.storage=/etc/traefik/letsencrypt/acme.json"
-      - "--log.level=INFO"
-      - "--accesslog=true"
-    deploy:
-      placement:
-        constraints:
-          - node.role == manager
-      labels:
-        - "traefik.enable=true"
-        - "traefik.http.middlewares.redirect-https.redirectscheme.scheme=https"
-        - "traefik.http.middlewares.redirect-https.redirectscheme.permanent=true"
-        - "traefik.http.routers.http-catchall.rule=hostregexp(\`{host:.+}\`)"
-        - "traefik.http.routers.http-catchall.entrypoints=web"
-        - "traefik.http.routers.http-catchall.middlewares=redirect-https@swarm"
-        - "traefik.http.routers.http-catchall.priority=1"
-    volumes:
-      - "/var/run/docker.sock:/var/run/docker.sock:ro"
-      - "vol_certificates:/etc/traefik/letsencrypt"
-    networks:
-      - network_swarm_public
-    ports:
-      - target: 80
-        published: 80
-        mode: host
-      - target: 443
-        published: 443
-        mode: host
-
-volumes:
-  vol_certificates:
-    external: true
-    name: volume_swarm_certificates
-
-networks:
-  network_swarm_public:
-    external: true
-    name: network_swarm_public` }]
-  },
-  {
-    id: "portainer",
-    title: "Subir Portainer",
-    objective: "Abrir o painel operacional em HTTPS.",
-    tutorial: [
-      {
-        heading: "1. Crie e faça deploy da stack via SSH",
-        body: `<p>Assim como no Traefik, esse deploy também é feito via SSH porque o Portainer ainda não está no ar:</p>`,
-        command: "mkdir -p /opt/stacks/portainer\nnano /opt/stacks/portainer/stack.yml"
-      },
-      {
-        heading: "2. Cole o YAML e faça o deploy",
-        body: `<p>Copie o conteúdo do bloco <strong>portainer — stack.yml</strong> abaixo, cole no nano e salve. Depois execute:</p>`,
-        command: "docker stack deploy -c /opt/stacks/portainer/stack.yml portainer"
-      },
-      {
-        heading: "3. Aguarde o DNS propagar e acesse o painel",
-        body: `<p>O DNS do subdomínio <code>painel.{{domain}}</code> precisa estar propagado (etapa anterior). Aguarde 1-2 minutos após o deploy e acesse pelo navegador:</p>`,
-        command: "https://painel.{{domain}}"
-      },
-      {
-        heading: "4. Crie o usuário administrador",
-        body: `<p>Na primeira vez que abrir o Portainer, ele vai pedir para criar o usuário admin. Defina um nome de usuário e uma senha forte. Depois clique em <strong>Get Started</strong> e depois em <strong>local</strong> para conectar ao Swarm local.</p>
-<p>A partir de agora, todos os deploys podem ser feitos pelo painel do Portainer via <strong>Stacks → Add stack</strong>.</p>`
-      }
-    ],
-    validation: "O painel abrir em https://painel.{{domain}} com cadeado HTTPS valido.",
-    done: "Usuario admin criado e ambiente Swarm visivel no Portainer.",
-    yaml: [{ name: "portainer — stack.yml", note: "Copie e cole no nano aberto no passo 1. Salve com Ctrl+O e feche com Ctrl+X.", content: `version: "3.7"
-
-services:
-  agent:
-    image: portainer/agent:sts
-    volumes:
-      - /var/run/docker.sock:/var/run/docker.sock
-      - /var/lib/docker/volumes:/var/lib/docker/volumes
-    networks:
-      - network_swarm_public
-    deploy:
-      mode: global
-      placement:
-        constraints:
-          - node.platform.os == linux
-
-  portainer:
-    image: portainer/portainer-ce:sts
-    command: -H tcp://tasks.agent:9001 --tlsskipverify
-    volumes:
-      - portainer_data:/data
-    networks:
-      - network_swarm_public
-    deploy:
-      mode: replicated
-      replicas: 1
-      placement:
-        constraints:
-          - node.role == manager
-      labels:
-        - "traefik.enable=true"
-        - "traefik.swarm.network=network_swarm_public"
-        - "traefik.http.routers.portainer.rule=Host(\`painel.{{domain}}\`)"
-        - "traefik.http.routers.portainer.entrypoints=websecure"
-        - "traefik.http.routers.portainer.tls.certresolver=letsencryptresolver"
-        - "traefik.http.routers.portainer.service=portainer"
-        - "traefik.http.services.portainer.loadbalancer.server.port=9000"
-
-networks:
-  network_swarm_public:
-    external: true
-    attachable: true
-    name: network_swarm_public
-
-volumes:
-  portainer_data:
-    external: true
-    name: portainer_data` }]
-  },
-  {
-    id: "site",
-    title: "Publicar site",
-    objective: "Publicar uma imagem Docker como site em dominio proprio.",
-    tutorial: [
-      {
-        heading: "1. Crie a stack no Portainer",
-        body: `<p>No Portainer, acesse <strong>Stacks → Add stack</strong>. Dê o nome <code>site</code> e cole o conteúdo do YAML abaixo no editor.</p>
-<p>Confirme se a variável <code>DATABASE_URL</code> no YAML contém a senha real do seu Postgres (ela deve aparecer preenchida automaticamente se você a salvou no passo anterior).</p>`
-      },
-      {
-        heading: "2. Configure a imagem Docker",
-        body: `<p>A variável <code>{{siteImage}}</code> no YAML deve ser substituída pelo endereço real da sua imagem Docker (ex: <code>registry.hub.docker.com/seunome/seusite:latest</code>). Se ainda não tem uma imagem, use a imagem de placeholder da Axon para testar o deploy.</p>`
-      },
-      {
-        heading: "3. Faça o deploy e aguarde",
-        body: `<p>Clique em <strong>Deploy the stack</strong>. Aguarde ~30 segundos e verifique se o container está rodando sem reiniciar (status <strong>Running</strong>, não <strong>Starting</strong> em loop).</p>`
-      },
-      {
-        heading: "4. Valide o site e o health check",
-        body: `<p>Confirme que o site abre com HTTPS e que o health check responde:</p>`,
-        command: "curl -I https://{{domain}}\ncurl https://{{domain}}/health"
-      }
-    ],
-    checklist: ["Stack criada no Portainer com DATABASE_URL correta", "Container rodando sem reiniciar em loop", "https://{{domain}} abre o site com HTTPS", "/health responde 'ok'"],
-    yaml: [{ name: "site — stack.yml", content: `version: "3.7"
-
-services:
-  site:
-    image: {{siteImage}}
-    hostname: "{{.Service.Name}}.{{.Task.Slot}}"
-    environment:
-      NODE_ENV: production
-      PORT: "80"
-      DATABASE_URL: "postgres://axon_app:{{postgresPassword}}@postgres:5432/axon_ops"
-    networks:
-      - network_swarm_public
-    healthcheck:
-      test: ["CMD-SHELL", "wget -qO- http://127.0.0.1/health | grep -q ok"]
-      interval: 30s
-      timeout: 10s
-      retries: 5
-      start_period: 30s
-    deploy:
-      mode: replicated
-      replicas: 1
-      placement:
-        constraints:
-          - node.role == manager
-      resources:
-        limits:
-          cpus: "0.25"
-          memory: 128M
-      labels:
-        - "traefik.enable=true"
-        - "traefik.swarm.network=network_swarm_public"
-        - "traefik.http.routers.site.rule=Host(\`{{domain}}\`) || Host(\`www.{{domain}}\`)"
-        - "traefik.http.routers.site.entrypoints=websecure"
-        - "traefik.http.routers.site.tls.certresolver=letsencryptresolver"
-        - "traefik.http.routers.site.service=site"
-        - "traefik.http.services.site.loadbalancer.server.port=80"
-        - "traefik.http.services.site.loadbalancer.passHostHeader=true"
-      update_config:
-        parallelism: 1
-        delay: 10s
-        order: start-first
-        failure_action: rollback
-      rollback_config:
-        parallelism: 1
-        order: stop-first
-
-networks:
-  network_swarm_public:
-    external: true
-    name: network_swarm_public` }]
-  },
-  {
-    id: "postgres",
-    title: "Subir Postgres",
-    objective: "Criar banco operacional para o site e automacoes.",
-    tutorial: [
-      {
-        heading: "1. Crie a stack no Portainer",
-        body: `<p>No Portainer, acesse <strong>Stacks → Add stack</strong>. Dê o nome <code>postgres</code> e cole o YAML abaixo. Antes de criar, insira a senha do banco no campo abaixo do tutorial para preenchê-la automaticamente no YAML.</p>
-<p>Clique em <strong>Deploy the stack</strong> e aguarde o container subir.</p>`
-      },
-      {
-        heading: "2. Conecte no banco",
-        body: `<p>Com o Postgres rodando, conecte no banco a partir do terminal SSH do servidor:</p>`,
-        command: "docker exec -it $(docker ps -qf name=postgres) psql -U postgres"
-      },
-      {
-        heading: "3. Crie o banco e o usuário da aplicação",
-        body: `<p>Dentro do prompt <code>postgres=#</code>, execute os comandos abaixo (um de cada vez). Ela usará a senha que você digitou no campo abaixo:</p>`,
-        command: "CREATE DATABASE axon_ops;\nCREATE USER axon_app WITH ENCRYPTED PASSWORD '{{postgresPassword}}';\nGRANT ALL PRIVILEGES ON DATABASE axon_ops TO axon_app;\n\\q"
-      }
-    ],
-    validation: "Os comandos SQL responderem CREATE DATABASE, CREATE ROLE e GRANT sem erro.",
-    done: "Banco axon_ops e usuario axon_app criados.",
-    fields: [
-      { key: "postgresPassword", label: "Senha do banco Postgres (para uso em todas as stacks)", placeholder: "SuaSenhaForteAqui" }
-    ],
-    yaml: [{ name: "postgres — stack.yml", content: `version: "3.7"
-
-services:
-  postgres:
-    image: pgvector/pgvector:pg16
-    hostname: "{{.Service.Name}}.{{.Task.Slot}}"
-    networks:
-      - network_swarm_public
-    command:
-      - postgres
-      - --max_connections=200
-      - --port=5432
-    volumes:
-      - postgres_data:/var/lib/postgresql/data
-    environment:
-      POSTGRES_PASSWORD: {{postgresPassword}}
-      POSTGRES_INITDB_ARGS: "--auth-host=scram-sha-256"
-    deploy:
-      mode: replicated
-      replicas: 1
-      placement:
-        constraints:
-          - node.role == manager
-      resources:
-        limits:
-          cpus: "1"
-          memory: 1024M
-
-volumes:
-  postgres_data:
-    external: true
-    name: postgres_data
-
-networks:
-  network_swarm_public:
-    external: true
-    name: network_swarm_public` }]
-  },
-  {
-    id: "n8n",
-    title: "n8n em fila",
-    objective: "Subir editor, webhooks, worker, runners e Redis. Suba uma stack por vez, na ordem abaixo.",
-    tutorial: [
-      {
-        heading: "1. Gere as credenciais necessárias",
-        body: `<p>Antes de criar as stacks, você precisa de dois tokens aleatórios. Execute no terminal SSH do servidor para gerar cada um:</p>`,
-        command: "openssl rand -hex 32"
-      },
-      {
-        heading: "2. Anote os valores",
-        body: `<p>Execute o comando acima <strong>duas vezes</strong> e anote os resultados:</p>
-<ul>
-  <li><strong>N8N_ENCRYPTION_KEY</strong> — chave de criptografia das credenciais salvas no n8n</li>
-  <li><strong>N8N_RUNNERS_AUTH_TOKEN</strong> — token de autenticação entre worker e runners</li>
-</ul>
-<p>Você vai substituir <code>{{n8nEncryptionKey}}</code> e <code>{{n8nRunnersAuthToken}}</code> por esses valores em todas as stacks abaixo.</p>`
-      },
-      {
-        heading: "3. Suba as stacks em ordem",
-        body: `<p>No Portainer (<strong>Stacks → Add stack</strong>), suba as 5 stacks na sequência exata abaixo. Aguarde o status <strong>Running</strong> antes de passar para a próxima:</p>
-<ol>
-  <li><strong>redis-n8n</strong> — banco de filas em memória</li>
-  <li><strong>n8n-editor</strong> — interface visual (preencha todos os placeholders antes de criar)</li>
-  <li><strong>n8n-webhook</strong> — recebe webhooks externos</li>
-  <li><strong>n8n-worker</strong> — executa os jobs da fila</li>
-  <li><strong>n8n-runners</strong> — executa código JavaScript e Python</li>
-</ol>`
-      },
-      {
-        heading: "4. Teste com um workflow manual",
-        body: `<p>Acesse o editor em <a href="https://workflows.{{domain}}" target="_blank" rel="noopener">workflows.{{domain}}</a>. Crie um workflow com um nó <strong>Manual Trigger</strong> e um nó <strong>Set</strong>. Execute e confirme que a execução aparece no histórico sem erros.</p>`
-      }
-    ],
-    validation: "O workflow manual executar e aparecer no historico sem erros.",
-    done: "Editor no ar e workflow de teste executado com sucesso.",
-    yaml: [
-      { name: "1 — redis-n8n (stack.yml)", content: `version: "3.7"
-
-services:
-  redis_n8n:
-    image: redis:7-alpine
-    command: redis-server --appendonly yes
-    networks:
-      - network_swarm_public
-    volumes:
-      - redis_n8n_data:/data
-    deploy:
-      mode: replicated
-      replicas: 1
-      placement:
-        constraints:
-          - node.role == manager
-      resources:
-        limits:
-          cpus: "0.25"
-          memory: 256M
-
-volumes:
-  redis_n8n_data:
-    external: true
-    name: redis_n8n_data
-
-networks:
-  network_swarm_public:
-    external: true
-    name: network_swarm_public` },
-      { name: "2 — n8n-editor (stack.yml)", content: `version: "3.7"
-
-services:
-  n8n_editor:
-    image: n8nio/n8n:2.16.1
-    hostname: "{{.Service.Name}}.{{.Task.Slot}}"
-    command: start
-    networks:
-      - network_swarm_public
-    environment:
-      - N8N_ENCRYPTION_KEY={{n8nEncryptionKey}}
-      - NODE_ENV=production
-      - N8N_METRICS=true
-      - N8N_DIAGNOSTICS_ENABLED=false
-      - N8N_PAYLOAD_SIZE_MAX=16
-      - N8N_LOG_LEVEL=info
-      - GENERIC_TIMEZONE=America/Sao_Paulo
-      - N8N_ENFORCE_SETTINGS_FILE_PERMISSIONS=true
-      - N8N_RUNNERS_ENABLED=true
-      - N8N_RUNNERS_MODE=external
-      - N8N_RUNNERS_BROKER_LISTEN_ADDRESS=0.0.0.0
-      - N8N_RUNNERS_AUTH_TOKEN={{n8nRunnersAuthToken}}
-      - N8N_NATIVE_PYTHON_RUNNER=true
-      - OFFLOAD_MANUAL_EXECUTIONS_TO_WORKERS=true
-      - DB_TYPE=postgresdb
-      - DB_POSTGRESDB_DATABASE=n8n
-      - DB_POSTGRESDB_HOST=axon_postgres_axon_postgres
-      - DB_POSTGRESDB_PORT=5432
-      - DB_POSTGRESDB_USER=axon_app
-      - DB_POSTGRESDB_PASSWORD={{postgresPassword}}
-      - N8N_PORT=5678
-      - N8N_HOST=workflows.{{domain}}
-      - N8N_EDITOR_BASE_URL=https://workflows.{{domain}}/
-      - N8N_PROTOCOL=https
-      - WEBHOOK_URL=https://webhooks.{{domain}}/
-      - N8N_ENDPOINT_WEBHOOK=webhook
-      - EXECUTIONS_MODE=queue
-      - QUEUE_BULL_REDIS_HOST=redis_n8n_redis_n8n
-      - QUEUE_BULL_REDIS_PORT=6379
-      - QUEUE_BULL_REDIS_DB=2
-      - EXECUTIONS_TIMEOUT=3600
-      - EXECUTIONS_TIMEOUT_MAX=7200
-      - EXECUTIONS_DATA_PRUNE=true
-      - EXECUTIONS_DATA_MAX_AGE=336
-      - EXECUTIONS_DATA_PRUNE_MAX_COUNT=10000
-      - EXECUTIONS_DATA_SAVE_ON_ERROR=all
-      - EXECUTIONS_DATA_SAVE_ON_SUCCESS=all
-      - EXECUTIONS_DATA_SAVE_ON_PROGRESS=true
-      - EXECUTIONS_DATA_SAVE_MANUAL_EXECUTIONS=true
-      - NODE_FUNCTION_ALLOW_BUILTIN=*
-      - NODE_FUNCTION_ALLOW_EXTERNAL=lodash
-      - N8N_COMMUNITY_PACKAGES_ENABLED=true
-      - N8N_REINSTALL_MISSING_PACKAGES=true
-      - N8N_NODE_PATH=/home/node/.n8n/nodes
-      - N8N_AI_ENABLED=false
-      - N8N_ONBOARDING_FLOW_DISABLED=true
-      - N8N_EMAIL_MODE=smtp
-      - N8N_SMTP_HOST=smtp.mailersend.net
-      - N8N_SMTP_PORT=587
-      - N8N_SMTP_USER=MAILERSEND_SMTP_USER_AQUI
-      - N8N_SMTP_PASS=MAILERSEND_SMTP_PASS_AQUI
-      - N8N_SMTP_SENDER=contato@{{domain}}
-      - N8N_SMTP_SSL=false
-      - N8N_SECURE_COOKIE=false
-      - N8N_BLOCK_ENV_ACCESS_IN_NODE=false
-      - N8N_RESTRICT_FILE_ACCESS_TO=~/.n8n-files
-      - N8N_DEFAULT_BINARY_DATA_MODE=default
-    deploy:
-      mode: replicated
-      replicas: 1
-      placement:
-        constraints:
-          - node.role == manager
-      resources:
-        limits:
-          cpus: "1"
-          memory: 1024M
-      labels:
-        - traefik.enable=true
-        - traefik.http.routers.n8n_editor.rule=Host(\`workflows.{{domain}}\`)
-        - traefik.http.routers.n8n_editor.entrypoints=websecure
-        - traefik.http.routers.n8n_editor.tls.certresolver=letsencryptresolver
-        - traefik.http.routers.n8n_editor.service=n8n_editor
-        - traefik.http.services.n8n_editor.loadbalancer.server.port=5678
-        - traefik.http.services.n8n_editor.loadbalancer.passHostHeader=true
-      update_config:
-        parallelism: 1
-        delay: 30s
-        order: start-first
-        failure_action: rollback
-
-networks:
-  network_swarm_public:
-    name: network_swarm_public
-    external: true` },
-      { name: "3 — n8n-webhook (stack.yml)", content: `version: "3.7"
-
-services:
-  n8n_webhook:
-    image: n8nio/n8n:2.16.1
-    hostname: "{{.Service.Name}}.{{.Task.Slot}}"
-    command: webhook
-    networks:
-      - network_swarm_public
-    environment:
-      - N8N_ENCRYPTION_KEY={{n8nEncryptionKey}}
-      - NODE_ENV=production
-      - N8N_METRICS=true
-      - N8N_DIAGNOSTICS_ENABLED=false
-      - N8N_PAYLOAD_SIZE_MAX=16
-      - N8N_LOG_LEVEL=info
-      - GENERIC_TIMEZONE=America/Sao_Paulo
-      - N8N_ENFORCE_SETTINGS_FILE_PERMISSIONS=true
-      - N8N_RUNNERS_ENABLED=true
-      - N8N_RUNNERS_MODE=external
-      - N8N_RUNNERS_AUTH_TOKEN={{n8nRunnersAuthToken}}
-      - N8N_NATIVE_PYTHON_RUNNER=true
-      - OFFLOAD_MANUAL_EXECUTIONS_TO_WORKERS=true
-      - DB_TYPE=postgresdb
-      - DB_POSTGRESDB_DATABASE=n8n
-      - DB_POSTGRESDB_HOST=axon_postgres_axon_postgres
-      - DB_POSTGRESDB_PORT=5432
-      - DB_POSTGRESDB_USER=axon_app
-      - DB_POSTGRESDB_PASSWORD={{postgresPassword}}
-      - N8N_PORT=5678
-      - N8N_HOST=workflows.{{domain}}
-      - N8N_EDITOR_BASE_URL=https://workflows.{{domain}}/
-      - N8N_PROTOCOL=https
-      - WEBHOOK_URL=https://webhooks.{{domain}}/
-      - N8N_ENDPOINT_WEBHOOK=webhook
-      - EXECUTIONS_MODE=queue
-      - QUEUE_BULL_REDIS_HOST=redis_n8n_redis_n8n
-      - QUEUE_BULL_REDIS_PORT=6379
-      - QUEUE_BULL_REDIS_DB=2
-      - EXECUTIONS_TIMEOUT=3600
-      - EXECUTIONS_TIMEOUT_MAX=7200
-      - EXECUTIONS_DATA_PRUNE=true
-      - EXECUTIONS_DATA_MAX_AGE=336
-      - EXECUTIONS_DATA_PRUNE_MAX_COUNT=10000
-      - EXECUTIONS_DATA_SAVE_ON_ERROR=all
-      - EXECUTIONS_DATA_SAVE_ON_SUCCESS=all
-      - EXECUTIONS_DATA_SAVE_ON_PROGRESS=true
-      - EXECUTIONS_DATA_SAVE_MANUAL_EXECUTIONS=true
-      - NODE_FUNCTION_ALLOW_BUILTIN=*
-      - N8N_BLOCK_ENV_ACCESS_IN_NODE=false
-      - N8N_RESTRICT_FILE_ACCESS_TO=~/.n8n-files
-      - N8N_DEFAULT_BINARY_DATA_MODE=default
-    deploy:
-      mode: replicated
-      replicas: 3
-      placement:
-        constraints:
-          - node.role == manager
-      resources:
-        limits:
-          cpus: "1"
-          memory: 1024M
-      labels:
-        - traefik.enable=true
-        - traefik.http.routers.n8n_webhook.rule=Host(\`webhooks.{{domain}}\`)
-        - traefik.http.routers.n8n_webhook.entrypoints=websecure
-        - traefik.http.routers.n8n_webhook.tls.certresolver=letsencryptresolver
-        - traefik.http.routers.n8n_webhook.service=n8n_webhook
-        - traefik.http.services.n8n_webhook.loadbalancer.server.port=5678
-        - traefik.http.services.n8n_webhook.loadbalancer.passHostHeader=true
-      update_config:
-        parallelism: 1
-        delay: 30s
-        order: start-first
-        failure_action: rollback
-
-networks:
-  network_swarm_public:
-    name: network_swarm_public
-    external: true` },
-      { name: "4 — n8n-worker (stack.yml)", content: `version: "3.7"
-
-services:
-  n8n_worker:
-    image: n8nio/n8n:2.16.1
-    hostname: "{{.Service.Name}}.{{.Task.Slot}}"
-    command: worker --concurrency=10
-    networks:
-      - network_swarm_public
-    environment:
-      - N8N_ENCRYPTION_KEY={{n8nEncryptionKey}}
-      - NODE_ENV=production
-      - N8N_METRICS=true
-      - N8N_DIAGNOSTICS_ENABLED=false
-      - N8N_PAYLOAD_SIZE_MAX=16
-      - N8N_LOG_LEVEL=info
-      - GENERIC_TIMEZONE=America/Sao_Paulo
-      - N8N_ENFORCE_SETTINGS_FILE_PERMISSIONS=true
-      - N8N_RUNNERS_ENABLED=true
-      - N8N_RUNNERS_MODE=external
-      - N8N_RUNNERS_BROKER_LISTEN_ADDRESS=0.0.0.0
-      - N8N_RUNNERS_AUTH_TOKEN={{n8nRunnersAuthToken}}
-      - N8N_NATIVE_PYTHON_RUNNER=true
-      - OFFLOAD_MANUAL_EXECUTIONS_TO_WORKERS=true
-      - DB_TYPE=postgresdb
-      - DB_POSTGRESDB_DATABASE=n8n
-      - DB_POSTGRESDB_HOST=axon_postgres_axon_postgres
-      - DB_POSTGRESDB_PORT=5432
-      - DB_POSTGRESDB_USER=axon_app
-      - DB_POSTGRESDB_PASSWORD={{postgresPassword}}
-      - N8N_PORT=5678
-      - N8N_HOST=workflows.{{domain}}
-      - N8N_EDITOR_BASE_URL=https://workflows.{{domain}}/
-      - N8N_PROTOCOL=https
-      - WEBHOOK_URL=https://webhooks.{{domain}}/
-      - EXECUTIONS_MODE=queue
-      - QUEUE_BULL_REDIS_HOST=redis_n8n_redis_n8n
-      - QUEUE_BULL_REDIS_PORT=6379
-      - QUEUE_BULL_REDIS_DB=2
-      - EXECUTIONS_TIMEOUT=3600
-      - EXECUTIONS_TIMEOUT_MAX=7200
-      - EXECUTIONS_DATA_PRUNE=true
-      - EXECUTIONS_DATA_MAX_AGE=336
-      - EXECUTIONS_DATA_PRUNE_MAX_COUNT=10000
-      - EXECUTIONS_DATA_SAVE_ON_ERROR=all
-      - EXECUTIONS_DATA_SAVE_ON_SUCCESS=all
-      - EXECUTIONS_DATA_SAVE_ON_PROGRESS=true
-      - EXECUTIONS_DATA_SAVE_MANUAL_EXECUTIONS=true
-      - NODE_FUNCTION_ALLOW_BUILTIN=*
-      - N8N_BLOCK_ENV_ACCESS_IN_NODE=false
-      - N8N_RESTRICT_FILE_ACCESS_TO=~/.n8n-files
-      - N8N_DEFAULT_BINARY_DATA_MODE=default
-    deploy:
-      mode: replicated
-      replicas: 1
-      placement:
-        constraints:
-          - node.role == manager
-      resources:
-        limits:
-          cpus: "1"
-          memory: 1024M
-      update_config:
-        parallelism: 1
-        delay: 30s
-        order: start-first
-        failure_action: rollback
-
-networks:
-  network_swarm_public:
-    name: network_swarm_public
-    external: true` },
-      { name: "5 — n8n-runners (stack.yml)", content: `version: "3.7"
-
-services:
-  n8n_runners:
-    image: n8nio/runners:2.16.1
-    hostname: "{{.Service.Name}}.{{.Task.Slot}}"
-    command: ["javascript", "python"]
-    networks:
-      - network_swarm_public
-    environment:
-      N8N_RUNNERS_TASK_BROKER_URI: http://n8n_worker_n8n_worker:5679
-      N8N_RUNNERS_AUTH_TOKEN: {{n8nRunnersAuthToken}}
-    deploy:
-      mode: replicated
-      replicas: 1
-      placement:
-        constraints:
-          - node.role == manager
-      resources:
-        limits:
-          cpus: "1"
-          memory: 1024M
-      update_config:
-        parallelism: 1
-        delay: 30s
-        order: start-first
-        failure_action: rollback
-
-networks:
-  network_swarm_public:
-    external: true
-    name: network_swarm_public` }
-    ]
-  },
-  {
-    id: "ops",
-    title: "Operacao minima",
-    objective: "Aprender a ver saude, logs, atualizacao e rollback.",
-    tutorial: [
-      {
-        heading: "1. Liste todos os serviços",
-        body: `<p>Esse comando mostra o estado de todos os serviços rodando no Swarm. A coluna <strong>REPLICAS</strong> mostra <code>1/1</code> quando está saudável — se mostrar <code>0/1</code>, algo está errado:</p>`,
-        command: "docker service ls"
-      },
-      {
-        heading: "2. Veja os logs de um serviço",
-        body: `<p>Substitua <code>NOME_DO_SERVICO</code> pelo nome real (ex: <code>traefik_traefik</code>, <code>n8n_worker</code>). A flag <code>-f</code> mostra os logs em tempo real:</p>`,
-        command: "docker service logs NOME_DO_SERVICO --tail 100 -f"
-      },
-      {
-        heading: "3. Veja o estado das tasks de uma stack",
-        body: `<p>Mostra o histórico de containers iniciados e parados em uma stack — útil para ver se há crash loop:</p>`,
-        command: "docker stack ps NOME_DA_STACK --no-trunc"
-      },
-      {
-        heading: "4. Faça rollback pelo Portainer",
-        body: `<p>Se um deploy quebrou algum serviço, você pode reverter pelo Portainer sem precisar do terminal:</p>
-<ol>
-  <li>Acesse <strong>Stacks</strong> no Portainer.</li>
-  <li>Clique na stack com problema.</li>
-  <li>No topo, clique em <strong>Editor</strong> para ver o YAML atual.</li>
-  <li>Edite o YAML (ex: reverta a tag da imagem) e clique em <strong>Update the stack</strong>.</li>
-</ol>
-<p>Para rollback direto via comando:</p>`,
-        command: "docker service rollback NOME_DO_SERVICO"
-      }
-    ],
-    validation: "Conseguir ver servicos, logs e tasks da sua infra.",
-    done: "Souber checar saude e fazer rollback quando precisar."
   },
   {
     id: "infra-dados",
@@ -1012,8 +260,7 @@ networks:
     tutorial: [
       {
         heading: "1. Gere a chave da OpenAI",
-        body: `<p>Acesse <a href="https://platform.openai.com/api-keys" target="_blank" rel="noopener">platform.openai.com/api-keys</a>. Clique em <strong>Create new secret key</strong>, dê um nome descritivo (ex: <code>automacoes-{{domain}}</code>) e copie a chave — ela aparece uma única vez.</p>
-<p>Se ainda não tem conta, crie em <a href="https://platform.openai.com" target="_blank" rel="noopener">platform.openai.com</a> e adicione crédito em <strong>Billing → Add payment method</strong>.</p>
+        body: `<p>Se ainda não tem conta, crie em <a href="https://platform.openai.com" target="_blank" rel="noopener">platform.openai.com</a> e adicione crédito em <strong>Billing → Add payment method</strong>. Depois clique em <strong>Create new secret key</strong>, dê um nome descritivo (ex: <code>automacoes-{{domain}}</code>), copie a chave e salve num documento de texto — ela aparece uma única vez!</p>
 <p>Essa chave única atende tudo que vem pela frente: os agentes de texto do atendimento e do Conselho e a geração de imagens da Fábrica de Carrosséis.</p>`
       },
       {
@@ -1029,7 +276,7 @@ networks:
         body: `<p>No n8n, crie um workflow de teste:</p>
 <ol>
   <li>Adicione um nó <strong>Manual Trigger</strong>.</li>
-  <li>Conecte um nó <strong>OpenAI</strong>, modo <strong>Message a Model</strong>, com o prompt <em>"Responda apenas com 'ok'."</em></li>
+  <li>Conecte um nó <strong>OpenAI</strong>, modo <strong>Message a Model</strong>, selecione o modelo do ChatGPT e escreva o prompt <em>"Responda apenas com 'ok'."</em></li>
   <li>Execute e confirme que a resposta volta sem erro de autenticação.</li>
 </ol>`
       }
@@ -1037,148 +284,19 @@ networks:
     validation: "O no de OpenAI no n8n responder sem erro de autenticacao.",
     done: "Credencial da OpenAI ativa no n8n."
   },
-  {
-    id: "midia-paga",
-    title: "Pixels e midia paga",
-    objective: "Criar contas no Google Ads e Meta Ads e copiar os pixels de rastreamento para instalar no site.",
-    tutorial: [
-      {
-        heading: "1. Crie a conta no Google Ads",
-        body: `<p>Acesse <a href="https://ads.google.com" target="_blank" rel="noopener">ads.google.com</a> e crie uma conta com o e-mail do negócio.</p>
-<ol>
-  <li>Selecione o modo <strong>Expert</strong> na configuração inicial — evita o modo Inteligente que oculta controles avançados.</li>
-  <li>Pule a criação de campanha: clique em <strong>Explorar a conta</strong> quando a opção aparecer.</li>
-  <li>Anote o <strong>ID do cliente</strong> (formato XXX-XXX-XXXX) exibido no canto superior direito.</li>
-</ol>`
-      },
-      {
-        heading: "2. Copie o pixel do Google (Google Tag)",
-        body: `<p>No Google Ads, acesse <strong>Metas → Conversões → Criar conversão → Site</strong>.</p>
-<ol>
-  <li>Siga o assistente até o passo de instalação da tag.</li>
-  <li>Copie o bloco de código da <strong>Google Tag</strong> (começa com <code>&lt;script async src="https://www.googletagmanager.com/...</code>).</li>
-  <li>Guarde esse código — ele será colado no <code>&lt;head&gt;</code> do site no módulo seguinte.</li>
-</ol>`
-      },
-      {
-        heading: "3. Crie a conta no Meta Ads",
-        body: `<p>Acesse <a href="https://business.facebook.com" target="_blank" rel="noopener">business.facebook.com</a> e crie uma conta de negócios.</p>
-<ol>
-  <li>Clique em <strong>Criar conta</strong> e preencha nome da empresa, nome e e-mail.</li>
-  <li>Dentro do Business Manager, acesse <strong>Configurações do negócio → Contas de anúncio → Adicionar</strong> e crie a conta.</li>
-  <li>Adicione um método de pagamento em <strong>Faturamento → Formas de pagamento</strong>.</li>
-</ol>`
-      },
-      {
-        heading: "4. Copie o pixel do Meta",
-        body: `<p>No Business Manager, acesse <strong>Gerenciador de Eventos</strong> (Events Manager).</p>
-<ol>
-  <li>Clique em <strong>Conectar fontes de dados → Web → Pixel do Meta → Conectar</strong>.</li>
-  <li>Dê um nome ao pixel (ex: <code>Site {{domain}}</code>) e clique em <strong>Criar pixel</strong>.</li>
-  <li>Escolha <strong>Instalar o código manualmente</strong> e copie o bloco de código base.</li>
-  <li>Anote o <strong>ID do Pixel</strong> exibido no painel.</li>
-</ol>`
-      },
-      {
-        heading: "5. Guarde os pixels para instalação",
-        body: `<p>Você agora tem dois blocos de código para instalar no site no módulo seguinte:</p>
-<ul>
-  <li><strong>Google Tag:</strong> vai no <code>&lt;head&gt;</code> do HTML do site.</li>
-  <li><strong>Meta Pixel:</strong> vai logo após a abertura do <code>&lt;head&gt;</code>.</li>
-</ul>
-<p>Guarde os dois blocos num arquivo de texto seguro junto com o ID do Pixel do Meta.</p>`
-      }
-    ],
-    validation: "Google Tag e Meta Pixel copiados e guardados para instalacao no site.",
-    done: "Contas de Google Ads e Meta Ads criadas e pixels prontos para instalacao."
-  },
-  {
-    id: "crm",
-    title: "Funil no Chatwoot",
-    objective: "Organizar o Chatwoot como um CRM leve: etiquetas de funil e campos de contato para acompanhar cada lead.",
-    tutorial: [
-      {
-        heading: "1. Crie as etiquetas do funil",
-        body: `<p>No Chatwoot, acesse <strong>Configurações → Marcadores → Adicionar marcador</strong> e crie uma etiqueta para cada fase do funil:</p>
-<ul>
-  <li><code>novo-lead</code> — chegou agora, ainda não foi atendido</li>
-  <li><code>em-contato</code> — conversa em andamento</li>
-  <li><code>proposta-enviada</code> — já recebeu preço/oferta</li>
-  <li><code>fechado</code> — comprou 🎉</li>
-  <li><code>perdido</code> — não avançou</li>
-</ul>
-<p>Essas etiquetas são o seu funil de vendas dentro do Chatwoot.</p>`
-      },
-      {
-        heading: "2. Crie os campos de contato",
-        body: `<p>No Chatwoot, acesse <strong>Configurações → Atributos personalizados → Contato</strong> e clique em <strong>Adicionar atributo personalizado</strong>. Em <strong>"Aplica-se a"</strong>, selecione <strong>Contact</strong> (não Conversation) e crie estes três, tipo <em>Text</em>:</p>
-<ul>
-  <li><strong>Empresa</strong></li>
-  <li><strong>Interesse</strong></li>
-  <li><strong>Canal de origem</strong></li>
-</ul>
-<p>Eles aparecem no perfil de cada pessoa e ficam guardados para sempre — quando o mesmo lead voltar a falar com você, a informação continua lá.</p>`
-      },
-      {
-        heading: "3. Use o funil no dia a dia",
-        body: `<p>Quando uma conversa nova chega no Chatwoot (do WhatsApp ou anotada de um lead do site), você trabalha o lead assim:</p>
-<ol>
-  <li>Abra a conversa e, no painel da direita, aplique a etiqueta <code>novo-lead</code>.</li>
-  <li>Preencha o que souber nos campos <strong>Empresa</strong>, <strong>Interesse</strong> e <strong>Canal de origem</strong>.</li>
-  <li>Conforme o lead avança, troque a etiqueta (<code>em-contato</code> → <code>proposta-enviada</code> → <code>fechado</code> ou <code>perdido</code>).</li>
-</ol>
-<p>Simples e visual: a qualquer momento você filtra por etiqueta e vê quantos leads estão em cada fase. É o seu CRM funcionando, sem planilha.</p>`
-      }
-    ],
-    validation: "Etiquetas do funil e os tres campos de contato criados no Chatwoot.",
-    done: "Chatwoot organizado como CRM leve, pronto para acompanhar os leads."
-  },
+  // ─── Módulo 4 — Vídeos de avatar (HeyGen) ───────────────────────────────────
 
-  // ─── Módulo 4 — Presença Comercial ──────────────────────────────────────────
-
-  {
-    id: "estrategia-divulgacao",
-    title: "Estrategia de Divulgacao",
-    objective: "Entender como a sua presenca comercial vai operar de forma continua — e por que ela vive no seu Painel de Gestao, nao aqui no app.",
-    tutorial: [
-      {
-        heading: "1. Presenca comercial e rotina, nao entrega unica",
-        body: `<p>Divulgar o seu negócio não é uma tarefa que se conclui — é uma rotina que se repete: planejar o que postar, produzir as peças, publicar e ajustar. Por isso, essa capacidade não fica aqui no app (que você usa uma vez, durante a implantação): ela é instalada <strong>no seu ambiente</strong>, para você usar continuamente depois de formado.</p>
-<p>Quem executa é a infraestrutura que você já montou: os fluxos rodam no <strong>seu n8n</strong>, chamam a IA com a <strong>sua chave OpenAI</strong> (módulo 3) e gravam tudo no <strong>seu banco de dados</strong>. Sem depender de ninguém — nem de nós.</p>`
-      },
-      {
-        heading: "2. Como vai funcionar no seu Painel de Gestao",
-        body: `<p>No módulo 6 você publica o seu <strong>Painel de Gestão</strong> em 3 áreas — Administração, Marketing e Vendas. A rotina de divulgação vive na aba <strong>Marketing</strong>:</p>
-<ul>
-  <li><strong>Grade de Postagens</strong> — a IA lê seu planejamento estratégico e propõe uma grade de 28 dias (temas, formatos e frequência realista). Você revisa, pede ajustes e <strong>aprova</strong> — a grade aprovada fica salva no seu banco.</li>
-  <li><strong>Peças de divulgação</strong> — um botão para cada formato (Reels/Shorts, Carrossel, Post de feed, Stories) gera os roteiros e textos de todos os dias daquele formato na grade aprovada. Precisou de algo fora da grade? Gere uma <strong>peça avulsa</strong> com seu próprio direcionamento.</li>
-</ul>
-<p>E quando a peça precisa virar mídia, entram as <strong>Fábricas</strong>: o roteiro de Reels vira vídeo com seu apresentador virtual (Fábrica de Vídeos) e o carrossel vira 5 imagens prontas (Fábrica de Carrosséis) — os dois entregues no seu WhatsApp.</p>`
-      },
-      {
-        heading: "3. O que fazer agora",
-        body: `<p>Neste módulo, só uma preparação: a próxima etapa configura a <strong>Fábrica de Vídeos</strong> (conta HeyGen, apresentador virtual e voz). O restante — importar os fluxos, publicar o painel e gerar sua primeira grade — acontece no módulo 6, quando toda a base estiver pronta.</p>`
-      }
-    ],
-    validation: "Modelo de presenca comercial entendido: grade e pecas no painel, fabricas para video e carrossel.",
-    done: "Estrategia de divulgacao compreendida."
-  },
   {
     id: "heygen-setup",
-    title: "Fabrica de Videos — setup",
+    title: "Videos de avatar",
     objective: "Criar sua conta no HeyGen, escolher o apresentador virtual e a voz dos seus videos, e validar tudo com um video de teste.",
     tutorial: [
       {
-        heading: "1. O que e a Fabrica de Videos",
-        body: `<p>A Fabrica de Videos transforma os roteiros gerados nas etapas anteriores em <strong>videos prontos para Reels e Shorts</strong> — com um apresentador virtual, voz em portugues e legenda automatica.</p>
-<p>Quem gera os videos e o <strong>HeyGen</strong>, um servico especializado em video com IA. Nesta etapa voce cria sua conta la e escolhe o apresentador e a voz. <strong>Custo transparente:</strong> cada video de ~20 segundos custa cerca de <strong>US$ 1</strong> (cobrado pelo HeyGen, direto na sua conta — sem intermediarios).</p>`
-      },
-      {
-        heading: "2. Crie sua conta no HeyGen",
+        heading: "1. Crie sua conta no HeyGen",
         body: `<p>Acesse <a href="https://app.heygen.com" target="_blank" rel="noopener">app.heygen.com</a> e crie uma conta gratuita (pode usar o e-mail do seu negocio). <strong>Nao precisa assinar nenhum plano</strong> — os videos da Fabrica sao pagos por uso, via API.</p>`
       },
       {
-        heading: "3. Ative o credito de API e copie sua chave",
+        heading: "2. Ative o credito de API e copie sua chave",
         body: `<p>No HeyGen, abra as configuracoes da conta e procure a area de <strong>API</strong>:</p>
 <p>1. Em <strong>Billing / API</strong>, adicione credito inicial (minimo US$ 5 — rende cerca de 5 videos).<br>
 2. Em <strong>Settings → API</strong>, copie o seu <strong>API Token</strong> (comeca com letras e numeros longos).</p>
@@ -1186,23 +304,19 @@ networks:
         field: "heygenApiKey"
       },
       {
-        heading: "4. Escolha seu apresentador virtual",
+        heading: "3. Escolha seu apresentador virtual",
         body: `<p>Na barra lateral do HeyGen, abra <strong>Avatars</strong> e navegue pela biblioteca publica. Escolha o apresentador com a cara do seu negocio (ha centenas — formais, casuais, jovens, maduros).</p>
-<p>Ao abrir a pagina do avatar escolhido, olhe a <strong>barra de endereco do navegador</strong>: o codigo do avatar e o trecho de letras e numeros depois de <code>avatars/</code>. Copie e cole abaixo — no proximo passo o app confere se esta certo.</p>`,
+<p>Ao abrir a pagina do avatar escolhido, olhe a <strong>barra de endereco do navegador</strong>: o codigo do avatar e o trecho de letras e numeros depois de <code>avatars/</code>. Copie e cole abaixo — no passo de validacao o app confere se esta certo.</p>`,
         field: "heygenAvatarId"
       },
       {
-        heading: "5. Escolha a voz do seu apresentador",
-        body: `<p>Selecionamos vozes em portugues do Brasil que funcionam bem com os roteiros da Fabrica. Clique para ouvir e marque a sua preferida:</p>
-<div class="wizard-data-fields heygen-voice-list">
-  <div class="wizard-data-field"><label><input type="radio" name="heygenVoice" data-project-field="heygenVoiceId" value="94ec497104a04c87904a8aa138d6e46c"> Sofia — feminina, natural</label><audio controls preload="none" src="https://resource.heygen.ai/text_to_speech/ZSSfa8Hoy3vNvwMyE47P99.mp3"></audio></div>
-  <div class="wizard-data-field"><label><input type="radio" name="heygenVoice" data-project-field="heygenVoiceId" value="6c0a95599317428a8151293305deceba"> Ana — feminina, simpatica</label><audio controls preload="none" src="https://resource2.heygen.ai/text_to_speech/21e28514b7994f46b907b74914a3ca6e/6c0a95599317428a8151293305deceba/id=4df9deb9-463b-45ec-9640-00935f7bddd6.wav"></audio></div>
-  <div class="wizard-data-field"><label><input type="radio" name="heygenVoice" data-project-field="heygenVoiceId" value="15ea92317dfe4abc858b08be62bd8e93"> Ricardo — masculina, calma</label><audio controls preload="none" src="https://static.heygen.ai/voice_preview/47d1469c5c434e6ab153fe69904687ac.wav"></audio></div>
-  <div class="wizard-data-field"><label><input type="radio" name="heygenVoice" data-project-field="heygenVoiceId" value="cfdb383951144f56a5198869636ccd17"> Antonio — masculina, natural</label><audio controls preload="none" src="https://static.heygen.ai/voice_preview/82871b89da0d42f0bc9c64681f00ae48.wav"></audio></div>
-</div>`
+        heading: "4. Escolha a voz do seu apresentador",
+        body: `<p>Na barra lateral do HeyGen, abra <strong>Voices</strong> e ouca as vozes em <strong>portugues do Brasil</strong> ate encontrar a que combina com a sua marca.</p>
+<p>Na voz escolhida, copie o <strong>Voice ID</strong> (opcao <strong>Copy Voice ID</strong> no menu da voz) e cole abaixo:</p>`,
+        field: "heygenVoiceId"
       },
       {
-        heading: "6. Valide a configuracao",
+        heading: "5. Valide a configuracao",
         body: `<p>Clique para conferir se a chave e o apresentador estao corretos (nao gasta credito):</p>
 <div class="generate-block">
   <button class="button button-primary" type="button" id="btn-heygen-validate">Validar configuracao</button>
@@ -1214,7 +328,7 @@ networks:
 </div>`
       },
       {
-        heading: "7. Gere um video de teste (opcional)",
+        heading: "6. Gere um video de teste (opcional)",
         body: `<p>Para ver seu apresentador falando, gere um video curto de teste. <strong>Custa cerca de US$ 0,35</strong> do seu credito HeyGen e leva 1 a 2 minutos.</p>
 <div class="generate-block">
   <button class="button button-secondary" type="button" id="btn-heygen-test">Gerar video de teste</button>
@@ -1227,13 +341,14 @@ networks:
     ],
     fields: [
       { key: "heygenApiKey", label: "API Token do HeyGen", placeholder: "cole aqui o token copiado" },
-      { key: "heygenAvatarId", label: "Codigo do apresentador (avatar)", placeholder: "trecho apos avatars/ na URL" }
+      { key: "heygenAvatarId", label: "Codigo do apresentador (avatar)", placeholder: "trecho apos avatars/ na URL" },
+      { key: "heygenVoiceId", label: "Voice ID da voz escolhida", placeholder: "cole o Voice ID copiado no HeyGen" }
     ],
     validation: "Validacao da configuracao retornou o nome e a foto do apresentador.",
     done: "Conta HeyGen configurada: apresentador e voz escolhidos e validados."
   },
 
-  // ─── Módulo 5 — Site e Checkout ─────────────────────────────────────────────
+  // ─── Módulo 5 — Painel e Site ───────────────────────────────────────────────
 
   {
     id: "claude-setup",
@@ -1255,12 +370,11 @@ networks:
 <ul>
   <li><strong>Planejamento estratégico</strong> (.md — módulo 2)</li>
   <li><strong>Documento da infraestrutura</strong> (.md — módulo 3)</li>
-  <li><strong>Pixels</strong> — o arquivo de texto com os códigos do Google Tag e Meta Pixel (módulo 3)</li>
 </ul>
 <p>No app do Claude, abra essa pasta como projeto. Assim ele enxerga todos os seus documentos ao construir o site.</p>`
       }
     ],
-    validation: "App do Claude instalado, logado, e pasta do projeto com os 3 arquivos.",
+    validation: "App do Claude instalado, logado, e pasta do projeto com os 2 arquivos.",
     done: "Claude pronto para trabalhar com os documentos do seu negocio."
   },
   {
@@ -1270,7 +384,7 @@ networks:
     tutorial: [
       {
         heading: "1. Crie sua conta na Stripe",
-        body: `<p>Sua plataforma de pagamento é a <a href="https://stripe.com/br" target="_blank" rel="noopener">Stripe</a> — aceita cartões e Pix, funciona para vendas no Brasil e no exterior, e conecta direto ao seu painel de gestão no módulo 6.</p>
+        body: `<p>Sua plataforma de pagamento é a <a href="https://stripe.com/br" target="_blank" rel="noopener">Stripe</a> — aceita cartões e Pix, funciona para vendas no Brasil e no exterior, e conecta direto ao seu painel de gestão (etapa anterior).</p>
 <p>Crie a conta em <a href="https://dashboard.stripe.com/register" target="_blank" rel="noopener">dashboard.stripe.com/register</a> e complete a verificação (documentos e dados bancários). Sem a verificação completa, a Stripe não libera recebimentos.</p>`
       },
       {
@@ -1281,7 +395,7 @@ networks:
   <li>Cadastre o produto e o preço → copie o link.</li>
 </ol>
 <p><strong>Atenção:</strong> confira que o Dashboard está em modo <strong>produção</strong> (chave "Test mode" desligada) — link de teste começa com <code>buy.stripe.com/test_</code> e não processa vendas reais.</p>
-<p>💡 No módulo 6, as vendas deste link serão conectadas automaticamente ao seu painel de gestão.</p>
+<p>💡 As vendas deste link são registradas automaticamente no seu painel de gestão, pelo fluxo de vendas que você ativou no módulo 4.</p>
 <p>Cole o link abaixo:</p>`,
         field: "paymentLink"
       },
@@ -1330,8 +444,7 @@ networks:
   <li>A página carrega com cadeado (HTTPS) e o visual segue sua identidade</li>
   <li>O site abre bem no celular</li>
   <li>O <strong>botão de compra</strong> abre o checkout da plataforma de pagamento</li>
-  <li>O <strong>formulário de interesse</strong> aparece (ele será ativado de verdade no módulo 6, quando conectarmos o n8n)</li>
-  <li>Os pixels disparam — teste com as extensões <strong>Meta Pixel Helper</strong> e <strong>Tag Assistant</strong> no Chrome</li>
+  <li>O <strong>formulário de interesse</strong> grava o lead — envie um teste e confira a execução verde no fluxo de leads do n8n (ativado no módulo 4)</li>
 </ul>
 <p>Quer mudar algo no site depois? É só abrir o Claude na mesma pasta e pedir com suas palavras. O site é seu, o desenvolvedor também. 😉</p>`
       }
@@ -1340,7 +453,7 @@ networks:
     done: "Site publicado, recebendo visitantes e pronto para vender."
   },
 
-  // ─── Módulo 6 — Operação Assistida ──────────────────────────────────────────
+  // ─── Módulo 4 — Operação Assistida (WhatsApp, atendimento e fluxos do painel) ─
 
   {
     id: "whatsapp-connect",
@@ -1384,8 +497,9 @@ networks:
   <li><strong>URL:</strong> <code>https://chat.{{domain}}</code> (sem barra no final)</li>
   <li><strong>Account ID:</strong> o número do passo 2</li>
   <li><strong>Token:</strong> o token do passo 2</li>
-  <li><strong>Sign messages:</strong> desativado · <strong>Reopen conversation:</strong> ativado · <strong>Conversation pending:</strong> desativado</li>
+  <li><strong>Switches:</strong> ligue apenas o primeiro <strong>Enable</strong> e o <strong>Reopen Conversation</strong> — deixe todos os demais desligados.</li>
 </ul>
+<p><strong>⚠️ Atenção:</strong> se o primeiro <strong>Enable</strong> ficar desligado, a Evolution <strong>descarta as mensagens recebidas sem registrar nada em log</strong> — o atendente fica "mudo" e não há erro para investigar. Confira esse switch antes de salvar.</p>
 <p>Salve. A Evolution cria automaticamente uma caixa de entrada no Chatwoot para o WhatsApp.</p>
 <p>Aproveite e ajuste também em <strong>Configurações → Comportamento</strong> da instância: ative <strong>Ignorar Grupos</strong> (senão o atendente de IA vai responder em grupos!) e, se quiser, <strong>Rejeitar Chamadas</strong> com uma mensagem educada e <strong>Sempre Online</strong>. Deixe <strong>Sincronizar Histórico Completo</strong> desligado.</p>`
       },
@@ -1407,18 +521,13 @@ networks:
     ]
   },
   {
-    id: "leads-webhook",
-    title: "Leads do site",
-    objective: "Criar o banco de leads e ativar o webhook que registra o formulario do site.",
+    id: "painel-prep-credenciais",
+    title: "Credenciais no n8n",
+    objective: "Criar no n8n as credenciais que os fluxos do painel usam: Postgres do negocio, OpenAI e os Header Auth do Chatwoot e da Evolution.",
     tutorial: [
       {
-        heading: "1. Crie o banco de dados do negócio",
-        body: `<p>Conecte no SSH da VPS (como no módulo 3) e rode o comando abaixo — ele cria o banco <code>negocio</code>, onde seus leads e dados de gestão vão morar:</p>`,
-        command: `docker exec -t $(docker ps -q -f name=axon_postgres) sh -c 'psql -U "\${POSTGRES_USER:-postgres}" -c "CREATE DATABASE negocio OWNER axon_app;"'`
-      },
-      {
-        heading: "2. Crie a credencial do Postgres no n8n",
-        body: `<p>No n8n (<a href="https://workflows.{{domain}}" target="_blank" rel="noopener">workflows.{{domain}}</a>): <strong>Credentials → Add credential → Postgres</strong> e preencha:</p>
+        heading: "1. Crie a credencial Postgres negocio",
+        body: `<p>O banco <code>negocio</code> já foi criado pelo script do módulo 3 — é nele que leads, vendas e dados de gestão vão morar. No n8n (<a href="https://workflows.{{domain}}" target="_blank" rel="noopener">workflows.{{domain}}</a>): <strong>Credentials → Add credential → Postgres</strong> e preencha:</p>
 <ul>
   <li><strong>Host:</strong> <code>axon_postgres_axon_postgres</code></li>
   <li><strong>Database:</strong> <code>negocio</code></li>
@@ -1429,40 +538,86 @@ networks:
 <p>Salve com o nome <strong>Postgres negocio</strong>.</p>`
       },
       {
-        heading: "3. Importe o fluxo de leads",
-        body: `<p>Baixe o fluxo pronto e importe no n8n em <strong>Workflows → Add workflow → ⋮ (menu) → Import from file</strong>:</p>
-<p><button class="button button-primary" type="button" id="download-n8n-leads">Baixar fluxo de leads (.json)</button></p>
-<p>Depois de importar, abra o nó <strong>Salvar lead</strong> e selecione a credencial <strong>Postgres negocio</strong>.</p>`
+        heading: "2. Confira a credencial OpenAI",
+        body: `<p>Ela foi criada no módulo 3 (etapa "Chaves e credenciais"). Abra <strong>Credentials</strong> e confirme que a credencial <strong>OpenAI</strong> está lá — os fluxos de IA do painel dependem dela. Se não estiver, volte ao módulo 3 e crie.</p>`
       },
       {
-        heading: "4. ATIVE o workflow (importante!)",
-        body: `<p>No topo do editor do workflow, ligue a chave <strong>Active</strong> (Inactive → Active).</p>
-<p><strong>Pegadinha clássica do n8n:</strong> sem ativar, o webhook só funciona no modo de teste (URL de teste, que muda toda hora). O formulário do seu site usa a URL de <strong>produção</strong> — que só existe com o workflow ATIVO.</p>`
-      },
-      {
-        heading: "5. Teste com o formulário do site",
-        body: `<p>Abra <a href="https://{{domain}}" target="_blank" rel="noopener">https://{{domain}}</a>, preencha o formulário de interesse e envie.</p>
-<p>No n8n, abra <strong>Executions</strong> do workflow: deve aparecer uma execução verde. Pronto — cada lead do site agora fica registrado no seu banco.</p>`
-      },
-      {
-        heading: "6. Importe o fluxo de vendas (conversões)",
-        body: `<p>Agora as <strong>vendas</strong>: quando alguém paga no seu checkout, a Stripe avisa o seu n8n e a venda entra no banco — é o dado de conversão do seu painel de gestão.</p>
-<p>Baixe o fluxo, importe no n8n e selecione a credencial <strong>Postgres negocio</strong> no nó de banco:</p>
-<p><button class="button button-primary" type="button" id="download-n8n-vendas-stripe">Baixar fluxo de vendas — Stripe (.json)</button></p>
-<p><strong>ATIVE o workflow</strong> depois de importar (mesma regra de sempre).</p>`
-      },
-      {
-        heading: "7. Aponte a Stripe para o seu n8n",
-        body: `<p>Agora avise a Stripe para onde mandar as vendas:</p>
-<p><code>https://workflows.{{domain}}/webhook/vendas</code></p>
+        heading: "3. Crie o Header Auth do Chatwoot",
+        body: `<p>Alguns fluxos falam com o Chatwoot pela API (ex.: avisar você quando uma conversa é transferida). Crie: <strong>Credentials → Add credential → Header Auth</strong>:</p>
 <ul>
-  <li>No Dashboard: <strong>Developers → Webhooks → Add endpoint</strong> → cole a URL → em eventos, selecione <code>checkout.session.completed</code> → salve.</li>
+  <li><strong>Name:</strong> <code>api_access_token</code></li>
+  <li><strong>Value:</strong> <code>{{chatwootToken}}</code> (o token do perfil, etapa "Conectar o WhatsApp")</li>
 </ul>
-<p><strong>Teste:</strong> faça uma compra de teste no seu checkout (pode usar o modo teste com o cartão <code>4242 4242 4242 4242</code> — nesse caso configure o webhook no modo teste também). A venda deve aparecer como execução verde no n8n.</p>`
+<p>Salve com o nome <strong>Chatwoot Header</strong>.</p>`
+      },
+      {
+        heading: "4. Crie o Header Auth da Evolution",
+        body: `<p>Para enviar mensagens no seu WhatsApp, os fluxos usam a Evolution API. Crie outra <strong>Header Auth</strong>:</p>
+<ul>
+  <li><strong>Name:</strong> <code>apikey</code></li>
+  <li><strong>Value:</strong> <code>{{evolutionApiKey}}</code></li>
+</ul>
+<p>Salve com o nome <strong>Evolution Header</strong>.</p>`
       }
     ],
-    validation: "Lead do formulario e venda de teste gerando execucoes verdes no n8n.",
-    done: "Leads e vendas registrados automaticamente no banco."
+    validation: "Credenciais Postgres negocio, OpenAI, Chatwoot Header e Evolution Header salvas no n8n.",
+    done: "Credenciais do painel prontas no n8n."
+  },
+  {
+    id: "painel-prep-fluxos",
+    title: "Importar e ativar os fluxos",
+    objective: "Baixar, importar, configurar e ativar no n8n os fluxos que alimentam o Painel de Gestao.",
+    tutorial: [
+      {
+        heading: "1. O ritual de cada fluxo",
+        body: `<p>Cada botão abaixo baixa um fluxo pronto, já preenchido com os seus dados. Para <strong>cada um</strong>, repita o ritual no n8n:</p>
+<ol>
+  <li><strong>Importar:</strong> Workflows → Add workflow → ⋮ (menu) → <strong>Import from file</strong>.</li>
+  <li><strong>Selecionar credenciais:</strong> abra os nós com aviso e selecione <strong>Postgres negocio</strong> nos nós de banco e <strong>OpenAI</strong> nos nós de IA (etapa anterior).</li>
+  <li><strong>ATIVAR:</strong> ligue a chave <strong>Active</strong> no topo do editor. <strong>Pegadinha clássica do n8n:</strong> sem ativar, webhooks e formulários só funcionam no modo de teste (URL de teste, que muda toda hora).</li>
+</ol>`
+      },
+      {
+        heading: "2. Fluxos de dados: leads, vendas e metricas",
+        body: `<p>São eles que abastecem os números do painel:</p>
+<p><button class="button button-primary" type="button" id="download-n8n-leads">Baixar fluxo de leads (.json)</button></p>
+<p><button class="button button-primary" type="button" id="download-n8n-vendas-stripe">Baixar fluxo de vendas — Stripe (.json)</button></p>
+<p><button class="button button-primary" type="button" id="download-n8n-metricas">Baixar fluxo de metricas (.json)</button></p>
+<p>O fluxo de <strong>leads</strong> registra o formulário do site; o de <strong>vendas</strong> registra os pagamentos do checkout. Os dois ficam ativos desde já, mas só recebem dados de verdade no módulo 5, quando o site e o checkout entram no ar (é lá que você testa e aponta o webhook da plataforma de pagamento).</p>`
+      },
+      {
+        heading: "3. Fluxos de conteudo: Conselho, Grade e Fabrica de Imagens",
+        body: `<p>A inteligência do painel:</p>
+<p><button class="button button-primary" type="button" id="download-n8n-conselho">Baixar fluxo do Conselho (.json)</button></p>
+<p><button class="button button-primary" type="button" id="download-n8n-grade">Baixar fluxo da Grade de Postagens (.json)</button></p>
+<p><button class="button button-primary" type="button" id="download-n8n-pecas">Baixar fluxo da Fabrica de Imagens (.json)</button></p>
+<p>O <strong>Conselho</strong> são os especialistas de Administração, Marketing e Vendas do seu painel. A <strong>Grade</strong> propõe seus 28 dias de conteúdo. A <strong>Fábrica de Imagens</strong> gera as peças e imagens personalizadas (posts, logo, banner, imagens do site).</p>`
+      },
+      {
+        heading: "4. Fabricas de Carrosseis e de Videos",
+        body: `<p>As Fábricas transformam o que o painel gera em mídia pronta, entregue no <strong>seu WhatsApp</strong> — confirme o número abaixo antes de baixar.</p>
+<p><button class="button button-primary" type="button" id="download-n8n-fabrica-carrosseis">Baixar fluxo da Fabrica de Carrosseis (.json)</button></p>
+<p><button class="button button-primary" type="button" id="download-n8n-fabrica-videos">Baixar fluxo da Fabrica de Videos (.json)</button></p>
+<p>Depois de importar cada uma, abra o nó do <strong>formulário</strong> e digite o <strong>Form Path</strong>: <code>fabrica-de-carrosseis</code> e <code>fabrica-de-videos</code>. Os formulários ficam em <code>https://workflows.{{domain}}/form/fabrica-de-carrosseis</code> e <code>.../form/fabrica-de-videos</code> — salve nos favoritos.</p>
+<p><strong>⚠️ Fábrica de Vídeos:</strong> o fluxo sai preenchido com o token, o apresentador e a voz do HeyGen — que você configura na <strong>próxima etapa</strong>. Se ainda não configurou, conclua a etapa "Configurar videos de avatar" e volte aqui para baixar este fluxo.</p>
+<p><strong>Custo transparente:</strong> ~US$ 1 por carrossel de 5 imagens (crédito OpenAI) e ~US$ 1 por vídeo de ~20s (crédito HeyGen).</p>
+<p>💡 <strong>Opcional — rascunho automático no Metricool:</strong> se você assinar o plano <strong>Advanced</strong> do Metricool (libera a API), a Fábrica de Vídeos cria cada vídeo como rascunho no seu planner. Preencha os 3 campos abaixo (no Metricool: <strong>Configurações da conta → API</strong> mostra o userToken e o userId; o blogId é o número da marca na URL) e baixe o fluxo de vídeos novamente.</p>`,
+        fields: ["ownerWhatsapp", "metricoolToken", "metricoolUserId", "metricoolBlogId"]
+      },
+      {
+        heading: "5. Organize o funil no Chatwoot (opcional)",
+        body: `<p>Vale a pena deixar o Chatwoot pronto como um CRM leve: em <strong>Configurações → Marcadores</strong>, crie etiquetas de funil (<code>novo-lead</code>, <code>em-contato</code>, <code>proposta-enviada</code>, <code>fechado</code>, <code>perdido</code>) e, em <strong>Configurações → Atributos personalizados → Contact</strong>, os campos <strong>Empresa</strong>, <strong>Interesse</strong> e <strong>Canal de origem</strong>.</p>
+<p>Assim, cada conversa vira um lead rastreável: aplique a etiqueta, preencha os campos e troque a etiqueta conforme o lead avança. Filtrou por etiqueta, viu o funil — sem planilha.</p>`
+      }
+    ],
+    fields: [
+      { key: "ownerWhatsapp", label: "Seu WhatsApp (com DDI, so numeros)", placeholder: "5511999998888", inline: true },
+      { key: "metricoolToken", label: "userToken do Metricool (plano Advanced, opcional)", placeholder: "Configuracoes da conta → API", inline: true },
+      { key: "metricoolUserId", label: "userId do Metricool", placeholder: "numero do usuario (secao API)", inline: true },
+      { key: "metricoolBlogId", label: "blogId da marca no Metricool", placeholder: "numero da marca conectada", inline: true }
+    ],
+    validation: "Todos os fluxos importados, com credenciais selecionadas e chave Active ligada.",
+    done: "Fluxos do painel ativos no n8n, prontos para o painel consumir."
   },
   {
     id: "atendimento-agente",
@@ -1489,7 +644,9 @@ networks:
   <li>Nó <strong>Agente IA</strong> → credencial <strong>OpenAI</strong> (módulo 3)</li>
   <li>Nó <strong>Dedup mensagem</strong> → credencial <strong>Postgres negocio</strong> (etapa anterior)</li>
 </ul>
-<p>O atendente responde com memória da conversa, e quando o cliente pede humano, parceria ou desconto, ele <strong>transfere de verdade</strong>: atribui a conversa a você no Chatwoot (que te notifica) e para de responder sozinho.</p>`
+<p>O atendente responde com memória da conversa, e quando o cliente pede humano, parceria ou desconto, ele <strong>transfere de verdade</strong>: atribui a conversa a você no Chatwoot (que te notifica) e para de responder sozinho.</p>
+<p>Informe o <strong>seu WhatsApp</strong> antes de baixar — é para ele que o fluxo avisa quando uma conversa é transferida para você:</p>`,
+        fields: ["ownerWhatsapp"]
       },
       {
         heading: "3. Aponte a Evolution para o fluxo",
@@ -1509,33 +666,27 @@ networks:
 <p><strong>Para devolver a conversa ao bot:</strong> remova a atribuição no Chatwoot (Agente atribuído → Nenhum).</p>`
       }
     ],
+    fields: [
+      { key: "ownerWhatsapp", label: "Seu WhatsApp (com DDI, so numeros)", placeholder: "5511999998888", inline: true }
+    ],
     validation: "Mensagem de teste respondida pela IA e conversa registrada no Chatwoot.",
     done: "Atendente de IA respondendo o WhatsApp do negocio."
   },
   {
     id: "painel-conselho",
     title: "Painel e Conselho de IA",
-    objective: "Importar os fluxos do painel e publicar o seu centro de gestao em 3 areas — Administracao, Marketing e Vendas — no seu dominio.",
+    objective: "Gerar o PRD e publicar o seu centro de gestao em 3 areas — Administracao, Marketing e Vendas — no seu dominio.",
     tutorial: [
       {
-        heading: "1. Importe e ative os quatro fluxos do painel",
-        body: `<p><strong>Pré-requisito:</strong> estes fluxos usam a credencial <strong>Postgres negocio</strong>, criada na etapa "Leads do site" (passo 2), e a credencial <strong>OpenAI</strong> do módulo 3. Se ainda não completou a etapa de leads, volte lá primeiro.</p>
-<p>Baixe, importe no n8n e <strong>ative</strong> os quatro fluxos (em todos, selecione a credencial <strong>Postgres negocio</strong> nos nós de banco; nos fluxos com nó de IA, selecione também a credencial <strong>OpenAI</strong> do módulo 3):</p>
-<p><button class="button button-primary" type="button" id="download-n8n-metricas">Baixar fluxo de metricas (.json)</button></p>
-<p><button class="button button-primary" type="button" id="download-n8n-conselho">Baixar fluxo do Conselho (.json)</button></p>
-<p><button class="button button-primary" type="button" id="download-n8n-grade">Baixar fluxo da Grade de Postagens (.json)</button></p>
-<p><button class="button button-primary" type="button" id="download-n8n-pecas">Baixar fluxo de Pecas de Divulgacao (.json)</button></p>
-<p>O primeiro alimenta o dashboard. O segundo é o Conselho de IA — os especialistas de Administração, Marketing e Vendas, cada um na sua aba. Os dois últimos são a rotina de divulgação que você conheceu no módulo 4: a grade de 28 dias e as peças por formato.</p>`
-      },
-      {
-        heading: "2. Gere o PRD do painel",
-        body: `<p>Como no módulo 5: o agente monta o PRD do seu painel de gestão — página protegida por senha em <code>gestao.{{domain}}</code>, organizada em <strong>3 abas</strong>:</p>
+        heading: "1. Gere o PRD do painel",
+        body: `<p><strong>Pré-requisito:</strong> as credenciais e os fluxos do painel, preparados no módulo 4 (etapa "Preparar o Painel de Gestao"). Se pulou, volte lá primeiro.</p>
+<p>O agente monta o PRD do seu painel de gestão — página protegida por senha em <code>gestao.{{domain}}</code>, organizada em <strong>3 abas</strong>:</p>
 <ul>
   <li><strong>Administração</strong> — os números do negócio e o chat com o conselheiro que conhece todo o seu planejamento estratégico.</li>
   <li><strong>Marketing</strong> — a <strong>Grade de Postagens</strong> (gerar → pedir ajustes → aprovar), a geração de <strong>peças por formato</strong> (Reels, Carrossel, Feed, Stories) + peça avulsa, o chat com o conselheiro de marketing e os cards das <strong>Fábricas</strong>.</li>
   <li><strong>Vendas</strong> — leads e conversões recentes e o chat com o conselheiro de vendas.</li>
 </ul>
-<p><strong>Nota sobre as Fábricas:</strong> os cards de Vídeos e Carrosséis já nascem no painel, mas só funcionam depois que você ativar os fluxos nas duas próximas etapas — até lá, eles avisam que a Fábrica ainda não foi ativada.</p>`,
+<p><strong>Nota sobre as Fábricas:</strong> os cards das Fábricas (Vídeos, Carrosséis e Imagens) usam os fluxos que você importou e ativou no módulo 4 — já nascem funcionando.</p>`,
         generate: {
           id: "painel_prd",
           type: "text",
@@ -1544,121 +695,23 @@ networks:
         }
       },
       {
-        heading: "3. Cole no Claude e acompanhe",
-        body: `<p>Abra o app do Claude na pasta do projeto (a mesma do módulo 5) e cole o PRD.</p>
+        heading: "2. Cole no Claude e acompanhe",
+        body: `<p>Abra o app do Claude na pasta do projeto (etapa anterior) e cole o PRD.</p>
 <p>O Claude vai verificar os fluxos, pedir a senha root da VPS, pedir para você escolher <strong>usuário e senha do painel</strong>, inserir seu planejamento estratégico no banco (é ele que alimenta os agentes), construir a página e publicar. Se algo ficar parado por mais de 5 minutos ou der erro, cole a mensagem aqui no assistente.</p>`
       },
       {
-        heading: "4. Conheça seu painel — e gere sua primeira grade",
+        heading: "3. Conheça seu painel — e gere sua primeira grade",
         body: `<p>Abra <a href="https://gestao.{{domain}}" target="_blank" rel="noopener">https://gestao.{{domain}}</a>, entre com o usuário e senha que você escolheu e percorra as 3 abas:</p>
 <ul>
   <li><strong>Administração</strong> — os números carregam e o chat responde; experimente: <em>"Com os dados que temos até aqui, onde devo focar minha energia esta semana?"</em></li>
   <li><strong>Marketing</strong> — clique em <strong>Gerar grade</strong>: a IA lê seu planejamento e propõe 28 dias de conteúdo. Peça um ajuste (ex.: <em>"menos stories, mais Reels"</em>) e, quando estiver boa, <strong>aprove</strong>. Com a grade aprovada, gere as peças de um formato (ex.: Reels) e veja os roteiros prontos.</li>
   <li><strong>Vendas</strong> — os leads recentes aparecem e o conselheiro de vendas responde.</li>
 </ul>
-<p>Sua rotina de divulgação está no ar. Nas duas próximas etapas você ativa as <strong>Fábricas</strong> — e os carrosséis e roteiros gerados aqui viram imagens e vídeos prontos no seu WhatsApp.</p>`
+<p>Sua rotina de divulgação está no ar. As <strong>Fábricas</strong> já estão ativas — os carrosséis e roteiros gerados aqui viram imagens e vídeos prontos no seu WhatsApp.</p>`
       }
     ],
     validation: "Painel abrindo com login, 3 abas funcionando e grade de postagens gerada e aprovada.",
     done: "Painel de gestao no ar: Conselho por dominio, grade aprovada e pecas na aba Marketing."
-  },
-  {
-    id: "fabrica-carrosseis-ativar",
-    title: "Fabrica de Carrosseis — ativar",
-    objective: "Ativar o fluxo que transforma um carrossel gerado no seu painel em 5 imagens prontas (4:5), entregues no seu WhatsApp.",
-    tutorial: [
-      {
-        heading: "1. O que voce esta ativando",
-        body: `<p>A Fabrica de Carrosseis fecha o ciclo dos carrosseis da aba <strong>Marketing</strong> do seu painel: voce <strong>cola as linhas de UM carrossel</strong> da tabela gerada la (os 5 slides + a linha Legenda), e em poucos minutos recebe no seu WhatsApp as <strong>5 imagens prontas</strong> — no formato retrato 4:5 do Instagram, com o texto de cada slide ja desenhado na arte — mais a <strong>legenda do post</strong> para copiar.</p>
-<p>Por dentro, o fluxo: interpreta as linhas coladas → gera cada slide com IA de imagem (gpt-image-2, texto renderizado na propria arte, mesma direcao visual em todos) → entrega as imagens uma a uma no WhatsApp → registra no seu banco. <strong>Custo transparente:</strong> ~US$ 1 por carrossel de 5 slides, direto do seu credito OpenAI (a mesma conta do modulo 3 — nenhuma conta nova).</p>
-<p><strong>Pre-requisito:</strong> credencial OpenAI criada no n8n (modulo 3) e um carrossel gerado na aba Marketing do painel (etapa anterior).</p>`
-      },
-      {
-        heading: "2. Confira seu WhatsApp",
-        body: `<p>As imagens chegam no numero abaixo (o mesmo das outras automacoes):</p>`,
-        fields: ["ownerWhatsapp"]
-      },
-      {
-        heading: "3. Baixe, importe e ATIVE o fluxo",
-        body: `<p><button class="button button-primary" type="button" id="download-n8n-fabrica-carrosseis">Baixar fluxo da Fabrica de Carrosseis (.json)</button></p>
-<p>Importe no n8n (<strong>Import from file</strong>) e selecione as credenciais que voce ja criou:</p>
-<ul>
-  <li>Nos <strong>Prepara slides (IA)</strong> e <strong>Gera imagem (IA)</strong> → credencial <strong>OpenAI</strong> (modulo 3)</li>
-  <li>No <strong>Registra no banco</strong> → credencial <strong>Postgres negocio</strong> (etapa "Leads e vendas do site")</li>
-</ul>
-<p>Ligue a chave <strong>Active</strong> do workflow — sem ativar, o formulario nao existe.</p>`
-      },
-      {
-        heading: "4. Pegue o endereco do formulario e gere o primeiro carrossel",
-        body: `<p>Ao importar, o n8n troca o endereco do formulario por um codigo aleatorio (comportamento padrao dele). Para a URL fixa: abra o no <strong>Formulario Carrosseis</strong>, digite <code>fabrica-de-carrosseis</code> no campo <strong>Form Path</strong> e salve. Seu formulario fica em:</p>
-<p><code>https://workflows.{{domain}}/form/fabrica-de-carrosseis</code></p>
-<p>Abra o formulario e cole as <strong>linhas de UM carrossel</strong> da tabela gerada na aba Marketing do painel — do slide <code>Capa (1)</code> ate a linha <code>Legenda</code>. As 5 imagens chegam uma a uma no seu WhatsApp (~2 a 4 minutos), seguidas da legenda. Cada envio consome ~US$ 1 do seu credito OpenAI.</p>
-<p>Se nada chegar em 5 minutos, abra o n8n → <strong>Executions</strong> e veja onde o fluxo parou (o erro mais comum e credito zerado na OpenAI).</p>
-<p>💡 O card da Fabrica de Carrosseis ja esta no seu painel — agora que o fluxo esta ativo, voce pode colar o carrossel por la, sem abrir o n8n (este formulario continua como alternativa).</p>`
-      },
-      {
-        heading: "5. Publique",
-        body: `<p>Baixe as 5 imagens do WhatsApp e suba no Instagram (ou no planner do Metricool) na ordem, com a legenda pronta. As imagens ja saem no formato 4:5 — nenhum ajuste necessario.</p>`
-      }
-    ],
-    fields: [
-      { key: "ownerWhatsapp", label: "Seu WhatsApp (com DDI, so numeros)", placeholder: "5511999998888", inline: true }
-    ],
-    validation: "Carrossel de teste gerado pelo formulario e as 5 imagens recebidas no WhatsApp.",
-    done: "Fabrica de Carrosseis ativa: tabela colada vira 5 imagens prontas no WhatsApp."
-  },
-  {
-    id: "fabrica-videos-ativar",
-    title: "Fabrica de Videos — ativar",
-    objective: "Ativar o fluxo que transforma um roteiro gerado no seu painel em video pronto, entregue no seu WhatsApp.",
-    tutorial: [
-      {
-        heading: "1. O que voce esta ativando",
-        body: `<p>A Fabrica de Videos fecha o ciclo que voce comecou no Modulo 4: voce <strong>cola um roteiro de Reels/Shorts</strong> gerado na aba Marketing do seu painel, e em ~3 minutos recebe no seu WhatsApp o <strong>video vertical pronto</strong> — seu apresentador falando o roteiro, com legenda embutida — mais a <strong>legenda do post</strong> pronta para copiar.</p>
-<p>Por dentro, o fluxo: ajusta o roteiro para a fala soar natural (pausas e ritmo via pontuacao) → pede o video ao HeyGen → espera o render → entrega no WhatsApp → registra no seu banco. <strong>Custo transparente:</strong> ~US$ 1 por video de ~20s, direto do seu credito de API no HeyGen.</p>
-<p><strong>Pre-requisito:</strong> a etapa "Fabrica de Videos — setup" do Modulo 4 concluida (conta HeyGen, apresentador e voz validados).</p>`
-      },
-      {
-        heading: "2. Confira seus dados",
-        body: `<p>O fluxo ja sai preenchido com o apresentador e a voz que voce validou no Modulo 4. Confirme os dois campos abaixo antes de baixar:</p>`,
-        fields: ["ownerWhatsapp", "heygenApiKey"]
-      },
-      {
-        heading: "3. Baixe, importe e ATIVE o fluxo",
-        body: `<p><button class="button button-primary" type="button" id="download-n8n-fabrica-videos">Baixar fluxo da Fabrica de Videos (.json)</button></p>
-<p>Importe no n8n (<strong>Import from file</strong>) e selecione as credenciais que voce ja criou:</p>
-<ul>
-  <li>No <strong>Prepara roteiro (IA)</strong> → credencial <strong>OpenAI</strong> (modulo 3)</li>
-  <li>No <strong>Registra no banco</strong> → credencial <strong>Postgres negocio</strong> (etapa "Leads e vendas do site")</li>
-</ul>
-<p>Ligue a chave <strong>Active</strong> do workflow — sem ativar, o formulario nao existe.</p>`
-      },
-      {
-        heading: "4. Pegue o endereco do seu formulario e gere o primeiro video",
-        body: `<p>Ao importar, o n8n troca o endereco do formulario por um codigo aleatorio (comportamento padrao dele). Para deixar sua URL fixa e bonita: abra o no <strong>Formulario Fabrica</strong>, localize o campo <strong>Form Path</strong> e digite <code>fabrica-de-videos</code>. Salve. Seu formulario fica em:</p>
-<p><code>https://workflows.{{domain}}/form/fabrica-de-videos</code></p>
-<p>(Se preferir, use a <strong>Production URL</strong> exibida no proprio no — funciona do mesmo jeito.) <strong>Salve o endereco nos favoritos</strong> — e por aqui que voce gera video daqui em diante.</p>
-<p>Abra o formulario, cole um <strong>bloco inteiro</strong> de roteiro de Reels gerado na aba Marketing do painel (do 🎬 ate a legenda — a legenda vira o texto do post) e envie. Em ~3 minutos chegam no seu WhatsApp o video e a legenda. Cada envio consome ~US$ 1 do seu credito HeyGen.</p>
-<p>Se nada chegar em 5 minutos, abra o n8n → <strong>Executions</strong> e veja onde o fluxo parou (o erro mais comum e credito de API zerado no HeyGen).</p>
-<p>💡 O card da Fabrica de Videos ja esta no seu painel — agora que o fluxo esta ativo, voce pode colar o roteiro por la, sem abrir o n8n (este formulario continua como alternativa).</p>`
-      },
-      {
-        heading: "5. Publique — do jeito manual ou automatico (Metricool)",
-        body: `<p>Recomendamos o <strong>Metricool</strong> para agendar e publicar: no plano gratuito, baixe o video do WhatsApp, suba no planner com a legenda e agende — 2 minutos por post, e voce revisa tudo antes de ir ao ar.</p>
-<p><strong>Opcional — rascunho automatico:</strong> se voce assinar o plano <strong>Advanced</strong> do Metricool (que libera a API), a Fabrica cria cada video como <strong>rascunho no seu planner</strong> automaticamente — voce so revisa e confirma. Para ativar, preencha os 3 campos abaixo (no Metricool: <strong>Configuracoes da conta → API</strong> mostra o userToken e o userId; o blogId e o numero da marca, visivel na URL quando voce abre a marca no painel) e <strong>baixe e reimporte o fluxo</strong> no passo 3:</p>
-<p>🎓 <strong>Jornada completa:</strong> estratégia validada, infraestrutura própria, site vendendo, atendimento automático, um conselho de especialistas de plantão e uma linha de produção de conteúdo — grade, peças, vídeos e carrosséis — rodando no seu ambiente. Agora é operar, medir e crescer.</p>`,
-        fields: ["metricoolToken", "metricoolUserId", "metricoolBlogId"]
-      }
-    ],
-    fields: [
-      { key: "ownerWhatsapp", label: "Seu WhatsApp (com DDI, so numeros)", placeholder: "5511999998888", inline: true },
-      { key: "heygenApiKey", label: "API Token do HeyGen (vem do Modulo 4)", placeholder: "cole o token se o campo estiver vazio", inline: true },
-      { key: "metricoolToken", label: "userToken do Metricool (plano Advanced)", placeholder: "Configuracoes da conta → API", inline: true },
-      { key: "metricoolUserId", label: "userId do Metricool", placeholder: "numero do usuario (secao API)", inline: true },
-      { key: "metricoolBlogId", label: "blogId da marca no Metricool", placeholder: "numero da marca conectada", inline: true }
-    ],
-    validation: "Video de teste gerado pelo formulario e recebido no WhatsApp.",
-    done: "Fabrica ativa: roteiro colado vira video no WhatsApp (e rascunho no Metricool, se configurado)."
   },
 ];
 
@@ -1688,6 +741,7 @@ const DEFAULT_MEMBER_STATE = {
   completedSteps: [],
   checklist: {},
   assistantThreads: {},
+  stateVersion: 2,
   updatedAt: null
 };
 
@@ -1695,6 +749,13 @@ const DEFAULT_MEMBER_STATE = {
 const contentCache = {};
 
 const memberStoreKey = "axonMemberApp";
+
+// Envio em andamento no chat da etapa — trava reentrância sem depender do estado do DOM.
+// Declarado ANTES de bootMemberApp(): o boot pode renderizar o thread do assistente
+// (sessão salva reaberta dentro de um módulo) e um `let` ainda não inicializado
+// abortaria a avaliação do script inteiro (TDZ).
+let assistantRequestActive = false;
+
 let memberApp = {
   mode: "login",
   token: "",
@@ -1812,9 +873,6 @@ function wireMemberNavigation() {
     saveProjectName(document.querySelector("#settings-project-name")?.value);
   });
 }
-
-// Envio em andamento no chat da etapa — trava reentrância sem depender do estado do DOM
-let assistantRequestActive = false;
 
 async function sendAssistantMessage(value, { showUserBubble = true } = {}) {
   if (assistantRequestActive) return;
@@ -2310,6 +1368,14 @@ function renderLessonDetail(module, index) {
     ensureValidLessonStep(steps);
     renderLessonSteps(steps);
     renderLessonStage(stage, steps);
+
+    // Navegação passo a passo: os botões percorrem os passos antes de trocar de etapa
+    const stepIndex = steps.findIndex((step) => step.id === memberApp.state.currentLessonStep);
+    const isLastStep = stepIndex >= steps.length - 1;
+    document.querySelector("#next-stage").textContent = !isLastStep
+      ? "Proximo passo"
+      : (index === module.stages.length - 1 ? "Concluir modulo" : "Concluir etapa");
+    document.querySelector("#previous-stage").disabled = index === 0 && stepIndex <= 0;
   }
 
   ensureAssistantThread(module, stage);
@@ -2376,7 +1442,7 @@ function fillTemplate(template) {
 
 // Módulos com layout de wizard técnico (passos guiados + assistente técnico)
 function isWizardModule(module) {
-  return ["module-3", "module-4", "module-5", "module-6"].includes(module?.id);
+  return ["module-3", "module-4", "module-5"].includes(module?.id);
 }
 
 function currentModule() {
@@ -2448,6 +1514,33 @@ function moveStage(direction) {
 
   const index = getStageIndex(module);
 
+  // Wizard: os botões percorrem os passos da etapa antes de trocar de etapa
+  if (isWizardModule(module)) {
+    const stage = module.stages[index] || module.stages[0];
+    const steps = getLessonSteps(stage);
+    ensureValidLessonStep(steps);
+    const stepIndex = steps.findIndex((step) => step.id === memberApp.state.currentLessonStep);
+    const currentStep = steps[stepIndex];
+
+    if (direction > 0 && stepIndex < steps.length - 1) {
+      if (currentStep) memberApp.state.checklist[`${currentLessonKey()}.${currentStep.id}.done`] = true;
+      memberApp.state.currentLessonStep = steps[stepIndex + 1].id;
+      persistMemberState();
+      renderModuleDetail();
+      return;
+    }
+    if (direction < 0 && stepIndex > 0) {
+      memberApp.state.currentLessonStep = steps[stepIndex - 1].id;
+      persistMemberState();
+      renderModuleDetail();
+      return;
+    }
+    // Último passo + avançar: marca o passo como feito e conclui a etapa abaixo
+    if (direction > 0 && currentStep) {
+      memberApp.state.checklist[`${currentLessonKey()}.${currentStep.id}.done`] = true;
+    }
+  }
+
   if (direction > 0) {
     markCurrentStageComplete();
   }
@@ -2456,6 +1549,7 @@ function moveStage(direction) {
   if (nextIndex < 0) return;
 
   if (nextIndex >= module.stages.length) {
+    persistMemberState();
     showMemberView("dashboard");
     renderDashboard();
     renderHistory();
@@ -2473,6 +1567,8 @@ function markCurrentStageComplete() {
   if (!memberApp.state.completedSteps.includes(key)) {
     memberApp.state.completedSteps.push(key);
   }
+  // Badge de módulo concluído sem exigir reload
+  renderModules();
 }
 
 function completedStageCount() {
@@ -2656,11 +1752,7 @@ function renderLessonStage(lesson, steps) {
     button.addEventListener("click", () => handleGenerateClick(button));
   });
 
-  // Fábrica de Vídeos (Módulo 4) — restaura a voz escolhida e liga os botões
-  const savedVoice = memberApp.state.project.heygenVoiceId || "";
-  document.querySelectorAll('input[name="heygenVoice"]').forEach((radio) => {
-    radio.checked = radio.value === savedVoice;
-  });
+  // Videos de avatar (Módulo 4) — liga os botões de validação/teste do HeyGen
   document.querySelector("#btn-heygen-validate")?.addEventListener("click", handleHeygenValidateClick);
   document.querySelector("#btn-heygen-test")?.addEventListener("click", handleHeygenTestClick);
 
@@ -2837,8 +1929,8 @@ async function handleHeygenValidateClick() {
       thumb.classList.toggle("hidden", !data.thumbnail);
     }
     if (nameEl) {
-      const voiceChecked = document.querySelector('input[name="heygenVoice"]:checked');
-      const voiceLabel = voiceChecked ? voiceChecked.parentElement.textContent.trim() : "escolha uma voz no passo 5";
+      const voiceId = memberApp.state.project.heygenVoiceId || "";
+      const voiceLabel = voiceId ? `${voiceId.slice(0, 8)}… ✓` : "preencha o Voice ID no passo 4";
       nameEl.textContent = `Apresentador: ${data.name} ✓ · Voz: ${voiceLabel}`;
     }
     resultEl?.classList.remove("hidden");
@@ -3192,6 +2284,9 @@ docker exec -t "$PG" psql -U postgres -c "CREATE DATABASE chatwoot;" || true
 docker exec -t "$PG" psql -U postgres -c "GRANT ALL PRIVILEGES ON DATABASE chatwoot TO axon_app;" || true
 docker exec -t "$PG" psql -U postgres -d chatwoot -c "GRANT ALL ON SCHEMA public TO axon_app;" || true
 docker exec -t "$PG" psql -U postgres -d chatwoot -c "CREATE EXTENSION IF NOT EXISTS pg_stat_statements;" || true
+docker exec -t "$PG" psql -U postgres -c "CREATE DATABASE negocio OWNER axon_app;" || true
+docker exec -t "$PG" psql -U postgres -c "GRANT ALL PRIVILEGES ON DATABASE negocio TO axon_app;" || true
+docker exec -t "$PG" psql -U postgres -d negocio -c "GRANT ALL ON SCHEMA public TO axon_app;" || true
 
 # ── 7. n8n ────────────────────────────────────────
 echo "[6/9] Subindo n8n (Redis + editor + webhook + worker + runners)..."
@@ -3558,7 +2653,7 @@ services:
       - CACHE_LOCAL_ENABLED=false
       - CHATWOOT_ENABLED=true
       - CHATWOOT_MESSAGE_READ=true
-      - LOG_LEVEL=ERROR
+      - LOG_LEVEL=ERROR,WARN
       - DEL_INSTANCE=false
     volumes:
       - evolution_instances:/evolution/instances
@@ -4177,7 +3272,7 @@ function buildVendasStripeWorkflowJson() {
 }
 
 // Webhook GET /webhook/painel-metricas — alimenta o dashboard do painel de gestão
-// Fábrica de Vídeos (setup no Módulo 4, ativação no Módulo 6) — DOIS gatilhos:
+// Fábrica de Vídeos (setup e ativação no Módulo 4) — DOIS gatilhos:
 // formulário /form/fabrica-de-videos (teste da etapa) e webhook POST /webhook/fabrica-videos
 // (card do Painel de gestão — o path de webhook sobrevive à importação, ao contrário do
 // Form Path, bug n8n #29596). O nó "Entrada" normaliza as duas origens.
@@ -4723,7 +3818,7 @@ function buildFabricaVideosWorkflowJson() {
   return JSON.stringify(workflow, null, 2);
 }
 
-// Fábrica de Carrosséis (ativação no Módulo 6) — mesmo esqueleto da Fábrica de Vídeos,
+// Fábrica de Carrosséis (ativação no Módulo 4) — mesmo esqueleto da Fábrica de Vídeos,
 // dois gatilhos: formulário /form/fabrica-de-carrosseis e webhook POST /webhook/fabrica-carrosseis
 // (card do Painel). Aluno cola as linhas de UM carrossel da tabela do Agente 8; gpt-4o-mini
 // interpreta, gpt-image-2 gera cada slide em 4:5 (1024x1280) com o texto renderizado na arte
@@ -6356,6 +5451,25 @@ function generateRandomHex(length) {
 }
 
 function normalizeMemberState(state) {
+  // Migração stateVersion < 2 (reestruturação 6→5 módulos): preserva o progresso
+  // dos módulos 1-3 e descarta o estado dos antigos módulos 4/5/6 — os ids
+  // module-4/5 foram reusados com conteúdo novo e o module-6 deixou de existir.
+  // Idempotente: roda tanto no localStorage quanto no estado vindo do servidor.
+  if (state && (state.stateVersion || 1) < 2) {
+    const keepStage = (key) => /^module-[123]\./.test(String(key));
+    state = {
+      ...state,
+      completedSteps: (Array.isArray(state.completedSteps) ? state.completedSteps : []).filter(keepStage),
+      checklist: Object.fromEntries(Object.entries(state.checklist || {}).filter(([key]) => keepStage(key))),
+      assistantThreads: Object.fromEntries(Object.entries(state.assistantThreads || {}).filter(([key]) => keepStage(key)))
+    };
+    if (!/^module-[123]$/.test(String(state.currentModule))) {
+      state.currentModule = "module-1";
+      state.currentLesson = "module-1.0";
+      state.currentLessonStep = "main";
+    }
+  }
+
   const projectName = state?.project?.name === "Meu negocio online" ? "" : state?.project?.name;
   const moduleId = COURSE_MODULES.some((module) => module.id === state?.currentModule)
     ? state.currentModule
@@ -6390,7 +5504,8 @@ function normalizeMemberState(state) {
     currentLessonStep: state?.currentLessonStep || DEFAULT_MEMBER_STATE.currentLessonStep,
     completedSteps: Array.isArray(state?.completedSteps) ? state.completedSteps : [],
     checklist: state?.checklist && typeof state.checklist === "object" ? state.checklist : {},
-    assistantThreads: state?.assistantThreads && typeof state.assistantThreads === "object" ? state.assistantThreads : {}
+    assistantThreads: state?.assistantThreads && typeof state.assistantThreads === "object" ? state.assistantThreads : {},
+    stateVersion: 2
   };
 }
 

@@ -57,7 +57,6 @@ Entregue SOMENTE o PRD, sem nenhuma introdução ou comentário seu. O PRD deve 
 **4. Integrações** — inclua estes valores exatos fornecidos pelo sistema:
    - **Botão de compra**: abre o link de pagamento em nova aba (link exato fornecido). Se o link contiver `/test_` (modo de teste do Stripe), instrua o Claude a avisar o usuário com destaque: o site vai ao ar com um checkout de teste que NÃO processa vendas reais — trocar pelo link de produção antes de divulgar (basta editar e reenviar o index.html).
    - **Formulário de interesse**: POST via fetch para `https://workflows.DOMINIO/webhook/leads` (substitua DOMINIO pelo domínio real) com os campos em JSON; mostre mensagem de sucesso genérica ao enviar. IMPORTANTE: avise o usuário que este endpoint será ativado no módulo 6 do curso — o formulário deve estar pronto, mas ainda não registra leads.
-   - **Pixels**: peça ao usuário o arquivo de texto com os códigos do Google Tag e do Meta Pixel (está na pasta do projeto); insira ambos no `<head>`. Se o usuário não tiver, siga sem pixels e avise.
 
 **5. Pré-checagens (ANTES de qualquer alteração no servidor)** — instruções exatas para o Claude executar:
    - **DNS primeiro**: verifique com `nslookup` (ou `Resolve-DnsName` no Windows) se `DOMINIO` e `www.DOMINIO` resolvem para o IP da VPS. Se algum não resolver, PARE e instrua o usuário a criar na Cloudflare os registros A faltantes (`@` e `www` → IP, modo **DNS only**), aguarde a propagação (verifique de novo) e só então prossiga. Sem esse DNS, o certificado SSL vai falhar no final.
