@@ -596,7 +596,7 @@ const WIZARD_STEPS = [
         body: `<p>A inteligência do painel:</p>
 <p><button class="button button-primary" type="button" id="download-n8n-conselho">Baixar fluxo do Conselho (.json)</button></p>
 <p><button class="button button-primary" type="button" id="download-n8n-grade">Baixar fluxo da Grade de Postagens (.json)</button></p>
-<p><button class="button button-primary" type="button" id="download-n8n-pecas">Baixar fluxo da Fabrica de Imagens (.json)</button></p>
+<p><button class="button button-primary" type="button" id="download-n8n-fabrica-imagens">Baixar fluxo da Fabrica de Imagens (.json)</button></p>
 <p>O <strong>Conselho</strong> são os especialistas de Administração, Marketing e Vendas do seu painel. A <strong>Grade</strong> propõe seus 28 dias de conteúdo. A <strong>Fábrica de Imagens</strong> gera as peças e imagens personalizadas (posts, logo, banner, imagens do site).</p>`
       },
       {
@@ -691,7 +691,7 @@ const WIZARD_STEPS = [
 <p>O agente monta o PRD do seu painel de gestão — página protegida por senha em <code>gestao.{{domain}}</code>, organizada em <strong>3 abas</strong>:</p>
 <ul>
   <li><strong>Administração</strong> — os números do negócio e o chat com o conselheiro que conhece todo o seu planejamento estratégico.</li>
-  <li><strong>Marketing</strong> — a <strong>Grade de Postagens</strong> (gerar → pedir ajustes → aprovar), a geração de <strong>peças por formato</strong> (Reels, Carrossel, Feed, Stories) + peça avulsa, o chat com o conselheiro de marketing e os cards das <strong>Fábricas</strong>.</li>
+  <li><strong>Marketing</strong> — a <strong>Grade de Postagens</strong> (gerar → pedir ajustes → aprovar → baixar em planilha), a geração de <strong>peças por formato</strong> (Reels, Carrossel, Feed) com download pronto para o Google Planilhas, o chat com o conselheiro de marketing e os cards das <strong>Fábricas</strong>.</li>
   <li><strong>Vendas</strong> — leads e conversões recentes e o chat com o conselheiro de vendas.</li>
 </ul>
 <p><strong>Nota sobre as Fábricas:</strong> os cards das Fábricas (Vídeos, Carrosséis e Imagens) usam os fluxos que você importou e ativou no módulo 4 — já nascem funcionando.</p>`,
@@ -712,7 +712,7 @@ const WIZARD_STEPS = [
         body: `<p>Abra <a href="https://gestao.{{domain}}" target="_blank" rel="noopener">https://gestao.{{domain}}</a>, entre com o usuário e senha que você escolheu e percorra as 3 abas:</p>
 <ul>
   <li><strong>Administração</strong> — os números carregam e o chat responde; experimente: <em>"Com os dados que temos até aqui, onde devo focar minha energia esta semana?"</em></li>
-  <li><strong>Marketing</strong> — clique em <strong>Gerar grade</strong>: a IA lê seu planejamento e propõe 28 dias de conteúdo. Peça um ajuste (ex.: <em>"menos stories, mais Reels"</em>) e, quando estiver boa, <strong>aprove</strong>. Com a grade aprovada, gere as peças de um formato (ex.: Reels) e veja os roteiros prontos.</li>
+  <li><strong>Marketing</strong> — clique em <strong>Gerar grade</strong>: a IA lê seu planejamento e propõe 28 dias de conteúdo. Peça um ajuste (ex.: <em>"menos posts de feed, mais Reels"</em>) e, quando estiver boa, <strong>aprove</strong>. Com a grade aprovada, gere as peças de um formato (ex.: Reels) — o lote sai pronto para baixar e abrir no Google Planilhas.</li>
   <li><strong>Vendas</strong> — os leads recentes aparecem e o conselheiro de vendas responde.</li>
 </ul>
 <p>Sua rotina de divulgação está no ar. As <strong>Fábricas</strong> já estão ativas — os carrosséis e roteiros gerados aqui viram imagens e vídeos prontos no seu WhatsApp.</p>`
@@ -1737,7 +1737,7 @@ function renderLessonStage(lesson, steps) {
     ["#download-n8n-metricas", buildMetricsWorkflowJson, "painel-metricas.json"],
     ["#download-n8n-conselho", buildConselhoWorkflowJson, "conselho-de-ia.json"],
     ["#download-n8n-grade", buildGradePostagensWorkflowJson, "grade-de-postagens.json"],
-    ["#download-n8n-pecas", buildPecasWorkflowJson, "pecas-de-divulgacao.json"],
+    ["#download-n8n-fabrica-imagens", buildFabricaImagensWorkflowJson, "fabrica-de-imagens.json"],
     ["#download-n8n-fabrica-videos", buildFabricaVideosWorkflowJson, "fabrica-de-videos.json"],
     ["#download-n8n-fabrica-carrosseis", buildFabricaCarrosseisWorkflowJson, "fabrica-de-carrosseis.json"]
   ];
@@ -4594,8 +4594,10 @@ const PECAS_DDL = "create table if not exists pecas_geradas (id serial primary k
 const CONTEXTO_DDL = "create table if not exists conselho_contexto (id serial primary key, conteudo text, criado_em timestamptz default now());";
 
 // Webhook POST /webhook/grade-postagens — Grade de Postagens da aba Marketing do painel
-// actions: carregar (grade atual + status) · aprovar (body.grade_id) · gerar/ajustar (default;
-// body.feedback regenera a grade atual aplicando o ajuste, body.orientacoes direciona a 1ª geração)
+// actions: carregar (grade atual + status) · aprovar (body.grade_id) · baixar (grade corrente
+// convertida em CSV p/ download) · upload (body.conteudo grava grade editada como rascunho
+// 'proposta') · gerar/ajustar (default; body.feedback regenera a grade atual aplicando o ajuste,
+// body.orientacoes direciona a 1ª geração)
 // Contexto estratégico vem de conselho_contexto; grade proposta/aprovada persiste em grade_postagens
 function buildGradePostagensWorkflowJson() {
   // Prompt adaptado do Agente 7 (source-material/Agents/7 - AXN _ Grade de Postagens.md)
@@ -4609,8 +4611,8 @@ function buildGradePostagensWorkflowJson() {
     "- Nunca pergunte quantas vezes o empreendedor quer postar.",
     "- Nunca preencha dias com conteúdo vazio só para completar o calendário — dias sem estratégia clara são ⛔ DAY OFF.",
     "- Classifique o nicho antes de montar a grade: Alta Frequência (lifestyle, entretenimento, varejo B2C → 5-7 posts/semana) ou Alta Confiança (consultoria, serviços, B2B, saúde, educação → 3-4 posts/semana). Regra de ouro: se o nicho cresce bem com 3 posts/semana, NÃO sugira 7 — otimize resultado por esforço.",
-    "- Defina 3 a 4 pilares de conteúdo derivados do planejamento: Descoberta (dores, erros comuns, mitos), Autoridade (método, prova, resultados), Conexão (bastidores, rotina, enquetes) e Conversão (oferta, CTA direto — use no máximo 1x/semana).",
-    "- Formatos por objetivo: Descoberta = Reels/Shorts (Instagram + YouTube) · Autoridade = Carrossel ou Feed · Conexão = Stories · Conversão = Feed ou Stories.",
+    "- Defina 3 a 4 pilares de conteúdo derivados do planejamento: Descoberta (dores, erros comuns, mitos), Autoridade (método, prova, resultados), Conexão (bastidores, rotina, opinião) e Conversão (oferta, CTA direto — use no máximo 1x/semana).",
+    "- Formatos por objetivo: Descoberta = Reels/Shorts (Instagram + YouTube) · Autoridade = Carrossel ou Feed · Conexão = Reels ou Feed · Conversão = Feed ou Carrossel. Os formatos disponíveis são APENAS Reels/Shorts, Carrossel e Feed — nunca use Stories na grade.",
     "- A grade cobre 28 dias corridos com datas reais a partir da data de início fornecida (sempre uma segunda-feira).",
     "",
     "FORMATO DE ENTREGA (nesta ordem exata, em Markdown):",
@@ -4665,6 +4667,24 @@ function buildGradePostagensWorkflowJson() {
                 },
                 renameOutput: true,
                 outputKey: "aprovar"
+              },
+              {
+                conditions: {
+                  options: { caseSensitive: true, leftValue: "", typeValidation: "loose" },
+                  conditions: [{ leftValue: "={{ $json.body.action }}", rightValue: "baixar", operator: { type: "string", operation: "equals" } }],
+                  combinator: "and"
+                },
+                renameOutput: true,
+                outputKey: "baixar"
+              },
+              {
+                conditions: {
+                  options: { caseSensitive: true, leftValue: "", typeValidation: "loose" },
+                  conditions: [{ leftValue: "={{ $json.body.action }}", rightValue: "upload", operator: { type: "string", operation: "equals" } }],
+                  combinator: "and"
+                },
+                renameOutput: true,
+                outputKey: "upload"
               }
             ]
           },
@@ -4693,7 +4713,7 @@ function buildGradePostagensWorkflowJson() {
         name: "Carrega grade",
         type: "n8n-nodes-base.postgres",
         typeVersion: 2.4,
-        position: [660, 160],
+        position: [660, 40],
         credentials: pgCred
       },
       // ── Branch aprovar ─────────────────────────────────────────────
@@ -4710,7 +4730,81 @@ function buildGradePostagensWorkflowJson() {
         name: "Aprova grade",
         type: "n8n-nodes-base.postgres",
         typeVersion: 2.4,
-        position: [660, 360],
+        position: [660, 190],
+        credentials: pgCred
+      },
+      // ── Branch baixar (grade corrente em CSV) ──────────────────────
+      {
+        parameters: {
+          operation: "executeQuery",
+          query: [
+            GRADE_DDL,
+            "select coalesce(",
+            "  (select json_build_object('grade_id', id, 'conteudo', conteudo, 'status', status) from grade_postagens order by id desc limit 1),",
+            "  json_build_object('grade_id', 0, 'conteudo', '', 'status', 'vazia')",
+            ") as grade;"
+          ].join("\n"),
+          options: {}
+        },
+        id: "busca-grade-baixar",
+        name: "Busca grade",
+        type: "n8n-nodes-base.postgres",
+        typeVersion: 2.4,
+        position: [660, 340],
+        credentials: pgCred
+      },
+      {
+        parameters: {
+          jsCode: [
+            "const g = $input.first().json.grade || {};",
+            "if (!g.conteudo) throw new Error('Nenhuma grade encontrada — gere a grade primeiro.');",
+            "const linhas = String(g.conteudo).split('\\n');",
+            "const tab = linhas.map(l => l.trim())",
+            "  .filter(l => l.startsWith('|') && !/^\\|[\\s:|-]+\\|$/.test(l))",
+            "  .map(l => l.slice(1, -1).split('|').map(c => c.trim()));",
+            "// Com tabela Markdown → CSV por colunas; sem tabela (ex.: grade que veio por upload) → conteudo como esta",
+            "const csv = tab.length >= 2",
+            "  ? tab.map(r => r.map(c => '\"' + c.replace(/\"/g, '\"\"') + '\"').join(',')).join('\\n')",
+            "  : String(g.conteudo);",
+            "return [{ json: { grade_id: g.grade_id, status: g.status, filename: 'grade-de-postagens.csv', csv } }];"
+          ].join("\n")
+        },
+        id: "converte-grade-csv",
+        name: "Converte em CSV",
+        type: "n8n-nodes-base.code",
+        typeVersion: 2,
+        position: [880, 340]
+      },
+      // ── Branch upload (grade editada volta como rascunho) ──────────
+      {
+        parameters: {
+          jsCode: [
+            "const b = $input.first().json.body || {};",
+            "const conteudo = String(b.conteudo || '').trim();",
+            "if (!conteudo) throw new Error('Envie o conteudo da grade (campo conteudo).');",
+            "return [{ json: { conteudo } }];"
+          ].join("\n")
+        },
+        id: "valida-upload-grade",
+        name: "Valida upload",
+        type: "n8n-nodes-base.code",
+        typeVersion: 2,
+        position: [660, 490]
+      },
+      {
+        parameters: {
+          operation: "executeQuery",
+          query: [
+            GRADE_DDL,
+            "insert into grade_postagens (conteudo, status) values ($1, 'proposta') returning id as grade_id, status;"
+          ].join("\n"),
+          options: { queryReplacement: "={{ $json.conteudo }}" }
+        },
+        id: "salva-upload-grade",
+        name: "Salva rascunho",
+        type: "n8n-nodes-base.postgres",
+        typeVersion: 2.4,
+        position: [880, 490],
         credentials: pgCred
       },
       // ── Branch gerar / ajustar ─────────────────────────────────────
@@ -4733,7 +4827,7 @@ function buildGradePostagensWorkflowJson() {
         name: "Prep pedido",
         type: "n8n-nodes-base.code",
         typeVersion: 2,
-        position: [660, 560]
+        position: [660, 640]
       },
       {
         parameters: {
@@ -4751,7 +4845,7 @@ function buildGradePostagensWorkflowJson() {
         name: "Carrega contexto",
         type: "n8n-nodes-base.postgres",
         typeVersion: 2.4,
-        position: [880, 560],
+        position: [880, 640],
         credentials: pgCred
       },
       {
@@ -4777,7 +4871,7 @@ function buildGradePostagensWorkflowJson() {
         name: "Monta pedido",
         type: "n8n-nodes-base.code",
         typeVersion: 2,
-        position: [1100, 560]
+        position: [1100, 640]
       },
       {
         parameters: {
@@ -4794,7 +4888,7 @@ function buildGradePostagensWorkflowJson() {
         name: "OpenAI",
         type: "n8n-nodes-base.httpRequest",
         typeVersion: 4.2,
-        position: [1320, 560],
+        position: [1320, 640],
         credentials: {
           openAiApi: { id: "SUBSTITUA_PELO_ID_DA_CREDENCIAL", name: "OpenAi account" }
         }
@@ -4816,7 +4910,7 @@ function buildGradePostagensWorkflowJson() {
         name: "Extrai grade",
         type: "n8n-nodes-base.code",
         typeVersion: 2,
-        position: [1540, 560]
+        position: [1540, 640]
       },
       {
         parameters: {
@@ -4828,7 +4922,7 @@ function buildGradePostagensWorkflowJson() {
         name: "Salva grade",
         type: "n8n-nodes-base.postgres",
         typeVersion: 2.4,
-        position: [1760, 560],
+        position: [1760, 640],
         credentials: pgCred
       },
       {
@@ -4846,7 +4940,7 @@ function buildGradePostagensWorkflowJson() {
         name: "Responde",
         type: "n8n-nodes-base.set",
         typeVersion: 3.4,
-        position: [1980, 560]
+        position: [1980, 640]
       }
     ],
     connections: {
@@ -4855,9 +4949,13 @@ function buildGradePostagensWorkflowJson() {
         main: [
           [{ node: "Carrega grade", type: "main", index: 0 }],
           [{ node: "Aprova grade", type: "main", index: 0 }],
+          [{ node: "Busca grade", type: "main", index: 0 }],
+          [{ node: "Valida upload", type: "main", index: 0 }],
           [{ node: "Prep pedido", type: "main", index: 0 }]
         ]
       },
+      "Busca grade": { main: [[{ node: "Converte em CSV", type: "main", index: 0 }]] },
+      "Valida upload": { main: [[{ node: "Salva rascunho", type: "main", index: 0 }]] },
       "Prep pedido": { main: [[{ node: "Carrega contexto", type: "main", index: 0 }]] },
       "Carrega contexto": { main: [[{ node: "Monta pedido", type: "main", index: 0 }]] },
       "Monta pedido": { main: [[{ node: "OpenAI", type: "main", index: 0 }]] },
@@ -4871,12 +4969,14 @@ function buildGradePostagensWorkflowJson() {
   return JSON.stringify(workflow, null, 2);
 }
 
-// Webhook POST /webhook/pecas — Peças de divulgação da aba Marketing do painel
-// actions: listar (histórico) · carregar (body.peca_id, inclui imagem) · arte (body.prompt +
-// body.texto opcional → imagem 4:5 via gpt-image-2) · gerar (default; body.tipo =
-// reels|carrossel|feed|stories, body.briefing opcional gera peça avulsa fora da grade)
+// Webhook POST /webhook/fabrica-imagens — Fábrica de Imagens da aba Marketing do painel
+// actions: listar (histórico) · carregar (body.peca_id, inclui imagem) · arte (imagem de propósito
+// livre via gpt-image-2: body.prompt + body.texto opcional + body.finalidade post|logo|banner|site
+// + body.dimensao quadrado|retrato|paisagem|LARGURAxALTURA) · gerar (default; body.tipo =
+// reels|carrossel|feed, body.briefing opcional gera peça avulsa fora da grade; resposta inclui
+// campo csv pronto para download/Google Planilhas)
 // Saídas de reels e carrossel mantêm o formato que as Fábricas de Vídeos/Carrosséis esperam
-function buildPecasWorkflowJson() {
+function buildFabricaImagensWorkflowJson() {
   // Prompt adaptado do Agente 8 (source-material/Agents/8 - AXN _ Conteúdo de Posts.md)
   const PECAS_PROMPT = [
     "Você é o Redator Sênior e Copywriter da Axn. Sua missão é transformar a Grade de Postagens aprovada em conteúdo pronto para produção, organizado por formato — claro e direto, fiel ao tom de voz e identidade da marca, executável por um empreendedor sem equipe de marketing e compatível com gravação direta para câmera, avatar (HeyGen) ou geração de imagem por IA.",
@@ -4910,16 +5010,7 @@ function buildPecasWorkflowJson() {
     "🖼️ FEED — [Data] — [Tema]",
     "Headline da arte: [frase curta e visual — máx. 10 palavras, impacto imediato]",
     "Prompt de imagem: [descrição para IA: cena, estilo, paleta da marca, composição — sem texto na imagem]",
-    "📝 Legenda: [mini-artigo: gancho forte → desenvolvimento → prova ou exemplo → CTA + 3 a 5 hashtags]",
-    "",
-    "### STORIES (Instagram)",
-    "Fala direta, sem direção de cena; sequências de 3 a 5 stories por dia programado, sempre com interação no final. Repita o bloco para cada dia:",
-    "📱 STORIES — [Data] — [Tema]",
-    "Story 1: [gancho falado direto]",
-    "Story 2: [desenvolvimento simples e claro]",
-    "Story 3: [virada, insight ou exemplo prático]",
-    "Story 4: [pergunta para enquete OU convite para caixinha]",
-    "💡 Interação sugerida: [enquete / caixinha / reação]"
+    "📝 Legenda: [mini-artigo: gancho forte → desenvolvimento → prova ou exemplo → CTA + 3 a 5 hashtags]"
   ];
   const pecasPromptJs = JSON.stringify(PECAS_PROMPT);
 
@@ -4927,21 +5018,21 @@ function buildPecasWorkflowJson() {
   const oaCred = { openAiApi: { id: "SUBSTITUA_PELO_ID_DA_CREDENCIAL", name: "OpenAi account" } };
 
   const workflow = {
-    name: "Pecas de Divulgacao",
+    name: "Fabrica de Imagens",
     nodes: [
       {
         parameters: {
           httpMethod: "POST",
-          path: "pecas",
+          path: "fabrica-imagens",
           responseMode: "lastNode",
           options: { allowedOrigins: "*" }
         },
-        id: "webhook-pecas",
-        name: "Webhook Pecas",
+        id: "webhook-fabrica-imagens",
+        name: "Webhook Fabrica Imagens",
         type: "n8n-nodes-base.webhook",
         typeVersion: 2,
         position: [200, 420],
-        webhookId: "pecas-webhook"
+        webhookId: "fabrica-imagens-webhook"
       },
       {
         parameters: {
@@ -5022,16 +5113,33 @@ function buildPecasWorkflowJson() {
         position: [660, 280],
         credentials: pgCred
       },
-      // ── Branch arte (imagem do post de feed) ───────────────────────
+      // ── Branch arte (imagem de propósito livre: post, logo, banner, site…) ──
       {
         parameters: {
           jsCode: [
             "const b = $input.first().json.body || {};",
             "const prompt = String(b.prompt || '').trim();",
             "const texto = String(b.texto || '').trim();",
-            "if (!prompt) throw new Error('Envie o prompt de imagem do post (campo prompt).');",
-            "const titulo = (texto || 'Arte de post').slice(0, 60);",
-            "let promptFinal = 'Arte premium de post unico para Instagram, formato retrato 4:5. ' +",
+            "const finalidade = String(b.finalidade || 'post').trim().toLowerCase();",
+            "const dimensao = String(b.dimensao || '').trim().toLowerCase();",
+            "if (!prompt) throw new Error('Envie a descricao da imagem (campo prompt).');",
+            "// Dimensao: apelido, LARGURAxALTURA direto, ou default por finalidade (retrato 4:5)",
+            "const apelidos = { quadrado: '1024x1024', retrato: '1024x1280', paisagem: '1280x1024' };",
+            "const defaultPorFinalidade = { logo: '1024x1024', banner: '1280x1024', site: '1280x1024' };",
+            "const size = apelidos[dimensao]",
+            "  || (/^\\d{3,4}x\\d{3,4}$/.test(dimensao) ? dimensao : null)",
+            "  || defaultPorFinalidade[finalidade]",
+            "  || '1024x1280';",
+            "const intros = {",
+            "  post: 'Arte premium de post para Instagram.',",
+            "  logo: 'Logotipo profissional de marca: formas simples e memoraveis, legivel em tamanho pequeno, fundo neutro e limpo.',",
+            "  banner: 'Banner digital profissional para site ou rede social, composicao horizontal equilibrada.',",
+            "  site: 'Imagem profissional para secao de site institucional, estilo limpo e coerente com a identidade da marca.'",
+            "};",
+            "const intro = intros[finalidade] || ('Imagem profissional de alta qualidade. Finalidade: ' + finalidade + '.');",
+            "const rotulo = finalidade === 'post' ? '' : finalidade.charAt(0).toUpperCase() + finalidade.slice(1) + ' — ';",
+            "const titulo = (rotulo + (texto || prompt)).slice(0, 60);",
+            "let promptFinal = intro + ' ' +",
             "  'Direcao de arte: design editorial minimalista e sofisticado, nivel de estudio de design profissional; composicao com respiro, margens generosas e hierarquia visual clara. ' +",
             "  'Cena e estilo: ' + prompt + '. ';",
             "if (texto) {",
@@ -5040,7 +5148,7 @@ function buildPecasWorkflowJson() {
             "  promptFinal += 'Sem nenhum texto na imagem. ';",
             "}",
             "promptFinal += 'Nenhum outro texto ou marca d\\u2019agua na imagem.';",
-            "return [{ json: { promptFinal, prompt, titulo } }];"
+            "return [{ json: { promptFinal, prompt, titulo, size, finalidade } }];"
           ].join("\n")
         },
         id: "prep-arte",
@@ -5057,7 +5165,7 @@ function buildPecasWorkflowJson() {
           nodeCredentialType: "openAiApi",
           sendBody: true,
           specifyBody: "json",
-          jsonBody: "={{ JSON.stringify({ model: 'gpt-image-2', prompt: $json.promptFinal, size: '1024x1280', quality: 'high', n: 1 }) }}",
+          jsonBody: "={{ JSON.stringify({ model: 'gpt-image-2', prompt: $json.promptFinal, size: $json.size, quality: 'high', n: 1 }) }}",
           options: { timeout: 300000 }
         },
         id: "gera-arte",
@@ -5089,7 +5197,8 @@ function buildPecasWorkflowJson() {
             assignments: [
               { id: "a1", name: "peca_id", value: "={{ $json.peca_id }}", type: "number" },
               { id: "a2", name: "titulo", value: "={{ $('Prep arte').first().json.titulo }}", type: "string" },
-              { id: "a3", name: "imagem_b64", value: "={{ $('Gera arte (IA)').first().json.data[0].b64_json }}", type: "string" }
+              { id: "a3", name: "finalidade", value: "={{ $('Prep arte').first().json.finalidade }}", type: "string" },
+              { id: "a4", name: "imagem_b64", value: "={{ $('Gera arte (IA)').first().json.data[0].b64_json }}", type: "string" }
             ]
           },
           options: {}
@@ -5105,10 +5214,10 @@ function buildPecasWorkflowJson() {
         parameters: {
           jsCode: [
             "const b = $input.first().json.body || {};",
-            "const formatos = { reels: 'Reels / Shorts', carrossel: 'Carrossel', feed: 'Feed (post unico)', stories: 'Stories' };",
+            "const formatos = { reels: 'Reels / Shorts', carrossel: 'Carrossel', feed: 'Feed (post unico)' };",
             "const tipo = String(b.tipo || '').toLowerCase();",
             "const formato = formatos[tipo];",
-            "if (!formato) throw new Error('Tipo de peca invalido — use reels, carrossel, feed ou stories.');",
+            "if (!formato) throw new Error('Tipo de peca invalido — use reels, carrossel ou feed.');",
             "const briefing = String(b.briefing || '').trim();",
             "return [{ json: { tipo, formato, briefing } }];"
           ].join("\n")
@@ -5191,7 +5300,16 @@ function buildPecasWorkflowJson() {
             "const p = $('Prep pedido').first().json;",
             "const hoje = new Date().toLocaleDateString('pt-BR');",
             "const titulo = (p.briefing ? 'Avulsa — ' : '') + p.formato + ' — ' + hoje;",
-            "return [{ json: { tipo: p.tipo, titulo, conteudo } }];"
+            "// CSV p/ download no painel: tabela Markdown vira colunas; texto corrido vira uma coluna, linha a linha",
+            "const linhas = conteudo.split('\\n');",
+            "const tab = linhas.map(l => l.trim())",
+            "  .filter(l => l.startsWith('|') && !/^\\|[\\s:|-]+\\|$/.test(l))",
+            "  .map(l => l.slice(1, -1).split('|').map(c => c.trim()));",
+            "const csv = tab.length >= 2",
+            "  ? tab.map(r => r.map(c => '\"' + c.replace(/\"/g, '\"\"') + '\"').join(',')).join('\\n')",
+            "  : linhas.map(l => '\"' + l.replace(/\"/g, '\"\"') + '\"').join('\\n');",
+            "const filename = 'pecas-' + p.tipo + '.csv';",
+            "return [{ json: { tipo: p.tipo, titulo, conteudo, csv, filename } }];"
           ].join("\n")
         },
         id: "extrai-peca",
@@ -5220,7 +5338,9 @@ function buildPecasWorkflowJson() {
               { id: "p1", name: "peca_id", value: "={{ $json.peca_id }}", type: "number" },
               { id: "p2", name: "tipo", value: "={{ $('Extrai peca').first().json.tipo }}", type: "string" },
               { id: "p3", name: "titulo", value: "={{ $('Extrai peca').first().json.titulo }}", type: "string" },
-              { id: "p4", name: "conteudo", value: "={{ $('Extrai peca').first().json.conteudo }}", type: "string" }
+              { id: "p4", name: "conteudo", value: "={{ $('Extrai peca').first().json.conteudo }}", type: "string" },
+              { id: "p5", name: "csv", value: "={{ $('Extrai peca').first().json.csv }}", type: "string" },
+              { id: "p6", name: "filename", value: "={{ $('Extrai peca').first().json.filename }}", type: "string" }
             ]
           },
           options: {}
@@ -5233,7 +5353,7 @@ function buildPecasWorkflowJson() {
       }
     ],
     connections: {
-      "Webhook Pecas": { main: [[{ node: "Roteia acao", type: "main", index: 0 }]] },
+      "Webhook Fabrica Imagens": { main: [[{ node: "Roteia acao", type: "main", index: 0 }]] },
       "Roteia acao": {
         main: [
           [{ node: "Lista pecas", type: "main", index: 0 }],
