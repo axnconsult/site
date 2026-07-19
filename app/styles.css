@@ -1729,6 +1729,11 @@ button:focus {
   align-items: end;
 }
 
+.assistant-start-row {
+  display: flex;
+  justify-content: center;
+}
+
 .assistant-attach-row {
   display: flex;
   flex-wrap: wrap;

@@ -1813,56 +1813,74 @@ function wireMemberNavigation() {
   });
 }
 
+// Envio em andamento no chat da etapa — trava reentrância sem depender do estado do DOM
+let assistantRequestActive = false;
+
+async function sendAssistantMessage(value, { showUserBubble = true } = {}) {
+  if (assistantRequestActive) return;
+
+  const module = currentModule();
+  const stage = currentLesson();
+  const input = document.querySelector("#assistant-input");
+  const submit = document.querySelector("#assistant-submit");
+  const key = currentLessonKey();
+  // Quebra-gelo estático do Módulo 2 não vai para o agente
+  const requestThread = (memberApp.state.assistantThreads[key] || [])
+    .filter((message) => !message.icebreaker)
+    .slice(-20);
+  // Anexos saem da fila no envio e voltam se a chamada falhar
+  const attachments = allowAttachments(module) ? assistantAttachments.pending.splice(0) : [];
+  renderAttachmentChips();
+  if (showUserBubble) {
+    const displayValue = attachments.length
+      ? `${value}\n\u{1F4CE} ${attachments.map((item) => item.name).join(", ")}`
+      : value;
+    addAssistantMessage("user", displayValue);
+  }
+  addAssistantMessage("assistant", "Estou organizando sua resposta e preparando o proximo passo.", { pending: true });
+  const pendingIndex = memberApp.state.assistantThreads[key].length - 1;
+  if (input) {
+    input.value = "";
+  }
+  assistantRequestActive = true;
+  if (submit) submit.disabled = true;
+  persistMemberState();
+  renderAssistantThread();
+
+  try {
+    const result = await requestLessonAgentAnswer(module, stage, value, requestThread, attachments);
+    updateAssistantMessage(pendingIndex, result.answer);
+    applyAssistantProgress(result);
+  } catch (error) {
+    if (attachments.length) {
+      assistantAttachments.pending.unshift(...attachments);
+      renderAttachmentChips();
+    }
+    updateAssistantMessage(
+      pendingIndex,
+      error.message || "Nao consegui conectar ao assistente real agora. Confira a configuracao da OpenAI e os logs da stack."
+    );
+  } finally {
+    assistantRequestActive = false;
+    if (submit) submit.disabled = false;
+    persistMemberState();
+    renderAssistantThread();
+  }
+}
+
 function wireModuleActions() {
   document.querySelector("#previous-stage")?.addEventListener("click", () => moveStage(-1));
   document.querySelector("#next-stage")?.addEventListener("click", () => moveStage(1));
   wireAssistantAttachments();
 
   document.querySelector("#assistant-submit")?.addEventListener("click", async () => {
-    const module = currentModule();
-    const stage = currentLesson();
     const input = document.querySelector("#assistant-input");
-    const submit = document.querySelector("#assistant-submit");
-    const value = input?.value.trim() || "Quero ajuda para executar esta etapa.";
+    await sendAssistantMessage(input?.value.trim() || "Quero ajuda para executar esta etapa.");
+  });
 
-    if (submit?.disabled) return;
-
-    const key = currentLessonKey();
-    const requestThread = (memberApp.state.assistantThreads[key] || []).slice(-20);
-    // Anexos só valem no Módulo 1; saem da fila no envio e voltam se a chamada falhar
-    const attachments = module.id === "module-1" ? assistantAttachments.pending.splice(0) : [];
-    renderAttachmentChips();
-    const displayValue = attachments.length
-      ? `${value}\n\u{1F4CE} ${attachments.map((item) => item.name).join(", ")}`
-      : value;
-    addAssistantMessage("user", displayValue);
-    addAssistantMessage("assistant", "Estou organizando sua resposta e preparando o proximo passo.", { pending: true });
-    const pendingIndex = memberApp.state.assistantThreads[key].length - 1;
-    if (input) {
-      input.value = "";
-    }
-    if (submit) submit.disabled = true;
-    persistMemberState();
-    renderAssistantThread();
-
-    try {
-      const result = await requestLessonAgentAnswer(module, stage, value, requestThread, attachments);
-      updateAssistantMessage(pendingIndex, result.answer);
-      applyAssistantProgress(result);
-    } catch (error) {
-      if (attachments.length) {
-        assistantAttachments.pending.unshift(...attachments);
-        renderAttachmentChips();
-      }
-      updateAssistantMessage(
-        pendingIndex,
-        error.message || "Nao consegui conectar ao assistente real agora. Confira a configuracao da OpenAI e os logs da stack."
-      );
-    } finally {
-      if (submit) submit.disabled = false;
-      persistMemberState();
-      renderAssistantThread();
-    }
+  // Botão "Iniciar" do Módulo 2: dispara a primeira fala real do agente sem bolha de usuário
+  document.querySelector("#assistant-start")?.addEventListener("click", async () => {
+    await sendAssistantMessage("Pode começar.", { showUserBubble: false });
   });
 
   document.querySelector("#assistant-input")?.addEventListener("keydown", (event) => {
@@ -6438,16 +6456,27 @@ function buildLessonAgentAnswer(module, lesson, input) {
 
 const MODULE1_AGENT_OPENINGS = {
   "business_modeling":         "Vamos começar pelo fundamento do seu negócio. Me conta: quais são as habilidades, experiências ou interesses que você já tem e que poderiam virar uma fonte de renda?",
-  "target_audience":           "Agora vou pesquisar quem tem maior probabilidade de comprar o que você vai oferecer. Preciso só confirmar uma coisa: a ideia principal ficou clara para você ou quer ajustar algo antes de continuar?",
-  "strategic_differentiation": "Vou mapear os concorrentes e encontrar onde o mercado está falhando. Antes de pesquisar: tem algum concorrente ou referência que você já conhece e quer que eu considere?",
-  "strategic_pricing":         "Vou pesquisar os preços praticados no mercado para você. Só me diz: qual seria sua meta de faturamento mensal? Com isso consigo mostrar quantas vendas você precisaria fazer.",
-  "product_concept":           "Com tudo que construímos até aqui, vou propor nome, proposta de valor e slogan para o seu negócio. Posso começar?",
-  "visual_identity":           "Vou criar a direção visual do seu negócio com base no posicionamento e conceito que definimos. Posso apresentar minha proposta?"
+  // Módulo 2: quebra-gelos estáticos — a primeira fala real do agente chega pelo botão "Iniciar",
+  // já contextualizada com as respostas anteriores (contexto cumulativo no servidor)
+  "target_audience":           "Clique no botão 'Iniciar' para definirmos seu público-alvo.",
+  "strategic_differentiation": "Clique no botão 'Iniciar' para definirmos seu diferencial estratégico.",
+  "strategic_pricing":         "Clique no botão 'Iniciar' para definirmos sua precificação.",
+  "product_concept":           "Clique no botão 'Iniciar' para definirmos seu conceito de produto.",
+  "visual_identity":           "Clique no botão 'Iniciar' para definirmos sua identidade visual."
 };
 
 function ensureAssistantThread(module, lesson) {
   const key = currentLessonKey();
   if (memberApp.state.assistantThreads[key]?.length) {
+    return;
+  }
+
+  if (module.id === "module-2") {
+    // Quebra-gelo estático: não vai para o agente (flag icebreaker) e libera o botão "Iniciar"
+    const agentId = lesson[3] || agentIdForStageKey(key);
+    const opening = MODULE1_AGENT_OPENINGS[agentId]
+      || `Clique no botão 'Iniciar' para trabalharmos a etapa "${lesson[0]}".`;
+    memberApp.state.assistantThreads[key] = [{ role: "assistant", text: opening, icebreaker: true }];
     return;
   }
 
@@ -6469,7 +6498,13 @@ function ensureAssistantThread(module, lesson) {
   memberApp.state.assistantThreads[key] = [{ role: "assistant", text: opening }];
 }
 
-// Anexos pendentes do chat (Módulo 1). Vivem só em memória: viram input_file/input_image
+// Anexos valem na entrevista do Módulo 1 (negócio/MVP existente) e na Identidade Visual
+// (logo/posts existentes). Mesmo gate no envio e na visibilidade do botão de anexo.
+function allowAttachments(module = currentModule()) {
+  return module.id === "module-1" || currentLessonKey() === "module-2.4";
+}
+
+// Anexos pendentes do chat. Vivem só em memória: viram input_file/input_image
 // na próxima mensagem enviada e não são persistidos (grandes demais para o localStorage).
 const assistantAttachments = {
   pending: [],
@@ -6736,9 +6771,24 @@ function renderAssistantThread() {
   const lesson = currentLesson();
   const key = currentLessonKey();
   document.querySelector("#assistant-title").textContent = "Assistente da etapa";
-  // Botão de anexo só existe na entrevista do Módulo 1 (validação de negócio/MVP existente)
-  document.querySelector("#assistant-attach-row")?.classList.toggle("hidden", module.id !== "module-1");
-  root.innerHTML = (memberApp.state.assistantThreads[key] || []).map((message) => `
+  document.querySelector("#assistant-attach-row")?.classList.toggle("hidden", !allowAttachments(module));
+  const attachHint = document.querySelector(".assistant-attach-hint");
+  if (attachHint) {
+    attachHint.textContent = module.id === "module-1"
+      ? "Imagens ou PDF do seu negocio, se ja tiver um."
+      : "Logo ou posts que voce ja usa, se tiver.";
+  }
+
+  const thread = memberApp.state.assistantThreads[key] || [];
+  // Módulo 2 antes do "Iniciar": só o quebra-gelo no thread — input travado até a primeira fala real
+  const awaitingStart = module.id === "module-2" && thread.length > 0 && thread.every((message) => message.icebreaker);
+  document.querySelector("#assistant-start-row")?.classList.toggle("hidden", !awaitingStart);
+  const input = document.querySelector("#assistant-input");
+  if (input) input.disabled = awaitingStart;
+  const submit = document.querySelector("#assistant-submit");
+  if (submit) submit.disabled = awaitingStart || assistantRequestActive;
+
+  root.innerHTML = thread.map((message) => `
     <article class="assistant-message ${message.role === "user" ? "from-user" : "from-assistant"}">
       <strong>${message.role === "user" ? "Voce" : "Axon"}</strong>
       <p>${escapeHtml(message.text)}${message.pending ? '<span class="typing-dots" aria-label="digitando"><span></span><span></span><span></span></span>' : ""}</p>
