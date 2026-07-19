@@ -13,7 +13,7 @@ window.AXON_RUNTIME_CONFIG = {
   },
   checkout: {
     // Pode deixar vazio por enquanto.
-    // Quando o Stripe entrar, cole aqui os links de pagamento.
+    // Quando o Asaas entrar, cole aqui os links de pagamento.
     deploy: "",
     operacaoComercial: "",
     consultoria: ""

@@ -58,7 +58,7 @@ const COURSE_MODULES = [
     stages: [
       ["Instalar o Claude", "Crie a conta na Anthropic, instale o app e prepare a pasta do projeto com seus documentos.", "technical", null, ["claude-setup"]],
       ["Painel e Conselho de IA", "Gere o PRD e publique o painel de gestao em 3 areas — Administracao, Marketing e Vendas.", "technical", null, ["painel-conselho"]],
-      ["Site e checkout", "Configure a Stripe, gere o PRD do site e publique a pagina com formulario de leads e checkout na sua VPS.", "technical", null, ["site-prd", "site-deploy"]]
+      ["Site e checkout", "Configure o Asaas, gere o PRD do site e publique a pagina com formulario de leads e checkout na sua VPS.", "technical", null, ["site-prd", "site-deploy"]]
     ]
   }
 ];
@@ -386,27 +386,49 @@ const WIZARD_STEPS = [
   {
     id: "site-prd",
     title: "Pagamento e PRD",
-    objective: "Configurar a Stripe, criar o link de checkout e gerar o PRD do site.",
+    objective: "Configurar o Asaas, criar o link de pagamento e gerar o PRD do site.",
     tutorial: [
       {
-        heading: "1. Crie sua conta na Stripe",
-        body: `<p>Sua plataforma de pagamento é a <a href="https://stripe.com/br" target="_blank" rel="noopener">Stripe</a> — aceita cartões e Pix, funciona para vendas no Brasil e no exterior, e conecta direto ao seu painel de gestão (etapa anterior).</p>
-<p>Crie a conta em <a href="https://dashboard.stripe.com/register" target="_blank" rel="noopener">dashboard.stripe.com/register</a> e complete a verificação (documentos e dados bancários). Sem a verificação completa, a Stripe não libera recebimentos.</p>`
+        heading: "1. Crie sua conta no Asaas",
+        body: `<p>Sua plataforma de pagamento é o <a href="https://www.asaas.com" target="_blank" rel="noopener">Asaas</a> — aceita Pix, boleto e cartão em até 12x, funciona para vendas no Brasil e conecta direto ao seu painel de gestão.</p>
+<p>Crie a conta em <a href="https://www.asaas.com" target="_blank" rel="noopener">asaas.com</a> e complete a verificação (documentos e dados bancários). Sem a verificação completa, o Asaas não libera recebimentos.</p>`
       },
       {
         heading: "2. Crie o link de pagamento do seu produto",
-        body: `<p>Você cadastra o produto com preço e recebe um <strong>link de checkout</strong> pronto — o comprador paga numa página da própria Stripe, sem código:</p>
+        body: `<p>Você cadastra o produto com preço e recebe um <strong>link de pagamento</strong> pronto — o comprador paga numa página do próprio Asaas, sem código:</p>
 <ol>
-  <li>No Dashboard, acesse <strong>Payment Links</strong> → <strong>Create payment link</strong>.</li>
-  <li>Cadastre o produto e o preço → copie o link.</li>
+  <li>No painel do Asaas, procure <strong>Link de pagamentos</strong> → <strong>Criar link de pagamentos</strong>.</li>
+  <li>Preencha nome e valor, escolha as formas de pagamento (Pix, boleto e cartão parcelado) → copie o link.</li>
 </ol>
-<p><strong>Atenção:</strong> confira que o Dashboard está em modo <strong>produção</strong> (chave "Test mode" desligada) — link de teste começa com <code>buy.stripe.com/test_</code> e não processa vendas reais.</p>
-<p>💡 As vendas deste link são registradas automaticamente no seu painel de gestão, pelo fluxo de vendas que você ativou no módulo 4.</p>
+<p><strong>Atenção:</strong> confira que você está no ambiente real (<code>asaas.com</code>) — link criado no <strong>Sandbox</strong> (<code>sandbox.asaas.com</code>) é de teste e não processa vendas reais.</p>
 <p>Cole o link abaixo:</p>`,
         field: "paymentLink"
       },
       {
-        heading: "3. Gere o PRD do seu site",
+        heading: "3. Crie a chave de API e a credencial no n8n",
+        body: `<p>O fluxo de vendas que você importou no módulo 4 tem um nó (<strong>Busca cliente</strong>) que consulta o Asaas para descobrir o nome e o e-mail de quem comprou. Ele precisa de uma chave:</p>
+<ol>
+  <li>No Asaas: menu do usuário → <strong>Integrações → Chaves de API</strong> → gere uma chave (começa com <code>$aact_prod_</code>) e copie.</li>
+  <li>No n8n (<a href="https://workflows.{{domain}}" target="_blank" rel="noopener">workflows.{{domain}}</a>): <strong>Credentials → Add credential → Header Auth</strong> — <strong>Name:</strong> <code>access_token</code>, <strong>Value:</strong> a chave copiada. Salve com o nome <strong>Asaas Header</strong>.</li>
+  <li>Abra o fluxo <strong>Vendas - Asaas</strong>, clique no nó <strong>Busca cliente</strong> e selecione a credencial <strong>Asaas Header</strong>. Salve o fluxo.</li>
+</ol>`
+      },
+      {
+        heading: "4. Aponte o webhook de vendas para o seu painel",
+        body: `<p>É este aviso automático que faz cada venda aparecer no seu painel de gestão. No Asaas: menu do usuário → <strong>Integrações → Webhooks</strong> → <strong>Criar webhook</strong>:</p>
+<ul>
+  <li><strong>Nome:</strong> Painel de vendas</li>
+  <li><strong>URL:</strong> <code>https://webhooks.{{domain}}/webhook/vendas</code></li>
+  <li><strong>E-mail:</strong> <code>{{technicalEmail}}</code> (recebe avisos se algo falhar)</li>
+  <li><strong>Versão da API:</strong> v3</li>
+  <li><strong>Token de autenticação:</strong> <code>{{asaasWebhookToken}}</code> — o fluxo só aceita avisos com este token</li>
+  <li><strong>Eventos:</strong> marque <strong>Cobrança recebida</strong> (PAYMENT_RECEIVED) e <strong>Cobrança confirmada</strong> (PAYMENT_CONFIRMED) — pode marcar os dois, o fluxo ignora duplicados</li>
+</ul>
+<p><strong>⚠️ Deixe o fluxo de vendas sempre ativo no n8n:</strong> se o endereço falhar 15 vezes seguidas, o Asaas pausa a fila de avisos e as vendas param de chegar ao painel (se acontecer, reative em Integrações → Webhooks).</p>
+<p>💡 A partir daqui, cada pagamento aprovado no seu link é registrado automaticamente no painel de gestão.</p>`
+      },
+      {
+        heading: "5. Gere o PRD do seu site",
         body: `<p>O agente vai ler seu planejamento estratégico e montar o <strong>PRD</strong> — o prompt completo que você vai colar no Claude para ele construir e publicar o site: textos da página, identidade visual, formulário de interesse, botão de checkout e instruções técnicas de publicação na sua VPS.</p>`,
         generate: {
           id: "site_prd",
@@ -416,10 +438,10 @@ const WIZARD_STEPS = [
         }
       }
     ],
-    validation: "Conta Stripe ativa, link de checkout criado e PRD gerado.",
+    validation: "Conta Asaas ativa, link de pagamento criado, webhook apontado e PRD gerado.",
     done: "PRD pronto para colar no Claude.",
     fields: [
-      { key: "paymentLink", label: "Link de pagamento (checkout)", placeholder: "https://buy.stripe.com/...", inline: true }
+      { key: "paymentLink", label: "Link de pagamento (checkout)", placeholder: "https://www.asaas.com/c/...", inline: true }
     ]
   },
   {
@@ -587,9 +609,10 @@ const WIZARD_STEPS = [
         heading: "2. Fluxos de dados: leads, vendas e metricas",
         body: `<p>São eles que abastecem os números do painel:</p>
 <p><button class="button button-primary" type="button" id="download-n8n-leads">Baixar fluxo de leads (.json)</button></p>
-<p><button class="button button-primary" type="button" id="download-n8n-vendas-stripe">Baixar fluxo de vendas — Stripe (.json)</button></p>
+<p><button class="button button-primary" type="button" id="download-n8n-vendas-asaas">Baixar fluxo de vendas — Asaas (.json)</button></p>
 <p><button class="button button-primary" type="button" id="download-n8n-metricas">Baixar fluxo de metricas (.json)</button></p>
-<p>O fluxo de <strong>leads</strong> registra o formulário do site; o de <strong>vendas</strong> registra os pagamentos do checkout. Os dois ficam ativos desde já, mas só recebem dados de verdade no módulo 5, quando o site e o checkout entram no ar (é lá que você testa e aponta o webhook da plataforma de pagamento).</p>`
+<p>O fluxo de <strong>leads</strong> registra o formulário do site; o de <strong>vendas</strong> registra os pagamentos do Asaas. Os dois ficam ativos desde já, mas só recebem dados de verdade no módulo 5, quando o site e o checkout entram no ar (é lá que você aponta o webhook do Asaas).</p>
+<p>💡 O fluxo de vendas pede uma credencial extra (<strong>Asaas Header</strong>) que você só cria no módulo 5, junto com a conta Asaas — importe e ative mesmo assim; o passo a passo de lá completa a configuração.</p>`
       },
       {
         heading: "3. Fluxos de conteudo: Conselho, Grade e Fabrica de Imagens",
@@ -737,8 +760,9 @@ const DEFAULT_MEMBER_STATE = {
     chatwootSecretKey: "",
     n8nEncryptionKey: "",
     n8nRunnersAuthToken: "",
-    paymentPlatform: "Stripe",
+    paymentPlatform: "Asaas",
     paymentLink: "",
+    asaasWebhookToken: "",
     chatwootAccountId: "",
     chatwootToken: ""
   },
@@ -1445,7 +1469,8 @@ function fillTemplate(template) {
     .replaceAll("{{n8nEncryptionKey}}", project.n8nEncryptionKey || "{{n8nEncryptionKey}}")
     .replaceAll("{{n8nRunnersAuthToken}}", project.n8nRunnersAuthToken || "{{n8nRunnersAuthToken}}")
     .replaceAll("{{chatwootAccountId}}", project.chatwootAccountId || "1")
-    .replaceAll("{{chatwootToken}}", project.chatwootToken || "COLE_SEU_TOKEN_CHATWOOT");
+    .replaceAll("{{chatwootToken}}", project.chatwootToken || "COLE_SEU_TOKEN_CHATWOOT")
+    .replaceAll("{{asaasWebhookToken}}", project.asaasWebhookToken || "TOKEN_WEBHOOK_ASAAS_AQUI");
 }
 
 // Módulos com layout de wizard técnico (passos guiados + assistente técnico)
@@ -1733,7 +1758,7 @@ function renderLessonStage(lesson, steps) {
   const workflowDownloads = [
     ["#download-n8n-atendimento", buildAtendimentoWorkflowJson, "agente-atendimento.json"],
     ["#download-n8n-leads", buildLeadsWorkflowJson, "leads-do-site.json"],
-    ["#download-n8n-vendas-stripe", buildVendasStripeWorkflowJson, "vendas-stripe.json"],
+    ["#download-n8n-vendas-asaas", buildVendasAsaasWorkflowJson, "vendas-asaas.json"],
     ["#download-n8n-metricas", buildMetricsWorkflowJson, "painel-metricas.json"],
     ["#download-n8n-conselho", buildConselhoWorkflowJson, "conselho-de-ia.json"],
     ["#download-n8n-grade", buildGradePostagensWorkflowJson, "grade-de-postagens.json"],
@@ -3244,10 +3269,17 @@ function buildLeadsWorkflowJson() {
 // Tabela de conversões (compartilhada pelos fluxos de vendas)
 const CONVERSOES_DDL = "create table if not exists conversoes (id serial primary key, plataforma text, valor numeric, moeda text, email text, nome text, referencia text, criado_em timestamptz default now());";
 
-// Webhook POST /webhook/vendas — checkout do Stripe (checkout.session.completed)
-function buildVendasStripeWorkflowJson() {
+// Webhook POST /webhook/vendas — cobranças do Asaas (PAYMENT_RECEIVED / PAYMENT_CONFIRMED).
+// O Asaas manda o token configurado no webhook pelo header `asaas-access-token` (validado
+// no nó de entrada, embutido no download) e NÃO manda o e-mail do cliente no payload —
+// o nó "Busca cliente" enriquece via GET /v3/customers/{id} (credencial "Asaas Header",
+// criada no módulo 5; fail-open: sem ela a venda entra sem nome/e-mail). Dedup por
+// payment.id no insert — entrega é "ao menos uma vez" e CONFIRMED/RECEIVED podem
+// chegar ambos para a mesma cobrança (cartão confirma antes de liquidar).
+function buildVendasAsaasWorkflowJson() {
+  const webhookToken = memberApp.state.project.asaasWebhookToken || "";
   const workflow = {
-    name: "Vendas - Stripe",
+    name: "Vendas - Asaas",
     nodes: [
       {
         parameters: {
@@ -3266,27 +3298,70 @@ function buildVendasStripeWorkflowJson() {
       {
         parameters: {
           jsCode: [
-            "const evt = $input.first().json.body || {};",
-            "const obj = (evt.data && evt.data.object) || {};",
-            "// So registra checkout concluido",
-            "if (evt.type !== 'checkout.session.completed') { return []; }",
-            "const cents = Number(obj.amount_total || 0);",
-            "const det = obj.customer_details || {};",
+            "const req = $input.first().json;",
+            "const evt = req.body || {};",
+            "const headers = req.headers || {};",
+            `const token = ${JSON.stringify(webhookToken)};`,
+            "// Token definido na criacao do webhook no Asaas (modulo 5)",
+            "if (token && headers['asaas-access-token'] !== token) { return []; }",
+            "// So registra pagamento aprovado (Pix chega recebido; cartao confirma antes de liquidar)",
+            "if (evt.event !== 'PAYMENT_CONFIRMED' && evt.event !== 'PAYMENT_RECEIVED') { return []; }",
+            "const pay = evt.payment || {};",
+            "if (!pay.id) { return []; }",
             "return [{ json: {",
-            "  plataforma: 'stripe',",
-            "  valor: cents / 100,",
-            "  moeda: String(obj.currency || 'brl').toUpperCase(),",
-            "  email: det.email || obj.customer_email || '',",
-            "  nome: det.name || '',",
-            "  referencia: String(obj.id || '')",
+            "  paymentId: String(pay.id),",
+            "  valor: Number(pay.value || 0),",
+            "  customerId: String(pay.customer || '')",
             "} }];"
           ].join("\n")
         },
-        id: "extrai-venda",
-        name: "Extrai venda",
+        id: "filtra-evento",
+        name: "Filtra evento",
         type: "n8n-nodes-base.code",
         typeVersion: 2,
         position: [460, 300]
+      },
+      {
+        parameters: {
+          url: "=https://api.asaas.com/v3/customers/{{ $json.customerId }}",
+          authentication: "genericCredentialType",
+          genericAuthType: "httpHeaderAuth",
+          sendHeaders: true,
+          headerParameters: {
+            parameters: [{ name: "User-Agent", value: "axn-painel" }]
+          },
+          options: {}
+        },
+        id: "busca-cliente",
+        name: "Busca cliente",
+        type: "n8n-nodes-base.httpRequest",
+        typeVersion: 4.2,
+        position: [680, 300],
+        onError: "continueRegularOutput",
+        credentials: {
+          httpHeaderAuth: { id: "SUBSTITUA_PELO_ID_DA_CREDENCIAL", name: "Asaas Header" }
+        }
+      },
+      {
+        parameters: {
+          jsCode: [
+            "const cliente = $input.first().json || {};",
+            "const venda = $('Filtra evento').first().json;",
+            "return [{ json: {",
+            "  plataforma: 'asaas',",
+            "  valor: venda.valor,",
+            "  moeda: 'BRL',",
+            "  email: typeof cliente.email === 'string' ? cliente.email : '',",
+            "  nome: typeof cliente.name === 'string' ? cliente.name : '',",
+            "  referencia: venda.paymentId",
+            "} }];"
+          ].join("\n")
+        },
+        id: "monta-venda",
+        name: "Monta venda",
+        type: "n8n-nodes-base.code",
+        typeVersion: 2,
+        position: [900, 300]
       },
       {
         parameters: {
@@ -3294,7 +3369,8 @@ function buildVendasStripeWorkflowJson() {
           query: [
             CONVERSOES_DDL,
             "insert into conversoes (plataforma, valor, moeda, email, nome, referencia)",
-            "values ($1, $2, $3, $4, $5, $6);"
+            "select $1, $2, $3, $4, $5, $6",
+            "where not exists (select 1 from conversoes where plataforma = $1 and referencia = $6);"
           ].join("\n"),
           options: {
             queryReplacement: "={{ $json.plataforma }},{{ $json.valor }},{{ $json.moeda }},{{ $json.email }},{{ $json.nome }},{{ $json.referencia }}"
@@ -3304,15 +3380,17 @@ function buildVendasStripeWorkflowJson() {
         name: "Salvar venda",
         type: "n8n-nodes-base.postgres",
         typeVersion: 2.4,
-        position: [680, 300],
+        position: [1120, 300],
         credentials: {
           postgres: { id: "SUBSTITUA_PELO_ID_DA_CREDENCIAL", name: "Postgres negocio" }
         }
       }
     ],
     connections: {
-      "Webhook Vendas": { main: [[{ node: "Extrai venda", type: "main", index: 0 }]] },
-      "Extrai venda": { main: [[{ node: "Salvar venda", type: "main", index: 0 }]] }
+      "Webhook Vendas": { main: [[{ node: "Filtra evento", type: "main", index: 0 }]] },
+      "Filtra evento": { main: [[{ node: "Busca cliente", type: "main", index: 0 }]] },
+      "Busca cliente": { main: [[{ node: "Monta venda", type: "main", index: 0 }]] },
+      "Monta venda": { main: [[{ node: "Salvar venda", type: "main", index: 0 }]] }
     },
     pinData: {},
     settings: { executionOrder: "v1" }
@@ -3330,6 +3408,9 @@ function buildVendasStripeWorkflowJson() {
 // callback não vier, o fluxo confere o status a cada 90s), entrega vídeo + legenda no
 // WhatsApp do dono e, se houver token Metricool (Advanced), cria o post como rascunho
 // no planner (normalize da mídia → POST /v2/scheduler/posts com draft: true).
+// Spike 2026-07-19: manter engine default (avatar_iv) e caption style "default" — a API
+// só aceita style: "default" (sem fonte/cor/tamanho; legenda custom = SRT + ffmpeg próprio)
+// e o engine avatar_v exige look digital_twin elegível (biblioteca pública → 400).
 function buildFabricaVideosWorkflowJson() {
   const project = memberApp.state.project;
   const domain = project.domain || "seudominio.com.br";
@@ -5654,6 +5735,14 @@ function normalizeMemberState(state) {
 
   if (!project.evolutionApiKey) {
     project.evolutionApiKey = "evo_api_" + generateRandomHex(24);
+  }
+  // Token que o Asaas manda no header asaas-access-token (mín. 32 chars na criação do webhook)
+  if (!project.asaasWebhookToken) {
+    project.asaasWebhookToken = generateRandomHex(40);
+  }
+  // Lote 3.2: a plataforma de pagamento migrou da Stripe para o Asaas
+  if (project.paymentPlatform === "Stripe") {
+    project.paymentPlatform = "Asaas";
   }
   if (!project.chatwootSecretKey) {
     project.chatwootSecretKey = generateRandomHex(64);
