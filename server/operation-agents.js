@@ -89,9 +89,11 @@ const AGENT_IDS = AGENTS.map((agent) => agent.id);
 const AGENT_BY_ID = new Map(AGENTS.map((agent) => [agent.id, agent]));
 const PROMPT_CACHE = new Map();
 
-// Anexos do chat (Módulo 1): o browser envia data URLs e eles seguem direto à OpenAI
-// como input_image/input_file — sem parser no servidor, por decisão de produto.
-const ATTACHMENT_DATA_URL_PATTERN = /^data:(image\/(png|jpeg|webp|gif)|application\/pdf);base64,[A-Za-z0-9+/=]+$/;
+// Anexos do chat (Módulo 1): o browser envia data URLs — imagens e PDFs seguem
+// direto à OpenAI como input_image/input_file; documentos de texto (o frontend
+// normaliza tudo para text/plain) são decodificados e injetados como input_text,
+// já que a API Responses só aceita input_file inline para PDF.
+const ATTACHMENT_DATA_URL_PATTERN = /^data:(image\/(png|jpeg|webp|gif)|application\/pdf|text\/plain);base64,[A-Za-z0-9+/=]+$/;
 const ATTACHMENT_MAX_COUNT = 4;
 const ATTACHMENT_MAX_TOTAL_CHARS = 7.5 * 1024 * 1024; // ~5,5MB de arquivo em base64, sob o limite de 8MB do body
 
@@ -110,6 +112,12 @@ function attachmentContentParts(attachments) {
         type: "input_file",
         filename: sanitizeAttachmentName(item.name) || "documento.pdf",
         file_data: dataUrl
+      });
+    } else if (dataUrl.startsWith("data:text/plain")) {
+      const text = Buffer.from(dataUrl.slice(dataUrl.indexOf(",") + 1), "base64").toString("utf-8");
+      parts.push({
+        type: "input_text",
+        text: `Conteudo do arquivo anexado "${sanitizeAttachmentName(item.name) || "documento.txt"}":\n\n${text}`
       });
     } else {
       parts.push({ type: "input_image", image_url: dataUrl });

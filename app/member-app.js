@@ -158,7 +158,7 @@ const WIZARD_STEPS = [
   <tr><td>A</td><td><code>evo</code></td><td><code>{{serverIp}}</code></td><td>DNS only</td><td>Evolution API</td></tr>
   <tr><td>A</td><td><code>gestao</code></td><td><code>{{serverIp}}</code></td><td>DNS only</td><td>Painel de gestão (módulo 5)</td></tr>
 </table>
-<p style="margin-top:8px">O registro <code>@</code> aponta o domínio raiz (<code>{{domain}}</code>) para a VPS. Os registros <code>www</code> e <code>gestao</code> só serão usados nos módulos 5 e 6, mas criá-los agora evita voltar aqui depois. Mantenha todos como <strong>DNS only</strong> (nuvem cinza). O Traefik cuida do HTTPS — não deixe a Cloudflare proxiar.</p>`
+<p style="margin-top:8px">O registro <code>@</code> aponta o domínio raiz (<code>{{domain}}</code>) para a VPS. Os registros <code>www</code> e <code>gestao</code> só serão usados no módulo 5 (painel e site), mas criá-los agora evita voltar aqui depois. Mantenha todos como <strong>DNS only</strong> (nuvem cinza). O Traefik cuida do HTTPS — não deixe a Cloudflare proxiar.</p>`
       }
     ],
     validation: "Os 8 registros A aparecerem na lista de DNS da Cloudflare.",
@@ -5878,7 +5878,7 @@ function allowAttachments(module = currentModule()) {
   return module.id === "module-1" || currentLessonKey() === "module-2.4";
 }
 
-// Anexos pendentes do chat. Vivem só em memória: viram input_file/input_image
+// Anexos pendentes do chat. Vivem só em memória: viram input_file/input_image/input_text
 // na próxima mensagem enviada e não são persistidos (grandes demais para o localStorage).
 const assistantAttachments = {
   pending: [],
@@ -5888,7 +5888,20 @@ const assistantAttachments = {
 const ATTACH_MAX_FILES = 4;
 const ATTACH_MAX_FILE_BYTES = 4 * 1024 * 1024;
 const ATTACH_MAX_TOTAL_BYTES = 5 * 1024 * 1024;
-const ATTACH_ALLOWED_TYPES = ["image/png", "image/jpeg", "image/webp", "image/gif", "application/pdf"];
+const ATTACH_IMAGE_TYPES = ["image/png", "image/jpeg", "image/webp", "image/gif"];
+// Extensões aceitas como texto mesmo quando o browser não informa o MIME (comum em .md no Windows)
+const ATTACH_TEXT_EXTENSIONS = ["txt", "md", "markdown", "csv", "tsv", "json", "log", "xml", "html", "htm"];
+
+// "image" e "pdf" seguem como data URL à OpenAI; "text" é normalizado para
+// data:text/plain e o servidor injeta o conteúdo como input_text (a API não
+// aceita input_file inline para texto, só PDF).
+function attachmentKind(file) {
+  if (ATTACH_IMAGE_TYPES.includes(file.type)) return "image";
+  if (file.type === "application/pdf") return "pdf";
+  const extension = (file.name.split(".").pop() || "").toLowerCase();
+  if (file.type.startsWith("text/") || file.type === "application/json" || ATTACH_TEXT_EXTENSIONS.includes(extension)) return "text";
+  return null;
+}
 
 function readFileAsDataUrl(file) {
   return new Promise((resolve, reject) => {
@@ -5897,6 +5910,24 @@ function readFileAsDataUrl(file) {
     reader.onerror = () => reject(reader.error);
     reader.readAsDataURL(file);
   });
+}
+
+function readFileAsText(file) {
+  return new Promise((resolve, reject) => {
+    const reader = new FileReader();
+    reader.onload = () => resolve(reader.result);
+    reader.onerror = () => reject(reader.error);
+    reader.readAsText(file);
+  });
+}
+
+function textToDataUrl(text) {
+  const bytes = new TextEncoder().encode(text);
+  let binary = "";
+  for (let i = 0; i < bytes.length; i += 0x8000) {
+    binary += String.fromCharCode(...bytes.subarray(i, i + 0x8000));
+  }
+  return `data:text/plain;base64,${btoa(binary)}`;
 }
 
 function renderAttachmentChips() {
@@ -5924,8 +5955,9 @@ function wireAssistantAttachments() {
         assistantAttachments.error = `Maximo de ${ATTACH_MAX_FILES} arquivos por mensagem.`;
         break;
       }
-      if (!ATTACH_ALLOWED_TYPES.includes(file.type)) {
-        assistantAttachments.error = `"${file.name}" nao e imagem nem PDF.`;
+      const kind = attachmentKind(file);
+      if (!kind) {
+        assistantAttachments.error = `"${file.name}" nao e imagem, PDF ou documento de texto.`;
         continue;
       }
       if (file.size > ATTACH_MAX_FILE_BYTES) {
@@ -5938,8 +5970,10 @@ function wireAssistantAttachments() {
         break;
       }
       try {
-        const dataUrl = await readFileAsDataUrl(file);
-        assistantAttachments.pending.push({ name: file.name, mimeType: file.type, size: file.size, dataUrl });
+        const dataUrl = kind === "text"
+          ? textToDataUrl(await readFileAsText(file))
+          : await readFileAsDataUrl(file);
+        assistantAttachments.pending.push({ name: file.name, mimeType: kind === "text" ? "text/plain" : file.type, size: file.size, dataUrl });
       } catch {
         assistantAttachments.error = `Nao consegui ler "${file.name}". Tente novamente.`;
       }
@@ -6149,7 +6183,7 @@ function renderAssistantThread() {
   const attachHint = document.querySelector(".assistant-attach-hint");
   if (attachHint) {
     attachHint.textContent = module.id === "module-1"
-      ? "Imagens ou PDF do seu negocio, se ja tiver um."
+      ? "Imagens, PDF ou documentos de texto (txt, md...) do seu negocio, se ja tiver."
       : "Logo ou posts que voce ja usa, se tiver.";
   }
 
