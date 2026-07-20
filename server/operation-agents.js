@@ -173,6 +173,7 @@ export async function runOperationAgentTurn({ rootDir, query, member, payload })
   let status = normalizeStatus(parsed.status);
   let answer = cleanAssistantMessage(parsed.assistant_message || parsed.summary_for_user || parsed.answer || response.output_text);
   let transferBlock = normalizeTransferBlock(parsed.transfer_block, status);
+  ({ status, answer, transferBlock } = await applyDeliveryStallGuard({ agent, status, answer, transferBlock, baseRequest: openaiRequest }));
   ({ status, answer, transferBlock } = await applyHypothesisReview({ agent, status, answer, transferBlock, payload }));
   ({ status, answer, transferBlock } = await applyStageDeliveryReview({
     agent, status, answer, transferBlock, payload, history, baseRequest: openaiRequest
@@ -714,6 +715,82 @@ async function saveAgentRun(query, data) {
   );
 }
 
+// ─── Trava anti-enrolação (Módulo 1) ────────────────────────────────────────
+// O Agente 01 às vezes encerra o turno prometendo "pesquisar e voltar com as
+// hipóteses" — mas não existe turno futuro: cada resposta é a única da rodada.
+// Quando uma resposta em "conversation" casa com padrões de promessa futura, o
+// servidor re-chama a OpenAI UMA vez com instrução interna para entregar no mesmo
+// turno (mesmo mecanismo do runInternalStageCorrection). Fail-open: se a
+// re-chamada falhar, a resposta original segue. Falso positivo custa só essa
+// re-chamada — a instrução interna não quebra respostas legítimas.
+
+const STALL_PROMISE_PATTERN = /\b(ja retorno|ja volto|volto com|retorno com|na volta|na proxima mensagem|vou pesquisar|vou so organizar|enquanto isso|assim que (eu )?terminar)\b/;
+
+function normalizeForStallCheck(text) {
+  return String(text || "")
+    .toLowerCase()
+    .normalize("NFD")
+    // eslint-disable-next-line no-misleading-character-class
+    .replace(/[\u0300-\u036f]/g, "");
+}
+
+async function applyDeliveryStallGuard({ agent, status, answer, transferBlock, baseRequest }) {
+  if (agent.id !== "business_modeling" || status !== "conversation") {
+    return { status, answer, transferBlock };
+  }
+  if (!STALL_PROMISE_PATTERN.test(normalizeForStallCheck(answer))) {
+    return { status, answer, transferBlock };
+  }
+
+  console.log("[operation] trava anti-enrolacao disparou para business_modeling");
+  const request = structuredClone(baseRequest);
+  delete request.stream;
+  request.input = [
+    ...request.input,
+    {
+      role: "assistant",
+      content: [
+        {
+          type: "output_text",
+          text: JSON.stringify({
+            status: "conversation",
+            assistant_message: answer,
+            next_agent_id: "",
+            transfer_block: emptyTransferBlock()
+          })
+        }
+      ]
+    },
+    {
+      role: "user",
+      content: [
+        {
+          type: "input_text",
+          text: [
+            "CORRECAO INTERNA — o aluno NAO ve esta mensagem nem a resposta que voce propos nesta rodada.",
+            "Sua resposta anunciou que voce vai pesquisar/organizar algo e retornar depois. Isso e impossivel: esta resposta e a UNICA que o aluno recebera nesta rodada e nenhum processo roda entre as mensagens.",
+            "Refaca a resposta entregando AGORA, na mesma mensagem, aquilo que voce prometeu: se precisar verificar sinais de mercado, use a ferramenta de Web Search neste mesmo turno e inclua o resultado completo na resposta.",
+            "Nunca anuncie trabalho futuro. Nunca diga que vai retornar, que esta organizando ou que trara algo na proxima mensagem.",
+            "Nunca mencione esta correcao ao aluno."
+          ].join("\n")
+        }
+      ]
+    }
+  ];
+
+  const response = await callOpenAI(request);
+  if (response.status === "failed") return { status, answer, transferBlock };
+
+  const parsed = parseAgentOutput(response, agent);
+  const newStatus = normalizeStatus(parsed.status);
+  const newAnswer = cleanAssistantMessage(parsed.assistant_message || parsed.summary_for_user || parsed.answer || response.output_text);
+  return {
+    status: newStatus,
+    answer: newAnswer,
+    transferBlock: normalizeTransferBlock(parsed.transfer_block, newStatus)
+  };
+}
+
 // ─── Revisão independente da hipótese (Módulo 1) ────────────────────────────
 // Quando o Agente 01 conclui (status "result"), um segundo modelo (Claude) revisa
 // a entrevista inteira + hipótese ANTES de a entrega chegar ao aluno. Se reprovar,
@@ -1156,6 +1233,7 @@ export async function streamOperationAgentTurn({ rootDir, query, member, payload
     let status = normalizeStatus(parsed.status);
     let answer = cleanAssistantMessage(parsed.assistant_message || parsed.summary_for_user || parsed.answer || fullText);
     let transferBlock = normalizeTransferBlock(parsed.transfer_block, status);
+    ({ status, answer, transferBlock } = await applyDeliveryStallGuard({ agent, status, answer, transferBlock, baseRequest: openaiRequest }));
     ({ status, answer, transferBlock } = await applyHypothesisReview({ agent, status, answer, transferBlock, payload }));
     ({ status, answer, transferBlock } = await applyStageDeliveryReview({
       agent, status, answer, transferBlock, payload, history, baseRequest: openaiRequest
