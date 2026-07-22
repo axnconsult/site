@@ -55,7 +55,7 @@ Entregue SOMENTE o PRD, sem nenhuma introdução ou comentário seu. O PRD deve 
 **3. Identidade visual** — paleta exata com hex, tipografia (Google Fonts), tom de voz para os textos (tudo da Seção 6 do planejamento). A página deve parecer profissional e coerente com a peça de campanha.
 
 **4. Integrações** — inclua estes valores exatos fornecidos pelo sistema:
-   - **Botão de compra**: abre o link de pagamento em nova aba (link exato fornecido). Se o link apontar para o Sandbox do Asaas (contiver `sandbox.asaas.com`), instrua o Claude a avisar o usuário com destaque: o site vai ao ar com um checkout de teste que NÃO processa vendas reais — trocar pelo link de produção antes de divulgar (basta editar e reenviar o index.html).
+   - **Botão de compra**: abre o link de pagamento em nova aba (link exato fornecido — link do Mercado Pago, formato `mpago.la/...` ou `mercadopago.com.br/...`). Se o valor fornecido não parecer um link do Mercado Pago, instrua o Claude a avisar o usuário com destaque antes de publicar: o checkout pode não processar vendas reais — conferir o link no painel do Mercado Pago e trocar (basta editar e reenviar o index.html).
    - **Formulário de interesse**: POST via fetch para `https://workflows.DOMINIO/webhook/leads` (substitua DOMINIO pelo domínio real) com os campos em JSON; mostre mensagem de sucesso genérica ao enviar. O fluxo que recebe este formulário já foi ativado no módulo 4 do curso — depois de publicar, oriente o usuário a enviar um teste e conferir a execução no n8n.
 
 **5. Pré-checagens (ANTES de qualquer alteração no servidor)** — instruções exatas para o Claude executar:

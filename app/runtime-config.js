@@ -13,7 +13,7 @@ window.AXON_RUNTIME_CONFIG = {
   },
   checkout: {
     // Pode deixar vazio por enquanto.
-    // Quando o Asaas entrar, cole aqui os links de pagamento.
+    // Quando os links de pagamento do Mercado Pago existirem, cole aqui.
     deploy: "",
     operacaoComercial: "",
     consultoria: ""

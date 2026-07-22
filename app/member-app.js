@@ -60,7 +60,7 @@ const COURSE_MODULES = [
     stages: [
       ["Instalar o Claude", "Crie a conta na Anthropic, instale o app e prepare a pasta do projeto com seus documentos.", "technical", null, ["claude-setup"]],
       ["Painel e Conselho de IA", "Gere o PRD e publique o painel de gestao em 3 areas — Administracao, Marketing e Vendas.", "technical", null, ["painel-conselho"]],
-      ["Site e checkout", "Configure o Asaas, gere o PRD do site e publique a pagina com formulario de leads e checkout na sua VPS.", "technical", null, ["site-prd", "site-deploy"]]
+      ["Site e checkout", "Configure o Mercado Pago, gere o PRD do site e publique a pagina com formulario de leads e checkout na sua VPS.", "technical", null, ["site-prd", "site-deploy"]]
     ]
   }
 ];
@@ -388,45 +388,42 @@ const WIZARD_STEPS = [
   {
     id: "site-prd",
     title: "Pagamento e PRD",
-    objective: "Configurar o Asaas, criar o link de pagamento e gerar o PRD do site.",
+    objective: "Configurar o Mercado Pago, criar o link de pagamento e gerar o PRD do site.",
     tutorial: [
       {
-        heading: "1. Crie sua conta no Asaas",
-        body: `<p>Sua plataforma de pagamento é o <a href="https://www.asaas.com" target="_blank" rel="noopener">Asaas</a> — aceita Pix, boleto e cartão em até 12x, funciona para vendas no Brasil e conecta direto ao seu painel de gestão.</p>
-<p>Crie a conta em <a href="https://www.asaas.com" target="_blank" rel="noopener">asaas.com</a> e complete a verificação (documentos e dados bancários). Sem a verificação completa, o Asaas não libera recebimentos.</p>`
+        heading: "1. Crie sua conta no Mercado Pago",
+        body: `<p>Sua plataforma de pagamento é o <a href="https://www.mercadopago.com.br" target="_blank" rel="noopener">Mercado Pago</a> — aceita Pix, boleto e cartão em até 12x, é conhecido pelos compradores brasileiros e conecta direto ao seu painel de gestão.</p>
+<p>Crie a conta em <a href="https://www.mercadopago.com.br" target="_blank" rel="noopener">mercadopago.com.br</a> (ou use uma que você já tenha) e complete o cadastro com documentos e dados bancários. Sem o cadastro completo, o Mercado Pago limita os recebimentos.</p>`
       },
       {
         heading: "2. Crie o link de pagamento do seu produto",
-        body: `<p>Você cadastra o produto com preço e recebe um <strong>link de pagamento</strong> pronto — o comprador paga numa página do próprio Asaas, sem código:</p>
+        body: `<p>Você cadastra o produto com preço e recebe um <strong>link de pagamento</strong> pronto — o comprador paga numa página do próprio Mercado Pago, sem código:</p>
 <ol>
-  <li>No painel do Asaas, procure <strong>Link de pagamentos</strong> → <strong>Criar link de pagamentos</strong>.</li>
-  <li>Preencha nome e valor, escolha as formas de pagamento (Pix, boleto e cartão parcelado) → copie o link.</li>
+  <li>No painel do Mercado Pago, procure <strong>Link de pagamento</strong> (na área de cobrança/vendas) → <strong>Criar link</strong>.</li>
+  <li>Preencha nome do produto e valor, confira as formas de pagamento (Pix, boleto e cartão parcelado) → copie o link gerado (formato <code>mpago.la/...</code>).</li>
 </ol>
-<p><strong>Atenção:</strong> confira que você está no ambiente real (<code>asaas.com</code>) — link criado no <strong>Sandbox</strong> (<code>sandbox.asaas.com</code>) é de teste e não processa vendas reais.</p>
 <p>Cole o link abaixo:</p>`,
         field: "paymentLink"
       },
       {
-        heading: "3. Crie a chave de API e a credencial no n8n",
-        body: `<p>O fluxo de vendas que você importou no módulo 4 tem um nó (<strong>Busca cliente</strong>) que consulta o Asaas para descobrir o nome e o e-mail de quem comprou. Ele precisa de uma chave:</p>
+        heading: "3. Crie a aplicação e a credencial no n8n",
+        body: `<p>O fluxo de vendas que você importou no módulo 4 tem um nó (<strong>Busca pagamento</strong>) que consulta o Mercado Pago para confirmar cada venda e descobrir valor, nome e e-mail de quem comprou. Ele precisa de uma credencial:</p>
 <ol>
-  <li>No Asaas: menu do usuário → <strong>Integrações → Chaves de API</strong> → gere uma chave (começa com <code>$aact_prod_</code>) e copie.</li>
-  <li>No n8n (<a href="https://workflows.{{domain}}" target="_blank" rel="noopener">workflows.{{domain}}</a>): <strong>Credentials → Add credential → Header Auth</strong> — <strong>Name:</strong> <code>access_token</code>, <strong>Value:</strong> a chave copiada. Salve com o nome <strong>Asaas Header</strong>.</li>
-  <li>Abra o fluxo <strong>Vendas - Asaas</strong>, clique no nó <strong>Busca cliente</strong> e selecione a credencial <strong>Asaas Header</strong>. Salve o fluxo.</li>
+  <li>Acesse <a href="https://www.mercadopago.com.br/developers/panel/app" target="_blank" rel="noopener">Suas integrações</a> (área de desenvolvedores do Mercado Pago, com o mesmo login) → <strong>Criar aplicação</strong> — dê um nome (ex.: Painel de vendas) e conclua.</li>
+  <li>Dentro da aplicação: <strong>Credenciais de produção</strong> → copie o <strong>Access Token</strong> (começa com <code>APP_USR-</code>).</li>
+  <li>No n8n (<a href="https://workflows.{{domain}}" target="_blank" rel="noopener">workflows.{{domain}}</a>): <strong>Credentials → Add credential → Header Auth</strong> — <strong>Name:</strong> <code>Authorization</code>, <strong>Value:</strong> <code>Bearer APP_USR-...</code> (a palavra <code>Bearer</code>, um espaço e o token colado). Salve com o nome <strong>Mercado Pago Header</strong>.</li>
+  <li>Abra o fluxo <strong>Vendas - Mercado Pago</strong>, clique no nó <strong>Busca pagamento</strong> e selecione a credencial <strong>Mercado Pago Header</strong>. Salve o fluxo.</li>
 </ol>`
       },
       {
-        heading: "4. Aponte o webhook de vendas para o seu painel",
-        body: `<p>É este aviso automático que faz cada venda aparecer no seu painel de gestão. No Asaas: menu do usuário → <strong>Integrações → Webhooks</strong> → <strong>Criar webhook</strong>:</p>
+        heading: "4. Configure as notificações de venda (webhook)",
+        body: `<p>É este aviso automático que faz cada venda aparecer no seu painel de gestão. Na mesma aplicação em <strong>Suas integrações</strong>: menu lateral <strong>Webhooks</strong> → <strong>Configurar notificações</strong>, no <strong>modo produtivo</strong>:</p>
 <ul>
-  <li><strong>Nome:</strong> Painel de vendas</li>
-  <li><strong>URL:</strong> <code>https://webhooks.{{domain}}/webhook/vendas</code></li>
-  <li><strong>E-mail:</strong> <code>{{technicalEmail}}</code> (recebe avisos se algo falhar)</li>
-  <li><strong>Versão da API:</strong> v3</li>
-  <li><strong>Token de autenticação:</strong> <code>{{asaasWebhookToken}}</code> — o fluxo só aceita avisos com este token</li>
-  <li><strong>Eventos:</strong> marque <strong>Cobrança recebida</strong> (PAYMENT_RECEIVED) e <strong>Cobrança confirmada</strong> (PAYMENT_CONFIRMED) — pode marcar os dois, o fluxo ignora duplicados</li>
+  <li><strong>URL:</strong> <code>https://webhooks.{{domain}}/webhook/vendas?token={{mpWebhookToken}}</code> — cole exatamente assim; o código no final é o seu token de segurança e o fluxo só aceita avisos que chegam com ele</li>
+  <li><strong>Eventos:</strong> marque <strong>Pagamentos</strong></li>
+  <li>Salve. Se aparecer uma <strong>assinatura secreta</strong>, não precisa dela — além do token da URL, o fluxo confirma cada aviso direto na API do Mercado Pago antes de registrar a venda</li>
 </ul>
-<p><strong>⚠️ Deixe o fluxo de vendas sempre ativo no n8n:</strong> se o endereço falhar 15 vezes seguidas, o Asaas pausa a fila de avisos e as vendas param de chegar ao painel (se acontecer, reative em Integrações → Webhooks).</p>
+<p><strong>⚠️ Deixe o fluxo de vendas sempre ativo no n8n</strong> — é ele que recebe esses avisos; desativado, as vendas não chegam ao painel.</p>
 <p>💡 A partir daqui, cada pagamento aprovado no seu link é registrado automaticamente no painel de gestão.</p>`
       },
       {
@@ -440,10 +437,10 @@ const WIZARD_STEPS = [
         }
       }
     ],
-    validation: "Conta Asaas ativa, link de pagamento criado, webhook apontado e PRD gerado.",
+    validation: "Conta Mercado Pago ativa, link de pagamento criado, notificacoes configuradas e PRD gerado.",
     done: "PRD pronto para colar no Claude.",
     fields: [
-      { key: "paymentLink", label: "Link de pagamento (checkout)", placeholder: "https://www.asaas.com/c/...", inline: true }
+      { key: "paymentLink", label: "Link de pagamento (checkout)", placeholder: "https://mpago.la/...", inline: true }
     ]
   },
   {
@@ -611,10 +608,10 @@ const WIZARD_STEPS = [
         heading: "2. Fluxos de dados: leads, vendas e metricas",
         body: `<p>São eles que abastecem os números do painel:</p>
 <p><button class="button button-primary" type="button" id="download-n8n-leads">Baixar fluxo de leads (.json)</button></p>
-<p><button class="button button-primary" type="button" id="download-n8n-vendas-asaas">Baixar fluxo de vendas — Asaas (.json)</button></p>
+<p><button class="button button-primary" type="button" id="download-n8n-vendas-mp">Baixar fluxo de vendas — Mercado Pago (.json)</button></p>
 <p><button class="button button-primary" type="button" id="download-n8n-metricas">Baixar fluxo de metricas (.json)</button></p>
-<p>O fluxo de <strong>leads</strong> registra o formulário do site; o de <strong>vendas</strong> registra os pagamentos do Asaas. Os dois ficam ativos desde já, mas só recebem dados de verdade no módulo 5, quando o site e o checkout entram no ar (é lá que você aponta o webhook do Asaas).</p>
-<p>💡 O fluxo de vendas pede uma credencial extra (<strong>Asaas Header</strong>) que você só cria no módulo 5, junto com a conta Asaas — importe e ative mesmo assim; o passo a passo de lá completa a configuração.</p>`
+<p>O fluxo de <strong>leads</strong> registra o formulário do site; o de <strong>vendas</strong> registra os pagamentos do Mercado Pago. Os dois ficam ativos desde já, mas só recebem dados de verdade no módulo 5, quando o site e o checkout entram no ar (é lá que você configura as notificações do Mercado Pago).</p>
+<p>💡 O fluxo de vendas pede uma credencial extra (<strong>Mercado Pago Header</strong>) que você só cria no módulo 5, junto com a conta do Mercado Pago — importe e ative mesmo assim; o passo a passo de lá completa a configuração.</p>`
       },
       {
         heading: "3. Fluxos de conteudo: Conselho, Grade e Fabrica de Imagens",
@@ -762,9 +759,9 @@ const DEFAULT_MEMBER_STATE = {
     chatwootSecretKey: "",
     n8nEncryptionKey: "",
     n8nRunnersAuthToken: "",
-    paymentPlatform: "Asaas",
+    paymentPlatform: "Mercado Pago",
     paymentLink: "",
-    asaasWebhookToken: "",
+    mpWebhookToken: "",
     chatwootAccountId: "",
     chatwootToken: ""
   },
@@ -1472,7 +1469,7 @@ function fillTemplate(template) {
     .replaceAll("{{n8nRunnersAuthToken}}", project.n8nRunnersAuthToken || "{{n8nRunnersAuthToken}}")
     .replaceAll("{{chatwootAccountId}}", project.chatwootAccountId || "1")
     .replaceAll("{{chatwootToken}}", project.chatwootToken || "COLE_SEU_TOKEN_CHATWOOT")
-    .replaceAll("{{asaasWebhookToken}}", project.asaasWebhookToken || "TOKEN_WEBHOOK_ASAAS_AQUI");
+    .replaceAll("{{mpWebhookToken}}", project.mpWebhookToken || "TOKEN_WEBHOOK_MP_AQUI");
 }
 
 // Etapas com layout de wizard técnico (passos guiados + assistente técnico).
@@ -1761,7 +1758,7 @@ function renderLessonStage(lesson, steps) {
   const workflowDownloads = [
     ["#download-n8n-atendimento", buildAtendimentoWorkflowJson, "agente-atendimento.json"],
     ["#download-n8n-leads", buildLeadsWorkflowJson, "leads-do-site.json"],
-    ["#download-n8n-vendas-asaas", buildVendasAsaasWorkflowJson, "vendas-asaas.json"],
+    ["#download-n8n-vendas-mp", buildVendasMercadoPagoWorkflowJson, "vendas-mercadopago.json"],
     ["#download-n8n-metricas", buildMetricsWorkflowJson, "painel-metricas.json"],
     ["#download-n8n-conselho", buildConselhoWorkflowJson, "conselho-de-ia.json"],
     ["#download-n8n-grade", buildGradePostagensWorkflowJson, "grade-de-postagens.json"],
@@ -3272,17 +3269,18 @@ function buildLeadsWorkflowJson() {
 // Tabela de conversões (compartilhada pelos fluxos de vendas)
 const CONVERSOES_DDL = "create table if not exists conversoes (id serial primary key, plataforma text, valor numeric, moeda text, email text, nome text, referencia text, criado_em timestamptz default now());";
 
-// Webhook POST /webhook/vendas — cobranças do Asaas (PAYMENT_RECEIVED / PAYMENT_CONFIRMED).
-// O Asaas manda o token configurado no webhook pelo header `asaas-access-token` (validado
-// no nó de entrada, embutido no download) e NÃO manda o e-mail do cliente no payload —
-// o nó "Busca cliente" enriquece via GET /v3/customers/{id} (credencial "Asaas Header",
-// criada no módulo 5; fail-open: sem ela a venda entra sem nome/e-mail). Dedup por
-// payment.id no insert — entrega é "ao menos uma vez" e CONFIRMED/RECEIVED podem
-// chegar ambos para a mesma cobrança (cartão confirma antes de liquidar).
-function buildVendasAsaasWorkflowJson() {
-  const webhookToken = memberApp.state.project.asaasWebhookToken || "";
+// Webhook POST /webhook/vendas — avisos de pagamento do Mercado Pago (type=payment).
+// O Mercado Pago não envia header de autenticação configurável: o token vai na query
+// string da URL cadastrada no webhook (?token=..., validado no nó de entrada, embutido
+// no download). O aviso traz só o id do pagamento — o nó "Busca pagamento" confirma na
+// API (GET /v1/payments/{id}, credencial "Mercado Pago Header" criada no módulo 5) e só
+// registra status "approved"; a consulta também autentica o conteúdo (id forjado = 404,
+// fail-closed). Dedup por payment.id no insert — created/updated podem chegar ambos
+// para o mesmo pagamento e a entrega é "ao menos uma vez".
+function buildVendasMercadoPagoWorkflowJson() {
+  const webhookToken = memberApp.state.project.mpWebhookToken || "";
   const workflow = {
-    name: "Vendas - Asaas",
+    name: "Vendas - Mercado Pago",
     nodes: [
       {
         parameters: {
@@ -3303,19 +3301,16 @@ function buildVendasAsaasWorkflowJson() {
           jsCode: [
             "const req = $input.first().json;",
             "const evt = req.body || {};",
-            "const headers = req.headers || {};",
+            "const q = req.query || {};",
             `const token = ${JSON.stringify(webhookToken)};`,
-            "// Token definido na criacao do webhook no Asaas (modulo 5)",
-            "if (token && headers['asaas-access-token'] !== token) { return []; }",
-            "// So registra pagamento aprovado (Pix chega recebido; cartao confirma antes de liquidar)",
-            "if (evt.event !== 'PAYMENT_CONFIRMED' && evt.event !== 'PAYMENT_RECEIVED') { return []; }",
-            "const pay = evt.payment || {};",
-            "if (!pay.id) { return []; }",
-            "return [{ json: {",
-            "  paymentId: String(pay.id),",
-            "  valor: Number(pay.value || 0),",
-            "  customerId: String(pay.customer || '')",
-            "} }];"
+            "// Token embutido na URL do webhook cadastrada no Mercado Pago (modulo 5)",
+            "if (token && q.token !== token) { return []; }",
+            "// Formato Webhooks: body.type + body.data.id; formato antigo (IPN): query topic/id",
+            "const tipo = evt.type || q.type || q.topic || '';",
+            "if (tipo !== 'payment') { return []; }",
+            "const paymentId = (evt.data && evt.data.id) || q['data.id'] || q.id || '';",
+            "if (!paymentId) { return []; }",
+            "return [{ json: { paymentId: String(paymentId) } }];"
           ].join("\n")
         },
         id: "filtra-evento",
@@ -3326,7 +3321,7 @@ function buildVendasAsaasWorkflowJson() {
       },
       {
         parameters: {
-          url: "=https://api.asaas.com/v3/customers/{{ $json.customerId }}",
+          url: "=https://api.mercadopago.com/v1/payments/{{ $json.paymentId }}",
           authentication: "genericCredentialType",
           genericAuthType: "httpHeaderAuth",
           sendHeaders: true,
@@ -3335,28 +3330,32 @@ function buildVendasAsaasWorkflowJson() {
           },
           options: {}
         },
-        id: "busca-cliente",
-        name: "Busca cliente",
+        id: "busca-pagamento",
+        name: "Busca pagamento",
         type: "n8n-nodes-base.httpRequest",
         typeVersion: 4.2,
         position: [680, 300],
         onError: "continueRegularOutput",
         credentials: {
-          httpHeaderAuth: { id: "SUBSTITUA_PELO_ID_DA_CREDENCIAL", name: "Asaas Header" }
+          httpHeaderAuth: { id: "SUBSTITUA_PELO_ID_DA_CREDENCIAL", name: "Mercado Pago Header" }
         }
       },
       {
         parameters: {
           jsCode: [
-            "const cliente = $input.first().json || {};",
-            "const venda = $('Filtra evento').first().json;",
+            "const pay = $input.first().json || {};",
+            "// So registra pagamento aprovado — avisos de pagamento pendente ou consulta",
+            "// com erro (sem id/status) sao descartados; o updated chega quando aprovar",
+            "if (!pay.id || pay.status !== 'approved') { return []; }",
+            "const payer = pay.payer || {};",
+            "const nome = [payer.first_name, payer.last_name].filter(Boolean).join(' ');",
             "return [{ json: {",
-            "  plataforma: 'asaas',",
-            "  valor: venda.valor,",
-            "  moeda: 'BRL',",
-            "  email: typeof cliente.email === 'string' ? cliente.email : '',",
-            "  nome: typeof cliente.name === 'string' ? cliente.name : '',",
-            "  referencia: venda.paymentId",
+            "  plataforma: 'mercadopago',",
+            "  valor: Number(pay.transaction_amount || 0),",
+            "  moeda: pay.currency_id || 'BRL',",
+            "  email: typeof payer.email === 'string' ? payer.email : '',",
+            "  nome: nome,",
+            "  referencia: String(pay.id)",
             "} }];"
           ].join("\n")
         },
@@ -3391,8 +3390,8 @@ function buildVendasAsaasWorkflowJson() {
     ],
     connections: {
       "Webhook Vendas": { main: [[{ node: "Filtra evento", type: "main", index: 0 }]] },
-      "Filtra evento": { main: [[{ node: "Busca cliente", type: "main", index: 0 }]] },
-      "Busca cliente": { main: [[{ node: "Monta venda", type: "main", index: 0 }]] },
+      "Filtra evento": { main: [[{ node: "Busca pagamento", type: "main", index: 0 }]] },
+      "Busca pagamento": { main: [[{ node: "Monta venda", type: "main", index: 0 }]] },
       "Monta venda": { main: [[{ node: "Salvar venda", type: "main", index: 0 }]] }
     },
     pinData: {},
@@ -5774,13 +5773,16 @@ function normalizeMemberState(state) {
   if (!project.evolutionApiKey) {
     project.evolutionApiKey = "evo_api_" + generateRandomHex(24);
   }
-  // Token que o Asaas manda no header asaas-access-token (mín. 32 chars na criação do webhook)
-  if (!project.asaasWebhookToken) {
-    project.asaasWebhookToken = generateRandomHex(40);
+  // Token de segurança embutido na query string da URL do webhook de vendas
+  // (o Mercado Pago não envia header de autenticação configurável). Estados
+  // antigos reaproveitam o token do Asaas — o valor é arbitrário.
+  if (!project.mpWebhookToken) {
+    project.mpWebhookToken = project.asaasWebhookToken || generateRandomHex(40);
   }
-  // Lote 3.2: a plataforma de pagamento migrou da Stripe para o Asaas
-  if (project.paymentPlatform === "Stripe") {
-    project.paymentPlatform = "Asaas";
+  delete project.asaasWebhookToken;
+  // Plataforma de pagamento migrou: Stripe → Asaas (lote 3.2) → Mercado Pago (2026-07-22)
+  if (project.paymentPlatform === "Stripe" || project.paymentPlatform === "Asaas") {
+    project.paymentPlatform = "Mercado Pago";
   }
   if (!project.chatwootSecretKey) {
     project.chatwootSecretKey = generateRandomHex(64);
