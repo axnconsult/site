@@ -3,9 +3,11 @@ const COURSE_MODULES = [
     id: "module-1",
     number: 1,
     title: "Modelagem de Negocio",
-    summary: "Explore seu perfil, habilidades e o mercado para chegar a uma hipotese de negocio viavel e validada.",
+    summary: "Garanta o dominio e o e-mail do seu negocio e explore seu perfil, habilidades e o mercado para chegar a uma hipotese de negocio viavel e validada.",
     result: "Hipotese de negocio validada",
     stages: [
+      ["Preparar dominio", "Compre o dominio do seu negocio, adicione na Cloudflare e valide que a Cloudflare assumiu o DNS.", "technical", null, ["domain"]],
+      ["E-mail para certificados", "Registre o e-mail do seu negocio — ele sera usado depois para gerar os certificados de seguranca HTTPS.", "technical", null, ["email"]],
       ["Modelagem do negocio", "Transforme ideia, habilidades e restricoes em uma hipotese de negocio viavel.", "Vamos identificar o que o negocio vende, quais sinais de mercado existem e qual ideia principal faz mais sentido validar primeiro.", "business_modeling"]
     ]
   },
@@ -27,10 +29,10 @@ const COURSE_MODULES = [
     id: "module-3",
     number: 3,
     title: "Estrutura Digital",
-    summary: "Coloque toda a infraestrutura no ar: dominio, VPS, servicos base, atendimento automatico e credenciais prontas para uso.",
+    summary: "Coloque toda a infraestrutura no ar: VPS, DNS, servicos base, atendimento automatico e credenciais prontas para uso.",
     result: "Infraestrutura digital operacional com credenciais documentadas",
     stages: [
-      ["Dominio, VPS e DNS", "Compre o dominio e a VPS, conecte na Cloudflare e aponte os registros DNS.", "technical", null, ["domain", "vps-compra", "dns", "email"]],
+      ["VPS e DNS", "Contrate a VPS, anote o IP publico e aponte os registros DNS na Cloudflare.", "technical", null, ["vps-compra", "dns"]],
       ["Configuracao automatica", "Um script instala tudo: Docker, Swarm, Traefik, Portainer, Postgres, n8n, Evolution API e Chatwoot.", "technical", null, ["infra-auto"]],
       ["Chaves e credenciais", "Crie a chave de API da OpenAI e configure a credencial no n8n.", "technical", null, ["api-keys"]],
       ["Documento de infra", "Anote URLs de acesso e credenciais em um unico documento. Sem comandos — so revisao e registro.", "technical", null, ["infra-dados"]]
@@ -167,11 +169,11 @@ const WIZARD_STEPS = [
   {
     id: "email",
     title: "E-mail para certificados",
-    objective: "Registrar o e-mail do negocio para geracao dos certificados HTTPS.",
+    objective: "Registrar o e-mail do negocio — usado mais adiante para gerar os certificados HTTPS.",
     tutorial: [
       {
         heading: "1. Informe o e-mail do negócio",
-        body: `<p>Preencha o campo abaixo com o e-mail do seu negócio. Ele será usado pela infraestrutura para gerar e renovar automaticamente os certificados de segurança HTTPS de todos os seus subdomínios.</p>
+        body: `<p>Preencha o campo abaixo com o e-mail que o seu negócio vai usar — pode ser um Gmail. Mais adiante, no Módulo 3, a infraestrutura usa esse e-mail para gerar e renovar automaticamente os certificados de segurança HTTPS de todos os seus subdomínios.</p>
 <p>Use um e-mail real que você acessa — avisos de renovação de certificado chegam por aqui.</p>`
       }
     ],
@@ -773,7 +775,7 @@ const DEFAULT_MEMBER_STATE = {
   completedSteps: [],
   checklist: {},
   assistantThreads: {},
-  stateVersion: 2,
+  stateVersion: 3,
   updatedAt: null
 };
 
@@ -1372,14 +1374,15 @@ function renderModuleDetail() {
 
 function renderLessonDetail(module, index) {
   const stage = module.stages[index] || module.stages[0];
-  const isModule1 = module.id === "module-1";
+  const isWizardStage = isTechnicalStage(stage);
+  // Modelagem (Módulo 1): navegação controlada exclusivamente pelos agentes — esconde os botões
+  const isAgentLockedStage = module.id === "module-1" && !isWizardStage;
 
-  // Módulo 1: navegação é controlada exclusivamente pelos agentes — esconde os botões
   const nav = document.querySelector(".stage-navigation");
-  if (nav) nav.classList.toggle("hidden", isModule1);
+  if (nav) nav.classList.toggle("hidden", isAgentLockedStage);
 
-  // Kicker: no Módulo 1 mostra só o nome da etapa, sem "X de Y" para não sugerir navegação livre
-  document.querySelector("#stage-kicker").textContent = isModule1
+  // Kicker: na etapa agent-driven mostra só o nome, sem "X de Y" para não sugerir navegação livre
+  document.querySelector("#stage-kicker").textContent = isAgentLockedStage
     ? `Modulo ${module.number} — ${stage[0]}`
     : `Modulo ${module.number} - Etapa ${index + 1} de ${module.stages.length}`;
 
@@ -1390,12 +1393,11 @@ function renderLessonDetail(module, index) {
   document.querySelector("#previous-stage").disabled = index === 0;
   document.querySelector("#next-stage").textContent = index === module.stages.length - 1 ? "Concluir modulo" : "Avancar";
 
-  const isModule3 = isWizardModule(module);
-  document.querySelector("#stage-video-placeholder")?.classList.toggle("hidden", isModule3);
-  // No Módulo 3 a navegação fica entre as etapas e o assistente (via CSS order)
-  document.querySelector(".stage-layout")?.classList.toggle("is-wizard", isModule3);
+  document.querySelector("#stage-video-placeholder")?.classList.toggle("hidden", isWizardStage);
+  // Nas etapas técnicas a navegação fica entre as etapas e o assistente (via CSS order)
+  document.querySelector(".stage-layout")?.classList.toggle("is-wizard", isWizardStage);
 
-  if (isModule3) {
+  if (isWizardStage) {
     const steps = getLessonSteps(stage);
     ensureValidLessonStep(steps);
     renderLessonSteps(steps);
@@ -1473,9 +1475,11 @@ function fillTemplate(template) {
     .replaceAll("{{asaasWebhookToken}}", project.asaasWebhookToken || "TOKEN_WEBHOOK_ASAAS_AQUI");
 }
 
-// Módulos com layout de wizard técnico (passos guiados + assistente técnico)
-function isWizardModule(module) {
-  return ["module-3", "module-4", "module-5"].includes(module?.id);
+// Etapas com layout de wizard técnico (passos guiados + assistente técnico).
+// Vale para todo o conteúdo dos módulos 3-5 e para as duas primeiras etapas do
+// Módulo 1 (Preparar domínio e E-mail para certificados) — a Modelagem segue agent-driven.
+function isTechnicalStage(stage) {
+  return stage?.[2] === "technical";
 }
 
 function currentModule() {
@@ -1541,15 +1545,14 @@ function getLessonSteps(lesson) {
 
 function moveStage(direction) {
   const module = currentModule();
-
-  // Módulo 1: navegação manual bloqueada — progressão só via agentes
-  if (module.id === "module-1") return;
-
   const index = getStageIndex(module);
+  const stage = module.stages[index] || module.stages[0];
+
+  // Modelagem (Módulo 1): navegação manual bloqueada — progressão só via agentes
+  if (module.id === "module-1" && !isTechnicalStage(stage)) return;
 
   // Wizard: os botões percorrem os passos da etapa antes de trocar de etapa
-  if (isWizardModule(module)) {
-    const stage = module.stages[index] || module.stages[0];
+  if (isTechnicalStage(stage)) {
     const steps = getLessonSteps(stage);
     ensureValidLessonStep(steps);
     const stepIndex = steps.findIndex((step) => step.id === memberApp.state.currentLessonStep);
@@ -5604,7 +5607,7 @@ function buildLessonStepContent(step, lesson) {
 }
 
 function buildStageContent(stage, module) {
-  if (isWizardModule(module)) {
+  if (isTechnicalStage(stage)) {
     return `
       <div class="wizard-layout">
         <nav class="wizard-steps" id="lesson-steps"></nav>
@@ -5721,6 +5724,41 @@ function normalizeMemberState(state) {
     }
   }
 
+  // Migração stateVersion < 3: as etapas "Preparar domínio" e "E-mail para
+  // certificados" saíram do module-3.0 e viraram module-1.0 / module-1.1;
+  // a Modelagem de Negócio passou de module-1.0 para module-1.2.
+  // O gate por stateVersion depende do servidor persistir state_version
+  // (coluna em wizard_progress) — sem isso a migração re-rodaria a cada login
+  // e remaparia progresso novo de module-1.0 (domínio) como Modelagem.
+  if (state && (state.stateVersion || 1) < 3) {
+    const remapKey = (key) => {
+      const text = String(key);
+      if (text === "module-1.0" || text.startsWith("module-1.0.")) return text.replace("module-1.0", "module-1.2");
+      if (text.startsWith("module-3.0.domain.")) return text.replace("module-3.0.domain.", "module-1.0.domain.");
+      if (text.startsWith("module-3.0.email.")) return text.replace("module-3.0.email.", "module-1.1.email.");
+      return text;
+    };
+    const completedSteps = (Array.isArray(state.completedSteps) ? state.completedSteps : []).map(remapKey);
+    const checklist = Object.fromEntries(Object.entries(state.checklist || {}).map(([key, value]) => [remapKey(key), value]));
+    // Quem já tinha feito domínio/e-mail no antigo module-3.0 ganha as novas etapas do Módulo 1 concluídas
+    if (checklist["module-1.0.domain.done"] && !completedSteps.includes("module-1.0")) completedSteps.push("module-1.0");
+    if (checklist["module-1.1.email.done"] && !completedSteps.includes("module-1.1")) completedSteps.push("module-1.1");
+    state = {
+      ...state,
+      completedSteps,
+      checklist,
+      assistantThreads: Object.fromEntries(Object.entries(state.assistantThreads || {}).map(([key, value]) => [remapKey(key), value]))
+    };
+    if (String(state.currentLesson) === "module-1.0") {
+      // Estava no meio da Modelagem: segue nela, agora em module-1.2
+      state.currentLesson = "module-1.2";
+    } else if (String(state.currentLesson) === "module-3.0" && ["domain", "email"].includes(String(state.currentLessonStep))) {
+      // Estava no meio do domínio/e-mail dentro do módulo 3: leva para a nova etapa no Módulo 1
+      state.currentModule = "module-1";
+      state.currentLesson = state.currentLessonStep === "domain" ? "module-1.0" : "module-1.1";
+    }
+  }
+
   const projectName = state?.project?.name === "Meu negocio online" ? "" : state?.project?.name;
   const moduleId = COURSE_MODULES.some((module) => module.id === state?.currentModule)
     ? state.currentModule
@@ -5764,7 +5802,7 @@ function normalizeMemberState(state) {
     completedSteps: Array.isArray(state?.completedSteps) ? state.completedSteps : [],
     checklist: state?.checklist && typeof state.checklist === "object" ? state.checklist : {},
     assistantThreads: state?.assistantThreads && typeof state.assistantThreads === "object" ? state.assistantThreads : {},
-    stateVersion: 2
+    stateVersion: 3
   };
 }
 
@@ -5855,16 +5893,16 @@ function ensureAssistantThread(module, lesson) {
   }
 
   let opening;
-  if (module.id === "module-1") {
-    const agentId = lesson[3] || agentIdForStageKey(key);
-    opening = MODULE1_AGENT_OPENINGS[agentId]
-      || `Vamos trabalhar a etapa "${lesson[0]}". Pode começar.`;
-  } else if (isWizardModule(module)) {
+  if (isTechnicalStage(lesson)) {
     const steps = getLessonSteps(lesson);
     const first = steps[0];
     opening = first
       ? `Agora vamos configurar: ${lesson[0]}. Se travar em qualquer passo, me diga aqui o que esta vendo na tela — eu ajudo a resolver.`
       : `Vamos configurar esta parte da infraestrutura. Se travar, me descreva aqui o que esta vendo.`;
+  } else if (module.id === "module-1") {
+    const agentId = lesson[3] || agentIdForStageKey(key);
+    opening = MODULE1_AGENT_OPENINGS[agentId]
+      || `Vamos trabalhar a etapa "${lesson[0]}". Pode começar.`;
   } else {
     opening = `Vamos trabalhar a etapa "${lesson[0]}". Me conte o contexto do seu negocio para eu transformar isso em um proximo passo claro.`;
   }
@@ -5872,10 +5910,11 @@ function ensureAssistantThread(module, lesson) {
   memberApp.state.assistantThreads[key] = [{ role: "assistant", text: opening }];
 }
 
-// Anexos valem na entrevista do Módulo 1 (negócio/MVP existente) e na Identidade Visual
+// Anexos valem na entrevista da Modelagem (negócio/MVP existente) e na Identidade Visual
 // (logo/posts existentes). Mesmo gate no envio e na visibilidade do botão de anexo.
 function allowAttachments(module = currentModule()) {
-  return module.id === "module-1" || currentLessonKey() === "module-2.4";
+  if (currentLessonKey() === "module-2.4") return true;
+  return module.id === "module-1" && !isTechnicalStage(currentLesson());
 }
 
 // Anexos pendentes do chat. Vivem só em memória: viram input_file/input_image/input_text
@@ -6040,7 +6079,7 @@ async function requestLessonAgentAnswer(module, stage, input, thread = null, att
     }));
   }
 
-  if (isWizardModule(module)) {
+  if (isTechnicalStage(stage)) {
     const steps = getLessonSteps(stage);
     const activeStep = steps.find((s) => s.id === memberApp.state.currentLessonStep) || steps[0];
     if (activeStep) {
@@ -6055,8 +6094,9 @@ async function requestLessonAgentAnswer(module, stage, input, thread = null, att
     }
   }
 
-  // Módulos 1 e 2 são agent-driven (streaming SSE); demais são guias técnicos (JSON simples)
-  if (module.id === "module-1" || module.id === "module-2") {
+  // Etapas agent-driven (Modelagem e Módulo 2) usam streaming SSE; etapas técnicas
+  // (inclusive as duas primeiras do Módulo 1) são guias com assistente técnico (JSON simples)
+  if ((module.id === "module-1" || module.id === "module-2") && !isTechnicalStage(stage)) {
     return await streamLessonAgentAnswer(body, key);
   }
 
@@ -6139,8 +6179,9 @@ async function streamLessonAgentAnswer(body, key) {
 }
 
 function stageKeyForAgentId(agentId) {
-  // Deve espelhar stageKeyFromAgentId() do servidor
-  if (agentId === "business_modeling") return "module-1.0";
+  // No app, a Modelagem vive em module-1.2 (etapas 0 e 1 são domínio/e-mail);
+  // o servidor segue canonizando o Agente 01 como module-1.0.
+  if (agentId === "business_modeling") return "module-1.2";
   const module2Agents = ["target_audience", "strategic_differentiation", "strategic_pricing", "product_concept", "visual_identity"];
   const index = module2Agents.indexOf(agentId);
   return index >= 0 ? `module-2.${index}` : "";
@@ -6162,9 +6203,10 @@ function buildStagePayload(stage, key) {
 }
 
 function agentIdForStageKey(key) {
-  const index = Number(String(key || "").split(".")[1] || 0);
+  const [moduleId, stageStr] = String(key || "").split(".");
+  if (moduleId === "module-1") return "business_modeling";
+  const index = Number(stageStr || 0);
   return [
-    "business_modeling",
     "target_audience",
     "strategic_differentiation",
     "strategic_pricing",

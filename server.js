@@ -690,7 +690,9 @@ async function handleOperationAssistant(payload) {
   requireFields(payload, ["message", "module", "stage", "stageKey", "project"]);
 
   const moduleId = payload.module?.id || "";
-  const isTechnicalModule = !["module-1", "module-2"].includes(moduleId);
+  // Módulos 3+ são técnicos; o Módulo 1 também tem etapas técnicas (domínio e
+  // e-mail) — o cliente manda wizardStep nessas etapas, o que as identifica aqui
+  const isTechnicalModule = !["module-1", "module-2"].includes(moduleId) || Boolean(payload.wizardStep);
 
   try {
     if (isTechnicalModule) {
@@ -737,8 +739,9 @@ async function handleWizardSave(payload) {
       checklist_json,
       current_module,
       current_lesson,
+      state_version,
       updated_at
-    ) values ($1, $2::jsonb, $3, $4::jsonb, $5::jsonb, $6, $7, now())
+    ) values ($1, $2::jsonb, $3, $4::jsonb, $5::jsonb, $6, $7, $8, now())
     on conflict (member_id) do update set
       project_json = excluded.project_json,
       current_step = excluded.current_step,
@@ -746,6 +749,7 @@ async function handleWizardSave(payload) {
       checklist_json = excluded.checklist_json,
       current_module = excluded.current_module,
       current_lesson = excluded.current_lesson,
+      state_version = excluded.state_version,
       updated_at = now()
   `;
 
@@ -756,7 +760,8 @@ async function handleWizardSave(payload) {
     jsonValue(state.completedSteps),
     jsonValue(state.checklist),
     state.currentModule,
-    state.currentLesson
+    state.currentLesson,
+    state.stateVersion
   ]);
 
   return { ok: true, state };
@@ -844,6 +849,11 @@ async function ensureOperationalTables() {
     )
   `);
 
+  // Versão do formato do estado (migrações client-side em normalizeMemberState).
+  // Sem persistir isso, o cliente re-rodaria as migrações a cada login sobre
+  // estado já migrado. Linhas antigas ficam em 1 e migram uma única vez.
+  await query("alter table wizard_progress add column if not exists state_version integer not null default 1");
+
   await query("create index if not exists idx_wizard_progress_updated_at on wizard_progress (updated_at desc)");
 
   await query(`
@@ -924,7 +934,7 @@ function hashToken(token) {
 async function loadWizardState(memberId) {
   const result = await query(
     `
-      select project_json, current_step, completed_steps_json, checklist_json, current_module, current_lesson, updated_at
+      select project_json, current_step, completed_steps_json, checklist_json, current_module, current_lesson, state_version, updated_at
       from wizard_progress
       where member_id = $1
     `,
@@ -943,6 +953,7 @@ async function loadWizardState(memberId) {
     checklist: row.checklist_json,
     currentModule: row.current_module,
     currentLesson: row.current_lesson,
+    stateVersion: row.state_version,
     updatedAt: row.updated_at
   });
 }
@@ -963,6 +974,7 @@ function defaultWizardState() {
     currentLesson: "module-1.0",
     completedSteps: [],
     checklist: {},
+    stateVersion: 3,
     updatedAt: null
   };
 }
@@ -997,6 +1009,9 @@ function sanitizeWizardState(state) {
     currentLesson: nullableText(state?.currentLesson) || fallback.currentLesson,
     completedSteps: Array.isArray(state?.completedSteps) ? state.completedSteps.map(String) : [],
     checklist: state?.checklist && typeof state.checklist === "object" ? state.checklist : {},
+    // Clientes antigos (JS em cache) não mandam stateVersion — cai para 1 e o
+    // cliente novo re-roda as migrações, que são idempotentes por gate de versão
+    stateVersion: Number(state?.stateVersion) || 1,
     updatedAt: state?.updatedAt || new Date().toISOString()
   };
 }
