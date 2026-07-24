@@ -1,0 +1,25 @@
+version: "3.7"
+
+services:
+  gestao:
+    image: nginx:alpine
+    volumes:
+      - /opt/stacks/gestao/html:/usr/share/nginx/html:ro
+    networks:
+      - network_swarm_public
+    deploy:
+      mode: replicated
+      replicas: 1
+      labels:
+        - traefik.enable=true
+        - traefik.http.routers.gestao.rule=Host(`gestao.djubsbrigadeiria.com.br`)
+        - traefik.http.routers.gestao.entrypoints=websecure
+        - traefik.http.routers.gestao.tls.certresolver=letsencryptresolver
+        - traefik.http.routers.gestao.service=gestao
+        - traefik.http.services.gestao.loadbalancer.server.port=80
+        - traefik.http.middlewares.gestao-auth.basicauth.users=djubsbrigadeiria:$$2y$$05$$wQvRddN6A/v87k8kghPYq.55hx7bc8GWQJQb3e4oklKYSxJA27CJu
+        - traefik.http.routers.gestao.middlewares=gestao-auth
+
+networks:
+  network_swarm_public:
+    external: true

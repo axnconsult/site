@@ -1,0 +1,187 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="robots" content="noindex, nofollow">
+  <title>Djubs Brigadeiria — Painel de Gestão</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=DM+Serif+Display&family=Poppins:wght@400;600&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+
+<header class="topo">
+  <div class="topo-linha">
+    <div class="marca">
+      <span class="marca-nome">Djubs Brigadeiria</span>
+      <h1 class="marca-titulo">Painel de Gestão</h1>
+    </div>
+    <button id="btn-tema" class="btn-tema" type="button" aria-label="Alternar tema claro/escuro">🌙</button>
+  </div>
+  <nav class="abas" role="tablist">
+    <button class="aba" data-aba="administracao" role="tab">Administração</button>
+    <button class="aba" data-aba="marketing" role="tab">Marketing</button>
+    <button class="aba" data-aba="vendas" role="tab">Vendas</button>
+  </nav>
+</header>
+
+<main>
+
+  <!-- ================= ABA ADMINISTRAÇÃO ================= -->
+  <section id="aba-administracao" class="painel-aba" hidden>
+    <section class="secao">
+      <h2 class="secao-titulo">Conselheiro de Administração</h2>
+      <div class="chat" data-dominio="administracao"></div>
+    </section>
+
+    <section class="secao">
+      <h2 class="secao-titulo">Métricas do negócio</h2>
+      <div class="cards" id="cards-admin">
+        <div class="card metrica">
+          <span class="metrica-valor" id="m-total-leads">—</span>
+          <span class="metrica-rotulo">Total de leads</span>
+        </div>
+        <div class="card metrica">
+          <span class="metrica-valor" id="m-leads-7d">—</span>
+          <span class="metrica-rotulo">Leads dos últimos 7 dias</span>
+        </div>
+        <div class="card metrica">
+          <span class="metrica-valor" id="m-conversoes-7d">—</span>
+          <span class="metrica-rotulo">Conversões dos últimos 7 dias</span>
+        </div>
+      </div>
+    </section>
+  </section>
+
+  <!-- ================= ABA MARKETING ================= -->
+  <section id="aba-marketing" class="painel-aba" hidden>
+    <section class="secao">
+      <h2 class="secao-titulo">Conselheiro de Marketing</h2>
+      <div class="chat" data-dominio="marketing"></div>
+    </section>
+
+    <section class="secao">
+      <h2 class="secao-titulo">Grade de Postagens</h2>
+      <div id="grade-area">
+        <p class="texto-suave">Carregando sua grade…</p>
+      </div>
+    </section>
+
+    <section class="secao">
+      <h2 class="secao-titulo">Peças de divulgação</h2>
+      <p class="texto-suave">Gere as peças da grade aprovada, um formato por vez — o arquivo baixa pronto para o Google Planilhas.</p>
+      <div class="botoes-linha" id="pecas-botoes">
+        <button class="btn" data-tipo="reels" type="button">🎬 Reels/Shorts</button>
+        <button class="btn" data-tipo="carrossel" type="button">🖼️ Carrossel</button>
+        <button class="btn" data-tipo="feed" type="button">📷 Post de feed</button>
+      </div>
+      <p id="pecas-status" class="texto-suave" hidden></p>
+      <div id="pecas-historico-bloco" hidden>
+        <h3 class="sub-titulo">Últimas peças</h3>
+        <ul id="pecas-historico" class="lista-pecas"></ul>
+      </div>
+      <div id="peca-detalhe" hidden></div>
+    </section>
+
+    <section class="secao">
+      <h2 class="secao-titulo">Fábricas</h2>
+      <div class="cards cards-fabricas">
+
+        <div class="card fabrica">
+          <h3 class="fabrica-titulo">🎬 Fábrica de Vídeos</h3>
+          <p class="texto-suave">Cole um roteiro de Reels gerado acima (do 🎬 até a legenda). O vídeo pronto chega no seu WhatsApp em ~3 minutos.</p>
+          <textarea id="video-roteiro" rows="6" placeholder="🎬 Título do Reels&#10;Cena 1: …&#10;Cena 2: …&#10;Legenda: …"></textarea>
+          <button id="btn-video" class="btn" type="button" disabled>Gerar vídeo</button>
+          <p id="video-status" class="texto-suave" hidden></p>
+          <p class="aviso-custo">Cada envio consome ~US$ 1 do seu crédito HeyGen.</p>
+        </div>
+
+        <div class="card fabrica">
+          <h3 class="fabrica-titulo">🖼️ Fábrica de Imagens</h3>
+          <label class="campo-rotulo" for="img-prompt">Descreva a imagem</label>
+          <textarea id="img-prompt" rows="3" placeholder="Ex.: brigadeiros gourmet em caixa de presente, fundo creme, luz suave"></textarea>
+          <label class="campo-rotulo" for="img-texto">Texto na arte (opcional)</label>
+          <input id="img-texto" type="text" placeholder="Ex.: Encomendas abertas!">
+          <div class="selects-linha">
+            <label class="campo-rotulo">Finalidade
+              <select id="img-finalidade">
+                <option value="post">Post</option>
+                <option value="logo">Logo</option>
+                <option value="banner">Banner</option>
+                <option value="site">Imagem do site</option>
+              </select>
+            </label>
+            <label class="campo-rotulo">Formato
+              <select id="img-formato">
+                <option value="retrato">Retrato 4:5</option>
+                <option value="quadrado">Quadrada</option>
+                <option value="paisagem">Paisagem</option>
+              </select>
+            </label>
+          </div>
+          <button id="btn-imagem" class="btn" type="button" disabled>Gerar imagem</button>
+          <p id="img-status" class="texto-suave" hidden></p>
+          <div id="img-resultado" hidden></div>
+          <p class="aviso-custo">Consome crédito OpenAI (~US$ 0,25 por imagem).</p>
+        </div>
+
+        <div class="card fabrica">
+          <h3 class="fabrica-titulo">🎠 Fábrica de Carrosséis</h3>
+          <p class="texto-suave">Cole as linhas de UM carrossel gerado acima (do slide Capa até a linha Legenda). As 5 imagens prontas chegam no seu WhatsApp em ~3 minutos.</p>
+          <textarea id="carrossel-conteudo" rows="6" placeholder="| Capa | … |&#10;| Slide 2 | … |&#10;| Slide 3 | … |&#10;| Slide 4 | … |&#10;| Legenda | … |"></textarea>
+          <button id="btn-carrossel" class="btn" type="button" disabled>Gerar carrossel</button>
+          <p id="carrossel-status" class="texto-suave" hidden></p>
+          <p class="aviso-custo">Cada envio consome ~US$ 1 do seu crédito OpenAI.</p>
+        </div>
+
+      </div>
+    </section>
+  </section>
+
+  <!-- ================= ABA VENDAS ================= -->
+  <section id="aba-vendas" class="painel-aba" hidden>
+    <section class="secao">
+      <h2 class="secao-titulo">Conselheiro de Vendas</h2>
+      <div class="chat" data-dominio="vendas"></div>
+    </section>
+
+    <section class="secao">
+      <h2 class="secao-titulo">Resultados recentes</h2>
+      <div class="cards">
+        <div class="card metrica">
+          <span class="metrica-valor" id="v-leads-7d">—</span>
+          <span class="metrica-rotulo">Leads dos últimos 7 dias</span>
+        </div>
+        <div class="card metrica">
+          <span class="metrica-valor" id="v-conversoes-7d">—</span>
+          <span class="metrica-rotulo">Conversões dos últimos 7 dias</span>
+        </div>
+      </div>
+    </section>
+
+    <section class="secao">
+      <h2 class="secao-titulo">Últimos leads</h2>
+      <div class="tabela-scroll">
+        <table class="tabela-leads">
+          <thead>
+            <tr><th>Nome</th><th>E-mail</th><th>WhatsApp</th><th>Mensagem</th><th>Data</th></tr>
+          </thead>
+          <tbody id="leads-corpo">
+            <tr><td colspan="5" class="texto-suave">Carregando…</td></tr>
+          </tbody>
+        </table>
+      </div>
+    </section>
+  </section>
+
+</main>
+
+<footer class="rodape">
+  <p>Djubs Brigadeiria · Painel de Gestão</p>
+</footer>
+
+<script src="script.js"></script>
+</body>
+</html>
