@@ -3631,7 +3631,10 @@ function buildFabricaVideosWorkflowJson() {
         position: [860, 140],
         credentials: {
           openAiApi: { id: "SUBSTITUA_PELO_ID_DA_CREDENCIAL", name: "OpenAi account" }
-        }
+        },
+        retryOnFail: true,
+        maxTries: 3,
+        waitBetweenTries: 5000
       },
       {
         parameters: {
@@ -3671,6 +3674,8 @@ function buildFabricaVideosWorkflowJson() {
         type: "n8n-nodes-base.httpRequest",
         typeVersion: 4.2,
         position: [1300, 140],
+        // Sem retryOnFail aqui: um timeout depois do render ter sido criado geraria
+        // um segundo video cobrado. Falha transiente aqui cai no aviso de erro do fluxo.
         onError: "continueErrorOutput"
       },
       {
@@ -3701,7 +3706,10 @@ function buildFabricaVideosWorkflowJson() {
         name: "Consulta status",
         type: "n8n-nodes-base.httpRequest",
         typeVersion: 4.2,
-        position: [1740, 60]
+        position: [1740, 60],
+        retryOnFail: true,
+        maxTries: 3,
+        waitBetweenTries: 5000
       },
       {
         parameters: {
@@ -4115,7 +4123,10 @@ function buildFabricaCarrosseisWorkflowJson() {
         credentials: {
           openAiApi: { id: "SUBSTITUA_PELO_ID_DA_CREDENCIAL", name: "OpenAi account" }
         },
-        onError: "continueErrorOutput"
+        onError: "continueErrorOutput",
+        retryOnFail: true,
+        maxTries: 3,
+        waitBetweenTries: 5000
       },
       {
         parameters: {
@@ -4172,7 +4183,10 @@ function buildFabricaCarrosseisWorkflowJson() {
         credentials: {
           openAiApi: { id: "SUBSTITUA_PELO_ID_DA_CREDENCIAL", name: "OpenAi account" }
         },
-        onError: "continueErrorOutput"
+        onError: "continueErrorOutput",
+        retryOnFail: true,
+        maxTries: 3,
+        waitBetweenTries: 5000
       },
       {
         parameters: {
